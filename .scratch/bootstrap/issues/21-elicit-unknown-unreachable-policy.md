@@ -15,4 +15,5 @@
 - [ ] The `elicit` skill is run with the maintainer in a live session.
 - [ ] Every open point above is settled and recorded before any clause is written.
 - [ ] The clauses cover each failure-mode row the §8 table assigns to §9.6. `check-specs` and `analyse-specs` report nothing.
+- [ ] Any open question 19 left on the default or valid range of an unreachable-window override is closed.
 - [ ] The hand-back gives the `plan-spec` obligation count and drafts the spec-then-build follow-up ticket.

@@ -14,7 +14,7 @@
 
 - [ ] TLS uses explicit ssl options: `verify_peer`, the SA `ca.crt` as `cacertfile`, and a hostname check that passes against the IP in `KUBERNETES_SERVICE_HOST` (IP-SAN). The OTP version is the one from 01.
 - [ ] A negative test with a wrong CA fails the handshake visibly. It must not fall back to an unverified connection.
-- [ ] The token is re-read from disk on a schedule and never cached for the life of the process. This is shown with a short-lived projected token across at least one rotation.
+- [ ] The token is re-read from disk on a schedule and never cached for the life of the process. The proof uses a custom projected token volume with a short `expirationSeconds` (600, the minimum), because the API server extends the default token's expiry. Rotation alone proves nothing, since the old token stays valid until it expires. The same knarr process must keep succeeding after the original token's expiry time. Logs show the token file's hash changing. The token itself is never logged.
 - [ ] knarr LISTs pods in its namespace and PATCHes one annotation on one pod with a merge patch. The Role grants exactly the verbs used.
 - [ ] Request builders and response decoders are pure. `send` is injected. Unit tests use a closure fake and a birdie snapshot of each request.
 - [ ] The findings confirm or amend the §9.2 decision in a decision record.

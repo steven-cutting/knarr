@@ -30,4 +30,5 @@ It also covers:
 - [ ] The `elicit` skill is run with the maintainer in a live session.
 - [ ] Every open point above is settled and recorded before any clause is written, including the restart success threshold handed to §9.16.
 - [ ] The clauses cover cleanup scope, expiry, marker freshness, startup reconciliation, crash leftovers and the uninstall procedure. `check-specs` and `analyse-specs` report nothing.
+- [ ] Any open question 19 left on the default or valid range of a staleness or expiry override is closed.
 - [ ] The hand-back gives the `plan-spec` obligation count and drafts the spec-then-build follow-up ticket.

@@ -18,3 +18,4 @@
 - [ ] §9.15 is decided: kustomize, Helm, or both, with the namespaced Role.
 - [ ] cosign signing, SBOM and build provenance are evaluated, and each is adopted or deferred with a reason.
 - [ ] A decision record is written, and follow-ups are drafted for the release workflow.
+- [ ] A round-2 follow-up is drafted for the production rollout and acceptance on GKE Standard (OVERVIEW §1). It is marked needs-human and MVP critical path: yes. It is blocked by the spec-then-build follow-ups and the release run, plus GKE Standard access (external). It marks every cloud action **authorization required**. Its acceptance needs evidence that a real production workload ran on a published knarr release, with the GKE version, the release digest and the teardown or handover recorded.

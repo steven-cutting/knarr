@@ -29,4 +29,5 @@ A §3 success criterion requires that the patch rate stays within the configured
 - [ ] The `elicit` skill is run with the maintainer in a live session.
 - [ ] Every open point above is settled and recorded before any clause is written, including the write-budget threshold handed to §9.16.
 - [ ] The clauses cover the poll schedule, bounded concurrency with jitter, no overlapping polls, the per-pod and global write limits, APF and 429 back-off, and the chosen feature-gate check. `check-specs` and `analyse-specs` report nothing.
+- [ ] Any open question 19 left on the default or valid range of a poll, concurrency or write-limit override is closed.
 - [ ] The hand-back gives the `plan-spec` obligation count and drafts the spec-then-build follow-up ticket.

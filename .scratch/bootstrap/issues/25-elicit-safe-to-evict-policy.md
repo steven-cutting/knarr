@@ -19,6 +19,6 @@ S2a (15) supplies the upstream CA evidence. S2b (16) may amend the clauses once 
 **Status:** needs-human
 
 - [ ] The `elicit` skill is run with the maintainer in a live session.
-- [ ] Every open point above is settled and recorded before any clause is written. Each one cites the S2a evidence it relies on.
+- [ ] Every open point above is settled and recorded before any clause is written. Each one cites the S2a evidence it relies on, and S2b's (16) if that has landed.
 - [ ] The clauses cover the threshold, the remove-versus-`"true"` rule, local-storage pods and node-pinning protection. `check-specs` and `analyse-specs` report nothing.
-- [ ] The hand-back gives the `plan-spec` obligation count, drafts the spec-then-build follow-up ticket, and notes which clauses S2b must confirm.
+- [ ] The hand-back gives the `plan-spec` obligation count, drafts the spec-then-build follow-up ticket, and, if 16 has not landed, notes which clauses S2b must confirm.

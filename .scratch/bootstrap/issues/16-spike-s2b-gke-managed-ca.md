@@ -4,7 +4,7 @@
 
 **What to build:** Evidence that GKE's managed CA treats `safe-to-evict` flips the way S2a found, or a clear statement of how it differs, fed back into the §9.9 policy.
 
-**Non-goals:** Production rollout. A GKE CI tier.
+**Non-goals:** Production rollout (28 drafts it as a round-2 follow-up). A GKE CI tier.
 
 **Blocked by:** 15, plus GKE Standard access (external)
 
@@ -15,6 +15,6 @@
 - [ ] **Authorization required:** every cloud action (cluster and node-pool creation, image push, teardown) is approved by the maintainer before it runs.
 - [ ] S2a's three experiments run on a GKE Standard node pool with autoscaling on. The GKE version and the autoscaling profile are recorded.
 - [ ] Any difference from S2a is recorded, with evidence.
-- [ ] The §9.9 clauses from 25 are confirmed, or an amendment is drafted.
+- [ ] If 25 is done, its §9.9 clauses are confirmed, or an amendment is drafted as a follow-up. If 25 is not done, the GKE findings are recorded in the decision record for 25 to cite.
 - [ ] All cloud resources are torn down, and the hand-back notes show it.
 - [ ] A decision record is written or amended, and follow-ups are drafted.

@@ -19,4 +19,5 @@
 - [ ] The `elicit` skill is run with the maintainer in a live session.
 - [ ] Every open point above is settled and recorded before any clause is written.
 - [ ] The clauses cover the endpoint shape, discovery, auth, network compatibility, the drain states and readiness guidance. `check-specs` and `analyse-specs` report nothing.
+- [ ] Any open question 19 left on the default or valid values of an endpoint override is closed.
 - [ ] The hand-back gives the `plan-spec` obligation count and drafts the spec-then-build follow-up ticket.

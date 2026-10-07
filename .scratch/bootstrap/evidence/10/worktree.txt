@@ -1,0 +1,61 @@
+date: 2026-10-07T10:00Z
+one/knarr                                    -> knarr-9ef2a754 (14 chars)
+two/knarr                                    -> knarr-298757d5 (14 chars)
+three/knarr-feature-alongbranchname-v2       -> knarr-feature-alongbran-ffc4eabc (32 chars)
+
+== outside the worktrees, before
+/Users/scutting/.kube/config 3a401f41d19519f8
+/Users/scutting/.kwok absent
+/Users/scutting/.k3d absent
+/Users/scutting/.config/k3d eb4bd64f7014f7d4
+
+== kind: three clusters created concurrently
+knarr-9ef2a754                     https://127.0.0.1:64485    kubeconfig one/knarr/.cluster/kubeconfig
+knarr-298757d5                     https://127.0.0.1:64484    kubeconfig two/knarr/.cluster/kubeconfig
+knarr-feature-alongbran-ffc4eabc   https://127.0.0.1:64483    kubeconfig three/knarr-feature-alongbranchname-v2/.cluster/kubeconfig
+ok   every apiserver has its own host port, and every kubeconfig one context
+host binding of knarr-9ef2a754-control-plane: 127.0.0.1:64485 
+ok   each kubeconfig reaches its own cluster: whoami read back names it, three times
+ok   knarr-standin:worktree-25733 loaded concurrently into all three and runs with imagePullPolicy: Never
+ok   deleted concurrently: no container, network, volume or state dir left
+
+== k3d: three clusters created concurrently
+knarr-9ef2a754                     https://127.0.0.1:32771    kubeconfig one/knarr/.cluster/kubeconfig
+knarr-298757d5                     https://127.0.0.1:32772    kubeconfig two/knarr/.cluster/kubeconfig
+knarr-feature-alongbran-ffc4eabc   https://127.0.0.1:32773    kubeconfig three/knarr-feature-alongbranchname-v2/.cluster/kubeconfig
+ok   every apiserver has its own host port, and every kubeconfig one context
+host binding of k3d-knarr-9ef2a754-server-0: 127.0.0.1:32771 
+ok   each kubeconfig reaches its own cluster: whoami read back names it, three times
+ok   knarr-standin:worktree-25733 loaded concurrently into all three and runs with imagePullPolicy: Never
+ok   deleted concurrently: no container, network, volume or state dir left
+
+== kwokctl: three clusters created concurrently
+knarr-9ef2a754                     https://127.0.0.1:64590    kubeconfig one/knarr/.cluster/kubeconfig
+knarr-298757d5                     https://127.0.0.1:64588    kubeconfig two/knarr/.cluster/kubeconfig
+knarr-feature-alongbran-ffc4eabc   https://127.0.0.1:64589    kubeconfig three/knarr-feature-alongbranchname-v2/.cluster/kubeconfig
+ok   every apiserver has its own host port, and every kubeconfig one context
+host binding of kwok-knarr-9ef2a754-kube-apiserver: 0.0.0.0:64590 [::]:64590 
+ok   each kubeconfig reaches its own cluster: whoami read back names it, three times
+n/a  image load: kwok pods never run
+ok   deleted concurrently: no container, network, volume or state dir left
+
+== envtest: three clusters created concurrently
+knarr-9ef2a754                     https://127.0.0.1:64665    kubeconfig one/knarr/.cluster/kubeconfig
+knarr-298757d5                     https://127.0.0.1:64662    kubeconfig two/knarr/.cluster/kubeconfig
+knarr-feature-alongbran-ffc4eabc   https://127.0.0.1:64668    kubeconfig three/knarr-feature-alongbranchname-v2/.cluster/kubeconfig
+ok   every apiserver has its own host port, and every kubeconfig one context
+ok   each kubeconfig reaches its own cluster: whoami read back names it, three times
+n/a  image load: envtest has no kubelet
+ok   deleted concurrently: no container, network, volume or state dir left
+
+== control: kwokctl's own default port, two clusters created at once
+collided: both clusters were given host port 32766
+control-a apiserver: not ready, restarting, restarts 2
+control-b apiserver: not ready, running, restarts 0
+
+== outside the worktrees, after
+/Users/scutting/.kube/config 3a401f41d19519f8
+/Users/scutting/.kwok absent
+/Users/scutting/.k3d absent
+/Users/scutting/.config/k3d eb4bd64f7014f7d4
+ok   nothing outside the worktrees changed

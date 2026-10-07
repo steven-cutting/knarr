@@ -14,16 +14,63 @@
 
 **MVP critical path:** yes. Every later lane builds on it.
 
-**Status:** ready-for-agent
+**Status:** done. See [the hand-back notes](#hand-back-notes) and the [evidence](../evidence/03/README.md).
 
-- [ ] A Gleam application skeleton builds, with one passing gleeunit test.
-- [ ] The pixi manifest and lockfile follow 01 and are committed. The lock check fails on drift and never rewrites the lock.
-- [ ] The Justfile has setup, develop, format and check groups, and `just --list` shows them.
-- [ ] `just check` is read-only and runs the lock check, `gleam format --check`, `gleam build --warnings-as-errors`, `gleam test`, the TOML check and lint (typos, markdownlint, shellcheck and the others 01 settled), all through the snapshot runner from 02. A recipe that modifies any tracked or untracked-unignored file fails the gate.
-- [ ] `manifest.toml` drift fails the gate rather than being rewritten, as 01 decided.
-- [ ] There are two prek configs, read-only and fix. Every remote hook is pinned to a full commit SHA with a version comment. Every recipe inside `just check` is read-only. Outside the gate, only `just fix`, `just initialize` (03, 07) and the snapshot review and accept recipes (08) write files, and only `just fix` and the snapshot accept recipe may touch tracked files.
-- [ ] The dotfiles are in place: editorconfig, gitattributes and gitignore. The gitignore covers build output, the pixi environment, the tool directory and `ai_tmp/`. The ticket decides whether `.scratch/` is tracked.
-- [ ] `just initialize` is the one first-run command and the only step that needs network. The docs say plainly that an agent needs an explicit network grant for that first run. After it, `just check` passes offline.
-- [ ] Hook installation runs only from the primary checkout. In a linked worktree `just initialize` skips the hook step with a printed notice and still completes the rest (pixi environment, tool directory), so a worktree reaches a green `just check` without hooks (11).
-- [ ] One branch-name convention (for example `ticket/NN-slug`) is fixed and stated where lanes will read it.
-- [ ] An Apache-2.0 LICENSE is committed.
+- [x] A Gleam application skeleton builds, with one passing gleeunit test.
+- [x] The pixi manifest and lockfile follow 01 and are committed. The lock check fails on drift and never rewrites the lock.
+- [x] The Justfile has setup, develop, format and check groups, and `just --list` shows them.
+- [x] `just check` is read-only and runs the lock check, `gleam format --check`, `gleam build --warnings-as-errors`, `gleam test`, the TOML check and lint (typos, markdownlint, shellcheck and the others 01 settled), all through the snapshot runner from 02. A recipe that modifies any tracked or untracked-unignored file fails the gate.
+- [x] `manifest.toml` drift fails the gate rather than being rewritten, as 01 decided.
+- [x] There are two prek configs, read-only and fix. Every remote hook is pinned to a full commit SHA with a version comment. Every recipe inside `just check` is read-only. Outside the gate, only `just fix`, `just initialize` (03, 07) and the snapshot review and accept recipes (08) write files, and only `just fix` and the snapshot accept recipe may touch tracked files.
+- [x] The dotfiles are in place: editorconfig, gitattributes and gitignore. The gitignore covers build output, the pixi environment, the tool directory and `ai_tmp/`. The ticket decides whether `.scratch/` is tracked.
+- [x] `just initialize` is the one first-run command and the only step that needs network. The docs say plainly that an agent needs an explicit network grant for that first run. After it, `just check` passes offline.
+- [x] Hook installation runs only from the primary checkout. In a linked worktree `just initialize` skips the hook step with a printed notice and still completes the rest (pixi environment, tool directory), so a worktree reaches a green `just check` without hooks (11).
+- [x] One branch-name convention (for example `ticket/NN-slug`) is fixed and stated where lanes will read it.
+- [x] An Apache-2.0 LICENSE is committed.
+
+## Hand-back notes
+
+Each box above is met on branch `03-foundation`:
+
+- **Gleam skeleton:** `src/knarr.gleam`, with one gleeunit test in `test/knarr_test.gleam`.
+- **pixi:** `pixi.toml` is 0003's manifest block byte for byte, plus 0004's three Python pins after `shellcheck`. `pixi.lock` is solved for both platforms, with the same linux-64 erlang build 0003 recorded. `just lock-check` is `pixi lock --check --offline --dry-run`, and the [evidence](../evidence/03/README.md) shows it failing on drift without rewriting the lock.
+- **Justfile groups:** `just --list` shows setup, develop, format and check.
+- **The gate:** `just check` runs `lock-check`, `manifest-check`, `format-check`, `build` (with `--warnings-as-errors`), `test`, `test-checkers`, `toml-check` and `lint` through the copied snapshot runner, which appends `check-clean`. `lint` runs typos, markdownlint, lychee (offline), shellcheck, editorconfig-checker, ruff, actionlint, ripsecrets and prek's builtin checks. `test-checkers` holds the snapshot-contract tests, including a writing recipe that fails the gate.
+- **manifest.toml:** `manifest-check` runs before every gleam recipe and fails on drift, and `build` and `test` end with `git diff --exit-code manifest.toml`.
+- **Hook configs:** `.pre-commit-config.yaml` is read-only and `.pre-commit-fix.yaml` repairs. Every hook is `repo: local` or `repo: builtin`, so no remote hook exists. `test_hook_configs.py` fails any future remote hook whose `rev` is not a full SHA with a version comment, and any read-only entry with a fixing flag. Only `fix` and `initialize` write files, and only `fix` edits tracked ones.
+- **Dotfiles:** `.editorconfig`, `.gitattributes`, `.gitignore`. `.scratch/` stays tracked, which the gitignore and README say.
+- **First run:** the README states that `just initialize` is the only networked step and that an agent needs an explicit network grant for it. The evidence shows `just check` passing with network denied.
+- **Hooks from the primary checkout only:** `scripts/install-hooks.sh` compares the git directory with the common directory.
+- **Branch convention:** `NN-slug`, stated in the root README and the bootstrap README.
+- **LICENSE:** the Apache-2.0 text from apache.org, byte-identical to libpawdoku's.
+
+These depart from the ticket or the decisions:
+
+- **The branch convention is `NN-slug`, not `ticket/NN-slug`.** The ticket gave `ticket/NN-slug` as an example. Every existing lane branch (`02-gate-checkers-decision`, `03-foundation`, `10-spike-local-cluster`) and worktree already used `NN-slug`, which is the ticket's file name without `.md`. So no branch needed renaming.
+- **The manifest pre-check is Python, not taplo and an escript.** `scripts/checks/manifest_check.py` reads both files with `tomllib` and applies the escript's rule. It also refuses a `gleam.toml` that has both dev-table spellings at once, which the escript did not consider. Its pytest tests cover 0003's six cases and assert that nothing is written.
+- **Every hook entry runs through `scripts/with-env.sh`.** This closes 01's unverified note that hooks run without the Justfile's `PATH`. The wrapper puts the pixi environment and `.tools/bin` first, and the evidence proves it with a commit under `PATH=/usr/bin:/bin`.
+- **The installer accepts `file://` URLs**, so its tests can serve pins without network. Redirects may only go to https, and a test holds every committed `tools.txt` URL to https. A rerun skips a tool whose installed pin line is unchanged, so it does not re-hash an installed binary. A changed pin always downloads and checks again.
+- **Scripts are mode 644 and run as `sh` or `python3`**, matching the evidence scripts. So the read-only config omits `check-shebang-scripts-are-executable`.
+- **Two files from ticket 10 changed.** markdownlint 0.41.1, which markdownlint-cli2 0.23.3 bundles, adds MD060. MD060 rejects `|---|` delimiter rows in `docs/decisions/0007-local-cluster.md` and `evidence/10/README.md`. That README also began with a stray `|`. Both are fixed.
+- **Evidence is excluded from the layout hooks.** gleam-format and editorconfig-checker skip `.scratch/bootstrap/evidence/`, and the fix config never touches it, because transcripts are recorded output. typos, markdownlint, shellcheck and ripsecrets still read it.
+- **taplo's column width is 100**, so it leaves 0003's `pixi.toml` exactly as written. taplo skips gleam's `manifest.toml`.
+
+Found while gathering the evidence:
+
+- A `[feature.*]` table that no environment uses is not drift. `pixi lock --check` passes it, because the lock still satisfies every environment. A drift test has to move a pin that an environment installs.
+- markdownlint-cli2 merges the config's `globs` with the files a hook passes, so each hook run lints the whole repository (about 40 files). It is fast enough today.
+- `gleam deps download` writes nothing tracked when the manifest agrees, so `initialize` can end with `git diff --exit-code manifest.toml`.
+
+Not verified:
+
+- Nothing ran on linux-64. 05's first CI run is the first native linux-64 gate.
+- The first-run time (8 s) used warm pixi and Gleam caches. 11 records a cold one.
+- Hooks were installed only in a throwaway clone. The maintainer's primary checkout was not touched.
+
+### For other lanes
+
+- **05:** call `just check`, or the check-group recipes one per job. The setup is `pixi install --locked`, then `just initialize`. In CI's checkout, initialize also installs the pre-commit hook, which is harmless there. actionlint is already a hook, and it starts checking once `.github/workflows/` exists.
+- **06, 07, 09:** add your table to `checks.toml`, your checker to `scripts/checks/` with tests in `scripts/checks/tests/`, and your recipe name to the `check` recipe's list in the Justfile. `_project.table()` and `_project.predicates()` are tested and fail closed. lychee already runs offline as a hook. 06 may move it into its own recipe.
+- **07:** add the two allium lines to `tools.txt`. The installer matches the archive member by basename.
+- **08:** add the snapshot review and accept recipes outside the check group. Keep any snapshot output a test run may leave behind gitignored, or the gate trips.
+- **11:** rerun [fresh-clone.sh](../evidence/03/fresh-clone.sh) on a cold machine for the timings.

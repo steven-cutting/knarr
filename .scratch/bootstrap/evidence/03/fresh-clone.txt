@@ -1,0 +1,58 @@
+date: 2026-10-07T17:34Z
+host: Darwin arm64
+pixi: pixi 0.81.0
+commit: 2cc1601 (03-foundation)
+
+ok   a fresh clone is a primary checkout
+
+== first run (network): pixi install --locked, then just initialize
+ok   first run took 8s (pixi and gleam caches may be warm on this machine)
+     sh scripts/initialize.sh
+     ✔ The default environment has been installed.
+          rebar3 3.27.1 Sigstore bundle verified
+     ok   rebar3 3.27.1 installed (sha256 matches the pin)
+     ok   ripsecrets 0.1.11 installed (sha256 matches the pin)
+     ok   editorconfig-checker 4.0.2 installed (sha256 matches the pin)
+     manifest.toml [requirements] matches gleam.toml
+     Downloading packages
+      Downloaded 2 packages in 0.01s
+     Installed Git hook at `.git/hooks/pre-commit`
+     
+     Ready. Next: just check (no network needed).
+     Nothing has been staged, committed or pushed.
+ok   the pre-commit hook is installed in the primary checkout
+ok   initialize left the worktree clean
+
+== the sandbox denies network
+ok   curl https://github.com fails inside the sandbox
+
+== just check, offline
+ok   just check passed offline in 25s
+     ==> just lock-check
+     ==> just manifest-check
+     ==> just format-check
+     ==> just build
+     ==> just test
+     1 passed, no failures
+     ==> just test-checkers
+     ============================== 69 passed in 9.43s ==============================
+     ==> just toml-check
+     ==> just lint
+     ==> just check-clean
+     All checks passed and the worktree is unchanged.
+ok   the worktree is unchanged
+
+== the hook under a bare PATH (git runs hooks without the Justfile PATH)
+ok   a clean commit passes; markdownlint (a node script) ran under the bare PATH
+ok   an unformatted Gleam file is refused by the hook
+
+== lock drift fails and never rewrites pixi.lock
+ok   just lock-check exit 1 on drift; pixi.lock unchanged
+
+== manifest.toml drift fails the gate rather than being rewritten
+ok   just check exit 1 at manifest-check; manifest.toml unchanged
+
+== a recipe that writes a tracked file fails the gate
+ok   the runner exits 1 and names README.md
+
+fresh-clone.sh: all cases passed

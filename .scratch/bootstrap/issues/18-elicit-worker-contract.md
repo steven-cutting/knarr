@@ -3,7 +3,7 @@
 **Context:** OVERVIEW §5 drafts worker contract v1. It is pull-based, and the payload is a worker-supplied cost plus an accepting/drain state, nothing else. The open questions are:
 
 - **§9.4a:** the endpoint shape: path, port, schema, field types, versioning and timeouts.
-- **§9.4b:** how knarr discovers the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies and service meshes.
+- **§9.4b:** how knarr discovers the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies.
 - **§9.7:** how to document the readiness trade-off (NotReady pods are deleted first), and whether knarr warns on "high cost while NotReady".
 
 **What to build:** Allium clauses for the worker contract and the readiness guidance, settled with the maintainer, that the fake worker (29) and the poller can be built against.

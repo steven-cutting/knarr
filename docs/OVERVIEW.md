@@ -196,7 +196,7 @@ sequenceDiagram
   1. **`cost`**: the worker's own estimate of the "cost to kill" it right now. Higher means more expensive to kill. The worker computes it; Knarr relays, clamps and maps it. Type, range and units are OPEN (§9.5).
   2. **`accepting`**: whether the worker is accepting new work. `false` means it is draining.
 - More fields may come later. They are out of scope for v1.
-- **Reachability:** Knarr must reach pod IPs on the status port. NetworkPolicies and service meshes with strict mTLS may need configuration; to be confirmed in §9.4b.
+- **Reachability:** Knarr must reach pod IPs on the status port. It polls over plain HTTP: no mTLS, and no service-mesh support in the MVP ([DEFERRED.md §8](DEFERRED.md#8-other-future-targets)). NetworkPolicies may need configuration; to be confirmed in §9.4b.
 
 ### Illustrative payload
 
@@ -487,7 +487,7 @@ flowchart TB
 | Another writer changed the value | Detect it (needs conditional writes, §6); Event and back off | Goal: the other writer wins | §9.10 |
 | Deployment rollout | No special handling | Cost still biases victims within the old ReplicaSet, but cannot keep that ReplicaSet alive through the rollout | §9.13 |
 | `PodDeletionCost` gate disabled | Documented prerequisite; optional self-test | Annotations ignored | §9.11 |
-| NetworkPolicy or mesh blocks polling | Looks like an absent contract; Event | No bias | §9.4b |
+| NetworkPolicy blocks polling | Looks like an absent contract; Event | No bias | §9.4b |
 
 ## 9. Open questions (candidate tickets)
 
@@ -514,7 +514,7 @@ flowchart LR
 3. **Decided:** scaling ownership option (a), annotations only (see §7). (b) is a planned quick follow ([DEFERRED.md §1](DEFERRED.md#1-scaling-option-b-quick-follow)).
 4. **Worker contract details**, split in two:
    - **4a. Endpoint shape:** path, port, schema, field types, versioning, timeouts.
-   - **4b. Discovery, auth and network:** how Knarr finds the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies and service meshes.
+   - **4b. Discovery, auth and network:** how Knarr finds the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies.
 5. **Cost mapping:** sign convention, Knarr-owned range, number of bands and their edges, hysteresis, reserved bands, and how `cost` and `accepting` combine (see the §5 drain states).
 6. **Unknown/unreachable policy:** how long to keep the last value (in polls and in time), the neutral value, and how to detect an absent contract. Depends on 5.
 7. **Readiness interaction:** how to document it, and whether Knarr warns on "high cost while NotReady".

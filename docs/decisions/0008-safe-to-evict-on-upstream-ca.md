@@ -49,12 +49,12 @@ This section is public-source research as of 2026-10-07, not script evidence.
 
 - **GKE does not run upstream CA.** Google states that the "GKE cluster autoscaler is different from Cluster autoscaler of the open source Kubernetes project" and that its parameters "depend on the cluster configuration and are subject to change" ([concepts](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler)). GKE publishes no CA version and documents no way to set CA flags.
 - **Matching minor.** Upstream CA versions match Kubernetes minors exactly, per the autoscaler README. GKE's default for new clusters is 1.35 in Regular (1.35.8-gke.1225000) and Stable (1.35.6-gke.1250001), and 1.36 in Rapid (1.36.4-gke.1495000) and Extended (1.36.4-gke.1247000) (release notes for [Regular](https://docs.cloud.google.com/kubernetes-engine/docs/release-notes-regular), [Stable](https://docs.cloud.google.com/kubernetes-engine/docs/release-notes-stable), [Rapid](https://docs.cloud.google.com/kubernetes-engine/docs/release-notes-rapid) and [Extended](https://docs.cloud.google.com/kubernetes-engine/docs/release-notes-extended); [release schedule](https://docs.cloud.google.com/kubernetes-engine/docs/release-schedule)). So 1.35.2 is the upstream minor for Regular and Stable. It is not a known match for what GKE runs.
-- **1.36.1.** `source.txt` fetches every cited file again at `cluster-autoscaler-1.36.1`. Each excerpt is still present, only moved (L113-L167). The drain rule order is the same except that `oncompletion` is added after `terminal` (L168-L169). `"on-completion"` (autoscaler PR #9355) first shipped in 1.36.0 and is not in 1.35.2 (L173-L175).
+- **1.36.1.** `source.txt` fetches every cited file again at `cluster-autoscaler-1.36.1`. Each excerpt is still present, only moved (L114-L169). The drain rule order is the same except that `oncompletion` is added after `terminal` (L170-L171). `"on-completion"` (autoscaler PR #9355) first shipped in 1.36.0 and is not in 1.35.2 (L175-L177).
 - **GKE's documented differences that touch §9.9.** On control plane 1.22 or later, "Pods with local storage no longer block scaling down" ([concepts](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler)), which would change Exp4's first row on GKE. The balanced profile removes a node after about 10 minutes underutilized ([troubleshooting](https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/cluster-autoscaler-scale-down)), the upstream default U. GKE's recheck timeout is not documented. Its visibility events include `no.scale.down.node.pod.not.safe.to.evict.annotation` ([visibility](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/cluster-autoscaler-visibility)).
 
 ## Verification
 
-Each script exits non-zero on an unexpected result. The [README](../../.scratch/bootstrap/evidence/15/README.md) gives the command that reruns them all, which ends by checking that no container is left.
+Each script exits non-zero on an unexpected result. The [README](../../.scratch/bootstrap/evidence/15/README.md) gives the command that reruns them all, which ends by checking that the run left no container behind.
 
 **Helpers ([lib_test.txt](../../.scratch/bootstrap/evidence/15/lib_test.txt)).** Sixteen tests cover the pure helpers the verdicts rest on, on log lines copied from a CA 1.35.2 run: `since_of`, `recheck_of`, `timer_verdict` (kept, reset and four unclear cases) and `klog_epoch`.
 
@@ -63,17 +63,17 @@ Each script exits non-zero on an unexpected result. The [README](../../.scratch/
 **Experiments.** [exp1](../../.scratch/bootstrap/evidence/15/exp1-false-blocks.txt), [exp2](../../.scratch/bootstrap/evidence/15/exp2-recheck.txt), [exp3](../../.scratch/bootstrap/evidence/15/exp3-timer.txt) and [exp4](../../.scratch/bootstrap/evidence/15/exp4-local-storage.txt) each start a fresh CA per leg and fail if CA kept a node for a reason other than the one under test. Times come from CA's own log, on one clock. Leg C, the row the threshold advice rests on, from exp3 L28-L41:
 
 ```text
-  20:07:50.937883 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-07 20:08:05.937023907 +0000 UTC m=+50.951383995
-  flip false -> absent seen by the loop at since0 +25.1 s; CA's recheck time is since0 +35.1 s
+  20:21:15.006006 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-07 20:21:30.004654874 +0000 UTC m=+51.033954463
+  flip false -> absent seen by the loop at since0 +25.2 s; CA's recheck time is since0 +35.2 s
   every loop from the flip back to the return:
-  20:07:55.971942 Starting main loop
-  20:07:55.972458 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
-  20:08:00.989722 Starting main loop
-  20:08:00.990464 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
-  20:08:06.011429 Starting main loop
-  20:08:06.012581 ng-a-kxc8x is unneeded since 2026-10-07 20:08:06.011402202 +0000 UTC m=+51.025762289 duration 0s
-  ng-a-kxc8x unneeded again: since1 20:08:06.011 (since0 +35.2 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
-  removal 20:08:46.220: since0 +75.4 s, since1 +40.2 s (unneeded time 40 s)
+  20:21:20.035410 Starting main loop
+  20:21:20.036070 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  20:21:25.046684 Starting main loop
+  20:21:25.048346 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  20:21:30.066657 Starting main loop
+  20:21:30.067756 ng-a-89wlr is unneeded since 2026-10-07 20:21:30.066631576 +0000 UTC m=+51.095931166 duration 0s
+  ng-a-89wlr unneeded again: since1 20:21:30.067 (since0 +35.2 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
+  removal 20:22:10.287: since0 +75.4 s, since1 +40.2 s (unneeded time 40 s)
   removal is +35.4 s later than since0 + 40 s
 ok   leg C: timer reset
 ok   leg C: the node stayed out after the loops that saw the annotation gone, and came back on the first loop at CA's recheck time (block + 15 s)

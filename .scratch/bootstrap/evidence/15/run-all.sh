@@ -27,9 +27,13 @@ run exp2-recheck.txt          sh exp2-recheck.sh "$tools" "$root/exp2"
 run exp3-timer.txt            sh exp3-timer.sh "$tools" "$root/exp3"
 run exp4-local-storage.txt    sh exp4-local-storage.sh "$tools" "$root/exp4"
 
-# lib.sh names the CA container <cluster>-ca, and the cluster is named by
-# 10's name.sh after the work dir: exp<N>-<8 hex>.
-left=$(docker ps -a --format '{{.Names}} {{.Label "io.x-k8s.kind.cluster"}} {{.Label "k3d.cluster"}}' |
-  awk '$2 != "" || $3 != "" || $1 ~ /^kwok-/ || $1 ~ /^exp[1-4]-[0-9a-f]+-ca$/')
-[ -z "$left" ] || { printf 'spike containers left:\n%s\n' "$left" >&2; exit 1; }
-echo 'no kind, k3d, kwok or CA container left'
+# Only this run's containers count, so another worktree's cluster does not
+# fail the check. Each experiment's cluster is named by 10's name.sh after its
+# work dir; kwokctl names its containers kwok-<cluster>-<component>, and
+# lib.sh names the CA container <cluster>-ca.
+names=$(for d in exp1 exp2 exp3 exp4; do sh ../10/name.sh "$root/$d" name; done | tr '\n' ' ')
+left=$(docker ps -a --format '{{.Names}}' | awk -v names="$names" '
+  BEGIN { n = split(names, c, " ") }
+  { for (i = 1; i <= n; i++) if ($1 == c[i] "-ca" || index($1, "kwok-" c[i] "-") == 1) print $1 }')
+[ -z "$left" ] || { printf 'containers left by this run:\n%s\n' "$left" >&2; exit 1; }
+echo 'no kwok or CA container left by this run'

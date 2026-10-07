@@ -21,7 +21,11 @@ fetch() { # tag, path under cluster-autoscaler/; prints the local copy
   f=$work/$1/$2
   if [ ! -f "$f" ]; then
     mkdir -p "$(dirname "$f")"
-    gh api "repos/$repo/contents/cluster-autoscaler/$2?ref=$1" --jq .content | base64 -d > "$f"
+    # Through temporary files, so a failed or empty fetch is never cached.
+    gh api "repos/$repo/contents/cluster-autoscaler/$2?ref=$1" --jq .content > "$f.b64" &&
+      base64 -d < "$f.b64" > "$f.tmp" && [ -s "$f.tmp" ] ||
+      { echo "cannot fetch $2 at $1" >&2; exit 1; }
+    mv "$f.tmp" "$f"; rm -f "$f.b64"
   fi
   printf '%s\n' "$f"
 }
@@ -92,9 +96,16 @@ config/flags/flags.go|200|200|"skip-nodes-with-local-storage", true|default: loc
 config/flags/flags.go|204|204|"node-delete-delay-after-taint", 5*time.Second|default taint delay 5s
 config/flags/flags.go|129|129|"max-pod-eviction-time", 2*time.Minute|default eviction retry budget 2m
 config/flags/flags.go|76|76|"scale-down-delay-after-add", 10*time.Minute|default delay after add 10m
+config/flags/flags.go|80|80|"scale-down-delay-after-delete", 0,|default delay after delete 0
 config/const.go|46|46|DefaultScaleDownUnneededTime = 10 * time.Minute|default unneeded time 10m
 config/const.go|54|54|DefaultScaleDownDelayAfterFailure = 3 * time.Minute|default delay after failure 3m
 config/const.go|56|56|DefaultScanInterval = 10 * time.Second|default scan interval 10s'
+
+# Fetch every file at both tags first, at the top level, so a failed fetch
+# stops the run here instead of inside a $(...) below.
+for t in "$tag" "$next"; do
+  printf '%s\n' "$citations" | cut -d'|' -f1 | sort -u | while read -r p; do fetch "$t" "$p" > /dev/null; done
+done
 
 echo; echo "== files at $tag"
 printf '%s\n' "$citations" | cut -d'|' -f1 | sort -u | while read -r p; do

@@ -69,12 +69,14 @@ leg() {
   wait_log "$node is unneeded since" 60 || fail "$node never unneeded"
   since0=$(ca_log | since_of "$node")
   wait_until "$(perl -e 'print $ARGV[0] + 15' "$since0")"
-  mark=$(ca_mark); annotate "$pod" "$3"
+  annotate "$pod" "$3"; mark=$(ca_mark)
   if [ "$3" = false ]; then
     # Flip back as soon as CA has logged the block: the loop that blocked has
     # already listed the pods, so the next loop is the first to see absent.
+    # Each mark is taken once the annotate has returned, so the first loop
+    # after a mark started after the apiserver had the change.
     wait_log "Node $node cannot be removed: pod annotated as not safe to evict present: $pod" 20 || fail 'not blocked by "false"'
-    mark2=$(ca_mark); annotate "$pod" absent
+    annotate "$pod" absent; mark2=$(ca_mark)
   fi
   lines=$(loop_lines "$mark")
   seen=$(loop_after "$mark")

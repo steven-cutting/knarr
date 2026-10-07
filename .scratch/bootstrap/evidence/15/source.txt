@@ -1,4 +1,4 @@
-date: 2026-10-07T19:56Z
+date: 2026-10-07T20:18Z
 cluster-autoscaler-1.35.2 is tag object 3e1437753d1b64ea0db6d8e7408308b79a477f54, commit 2d42588803c71fe9b35dcd9e3669ac6bb550ca22
 cluster-autoscaler-1.36.1 is commit 35e8a280425c76a4040f57ae0fa232a952c02024
 
@@ -86,6 +86,7 @@ ok   config/flags/flags.go#L200-L200  default: local storage blocks
 ok   config/flags/flags.go#L204-L204  default taint delay 5s
 ok   config/flags/flags.go#L129-L129  default eviction retry budget 2m
 ok   config/flags/flags.go#L76-L76  default delay after add 10m
+ok   config/flags/flags.go#L80-L80  default delay after delete 0
 ok   config/const.go#L46-L46  default unneeded time 10m
 ok   config/const.go#L54-L54  default delay after failure 3m
 ok   config/const.go#L56-L56  default scan interval 10s
@@ -165,6 +166,7 @@ excerpts in changed files, at cluster-autoscaler-1.36.1:
   config/flags/flags.go#L204-L204                            found at L209
   config/flags/flags.go#L129-L129                            found at L131
   config/flags/flags.go#L76-L76                              found at L76
+  config/flags/flags.go#L80-L80                              found at L80
 drain rule order at cluster-autoscaler-1.35.2: mirror longterminating replicacount daemonset safetoevict terminal replicated system notsafetoevict localstorage pdbrule 
 drain rule order at cluster-autoscaler-1.36.1: mirror longterminating replicacount daemonset safetoevict terminal oncompletion replicated system notsafetoevict localstorage pdbrule 
 

@@ -32,8 +32,9 @@ ca_image=registry.k8s.io/autoscaling/cluster-autoscaler:v1.35.2@sha256:aac369dc2
 pause_image=registry.k8s.io/pause:3.10@sha256:ee6521f290b2168b6e0935a181d4cff9be1ac3f505666ef0e3c98fae8199917a
 # shellcheck disable=SC2154  # the sourcing script sets here
 ev10=$here/../10
-# Every flag that differs from the upstream default is here, so each
-# transcript records them all. Defaults are in README.md.
+# Every flag that differs from the upstream default is here, with the
+# scale-down delays set even where they match it, so each transcript records
+# them all. Defaults are in README.md.
 ca_default_flags='--cloud-provider=kwok
 --kubeconfig=/kubeconfig
 --namespace=default
@@ -62,10 +63,14 @@ ca_init() { # tools-dir, empty-work-dir
   printf 'date: %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)"
 }
 
+# fail writes to stderr, so a helper whose output is captured with $(...)
+# still reports why it failed; run-all.sh puts stderr in the transcript.
 fail() {
-  printf 'FAIL: %s\n' "$*"
-  echo '-- CA log tail'; docker logs "$ca" 2>&1 | tail -40 | cut -c1-240 || true
-  echo '-- nodes and pods'; kubectl get nodes,pods -o wide 2>&1 || true
+  {
+    printf 'FAIL: %s\n' "$*"
+    echo '-- CA log tail'; docker logs "$ca" 2>&1 | tail -40 | cut -c1-240 || true
+    echo '-- nodes and pods'; kubectl get nodes,pods -o wide 2>&1 || true
+  } >&2
   exit 1
 }
 ca_cleanup() {

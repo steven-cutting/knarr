@@ -10,7 +10,7 @@ Each script exits non-zero on an unexpected result, and each `.txt` file is the 
 sh .scratch/bootstrap/evidence/15/run-all.sh "$(mktemp -d)"
 ```
 
-This needs network, pixi 0.81.0, curl, perl, openssl, an authenticated `gh` and Docker. It fetches the tools afresh with [10's fetch.sh](../10/fetch.sh), into `<root>/tools`, with its output in `<root>/fetch.log` rather than a transcript here. The run took 17 minutes here, with pixi's package cache warm, and rewrites every transcript here. It stops at the first script that fails. At the end it checks that no kind, k3d, kwok or CA container is left.
+This needs network, pixi 0.81.0, curl, perl, openssl, an authenticated `gh` and Docker. It fetches the tools afresh with [10's fetch.sh](../10/fetch.sh), into `<root>/tools`, with its output in `<root>/fetch.log` rather than a transcript here. The run took 17 minutes here, with pixi's package cache warm, and rewrites every transcript here. It stops at the first script that fails. At the end it checks that the run left no kwok or CA container; another worktree's clusters do not count.
 
 setup-envtest leaves its asset directory read-only, so remove a work root with `chmod -R u+w <root> && rm -rf <root>`.
 

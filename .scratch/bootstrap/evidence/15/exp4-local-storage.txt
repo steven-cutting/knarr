@@ -1,0 +1,27 @@
+date: 2026-10-07T20:08Z
+
+== cluster
+server: v1.35.5
+NODE          CPU   MEMORY   TAINTS
+node-000000   32    256Gi    <none>
+kwok provider ConfigMaps: nodegroup ng-a, 0..3 nodes, 2 CPU / 4Gi (as in 10)
+
+== no annotation
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
+pod exp4-absent-65c847859b-cshb6 (emptyDir scratch, no annotation) is on new node ng-a-c5m4v
+  20:09:13.880009 Node ng-a-c5m4v cannot be removed: pod with local storage present: exp4-absent-65c847859b-cshb6
+ok   no annotation: ng-a-c5m4v kept for 80 s (2 x the unneeded time), blocked by local storage
+
+== safe-to-evict "true"
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
+pod exp4-true-5c4bb58484-4r4vt (emptyDir scratch, safe-to-evict "true") is on new node ng-a-gcnck
+  20:11:31.047326 Scale-down: removing node ng-a-gcnck, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp4-true-5c4bb58484-4r4vt
+ok   safe-to-evict "true": exp4-true-5c4bb58484-4r4vt evicted, ng-a-gcnck deleted
+
+== safe-to-evict-local-volumes: scratch
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
+pod exp4-volumes-757f67bd99-gtgs4 (emptyDir scratch, safe-to-evict-local-volumes "scratch") is on new node ng-a-4r98r
+  20:12:33.129519 Scale-down: removing node ng-a-4r98r, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp4-volumes-757f67bd99-gtgs4
+ok   safe-to-evict-local-volumes "scratch": exp4-volumes-757f67bd99-gtgs4 evicted, ng-a-4r98r deleted
+
+verdict: with the default --skip-nodes-with-local-storage, a disk-backed emptyDir blocks scale-down unless the pod has safe-to-evict "true" or names the volume in safe-to-evict-local-volumes; removing the annotation is not enough for such a pod

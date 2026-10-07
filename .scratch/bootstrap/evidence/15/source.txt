@@ -1,0 +1,175 @@
+date: 2026-10-07T19:56Z
+cluster-autoscaler-1.35.2 is tag object 3e1437753d1b64ea0db6d8e7408308b79a477f54, commit 2d42588803c71fe9b35dcd9e3669ac6bb550ca22
+cluster-autoscaler-1.36.1 is commit 35e8a280425c76a4040f57ae0fa232a952c02024
+
+== files at cluster-autoscaler-1.35.2
+cfff54457e76ba69d95b000c9fe956ab297f386c6f0161570c0045419323b2a0  cloudprovider/kwok/kwok_nodegroups.go
+5bc466fbf04ad6131cf3bd2e6102dfd4e185ad1d25b47cbd58ff69675f3d0f9a  config/const.go
+359aa73223a96c6b8214ae2a75c1825e126d120f7b6fb38cd7acf0b3df70151b  config/flags/flags.go
+d6f06bff8b622d97e5a2c5b81336c6677e74a67e14aa611c765496f5af67a9c1  core/scaledown/actuation/actuator.go
+e98045068531a78d851fe9b6623ee8e70f85a40bdfcef7a36ff738beb20257bd  core/scaledown/actuation/delete_in_batch.go
+774a6b961b2a6aa48baca5d5eeddcf41f5aed55564aaf21efe2504b73b279be0  core/scaledown/actuation/drain.go
+a029b168e72ae6d6581bd8ac0ee97a46682ccaf5dccd3a58457f6489d764ac3e  core/scaledown/eligibility/eligibility.go
+e703d337a69cc898e59ba1cd975b4f7bf1caf05aa622e1ebdc0660174bc39fa5  core/scaledown/planner/planner.go
+a4b438eb7e2f5b60decb8a5ac90de15b32cff60fa4b73714efc437c499c45405  core/scaledown/unneeded/nodes.go
+c78afe908d05b1b52eb7115425df2ebcdb4b50051d6af65c93ebcef1523efd24  core/scaledown/unremovable/nodes.go
+7ab0b7c5c4c8ed6ca17653b0e09ef7ce0b22f35e96c1ad0eec23a9c93ae79a66  core/static_autoscaler.go
+e7577526506d20ad8cab91bf7c3174b1936fa792b7e2f51476430bf446c0d375  simulator/cluster.go
+3b211e0c9bf5b0f6cefe3f955ee08ba2274cea65b20bf12971ae35412a51bdf6  simulator/drain.go
+10f69cc6a2fc4c77c2ef30c7be23cf773fa1b138eddf79b0c5fde88ea985730a  simulator/drainability/rules/localstorage/rule.go
+3109549d047838cbd83e9cc8828faf8a4502234440fbaebfad140a1243a4c5cf  simulator/drainability/rules/notsafetoevict/rule.go
+9d6a967b486aaea03f517c7c6ad626832e5a244c55e6d8785531a2dd3bddff12  simulator/drainability/rules/rules.go
+0723b11fe385494868d2fcdfce12a7cd2498c4b301955e32722dee684b46423e  simulator/drainability/rules/safetoevict/rule.go
+dbca4284d15d7ab2207a55a551751287c8c5e2071c747e59b98214ed9cdc8e80  simulator/fake/pod.go
+4a99b7dfc4cc2674f771bcdf0a04c7f05b1742778aa33f3a3ed01795de37e909  utils/drain/drain.go
+
+== cited excerpts at cluster-autoscaler-1.35.2
+ok   utils/drain/drain.go#L144-L147  "true" is an exact string match
+ok   utils/drain/drain.go#L149-L153  "false" is an exact string match; other values act as absent
+ok   utils/drain/drain.go#L38-L38  the local-volumes annotation key
+ok   utils/drain/drain.go#L116-L139  a local volume named in safe-to-evict-local-volumes does not block
+ok   utils/drain/drain.go#L140-L142  disk-backed emptyDir and hostPath are local storage
+ok   simulator/drainability/rules/rules.go#L57-L57  rule order 1: mirror
+ok   simulator/drainability/rules/rules.go#L62-L62  rule order: daemonset
+ok   simulator/drainability/rules/rules.go#L63-L63  rule order: safetoevict ("true") before every blocking rule
+ok   simulator/drainability/rules/rules.go#L64-L64  rule order: terminal
+ok   simulator/drainability/rules/rules.go#L67-L67  rule order: replicated
+ok   simulator/drainability/rules/rules.go#L68-L68  rule order: system
+ok   simulator/drainability/rules/rules.go#L69-L69  rule order: notsafetoevict ("false")
+ok   simulator/drainability/rules/rules.go#L70-L70  rule order: localstorage, skipped if --skip-nodes-with-local-storage=false
+ok   simulator/drainability/rules/rules.go#L71-L71  rule order: pdb, last
+ok   simulator/drainability/rules/rules.go#L93-L111  the first rule with a decision wins
+ok   simulator/drainability/rules/safetoevict/rule.go#L40-L44  "true" is a decision: drainable, so later rules (PDB included) are not asked
+ok   simulator/drainability/rules/notsafetoevict/rule.go#L42-L46  "false" blocks, with this message
+ok   simulator/drainability/rules/localstorage/rule.go#L42-L46  local storage blocks, with this message
+ok   simulator/drain.go#L53-L69  GetPodsToMove stops at the first blocking pod
+ok   simulator/cluster.go#L145-L152  log line: "Node <n> cannot be removed: <reason>"
+ok   simulator/cluster.go#L155-L160  log line when pods have no place to go (the setup trap)
+ok   core/scaledown/eligibility/eligibility.go#L163-L163  log line when utilization is too high (the setup trap)
+ok   core/scaledown/unneeded/nodes.go#L132-L150  since is kept only for a node still in the removable list of this loop
+ok   core/scaledown/unneeded/nodes.go#L132-L150  the unneeded set is rebuilt every loop, so a node that drops out loses its since
+ok   core/scaledown/unneeded/nodes.go#L153-L153  log line read by since_of
+ok   core/scaledown/planner/planner.go#L277-L277  a blocked node is not re-simulated until the recheck timeout
+ok   core/scaledown/planner/planner.go#L315-L318  a blocked node is recorded with that timeout
+ok   core/scaledown/eligibility/eligibility.go#L83-L88  until then it is skipped as recently unremovable
+ok   core/scaledown/eligibility/eligibility.go#L104-L104  log line for each loop that skips such nodes
+ok   core/scaledown/planner/planner.go#L322-L324  log line with the recheck time, read by recheck_of
+ok   core/scaledown/planner/planner.go#L281-L281  each loop first drops the expired timeouts
+ok   core/scaledown/unremovable/nodes.go#L62-L65  a timeout is kept only while it is still in the future
+ok   core/scaledown/unremovable/nodes.go#L109-L112  IsRecent reads only the timeout, not the annotation
+ok   core/scaledown/planner/planner.go#L283-L285  a skipped node is added back with no new timeout
+ok   core/scaledown/unremovable/nodes.go#L77-L79  Add sets a reason only, so skipping does not extend the timeout
+ok   core/scaledown/unremovable/nodes.go#L83-L86  AddTimeout sets it: a node blocked again on its recheck gets a new one
+ok   core/static_autoscaler.go#L289-L289  log line that opens a loop, used to delimit loops
+ok   core/static_autoscaler.go#L620-L620  the loop plans scale-down here
+ok   core/static_autoscaler.go#L661-L661  "Starting scale down" is logged after planning, so it does not open a loop
+ok   core/scaledown/planner/planner.go#L303-L306  a node whose pods exceed a PDB is marked risky
+ok   core/scaledown/planner/planner.go#L152-L183  risky nodes are only sorted last, not dropped
+ok   core/scaledown/planner/planner.go#L438-L449  sortByRisk keeps every node
+ok   core/scaledown/actuation/actuator.go#L155-L164  actuation taints (and cordons) first, then drains asynchronously
+ok   core/scaledown/actuation/actuator.go#L269-L269  log line used as the removal time
+ok   core/scaledown/actuation/actuator.go#L295-L298  then sleeps --node-delete-delay-after-taint
+ok   core/scaledown/actuation/actuator.go#L300-L300  then builds a fresh snapshot
+ok   core/scaledown/actuation/actuator.go#L400-L403  from the current pod list
+ok   core/scaledown/actuation/actuator.go#L333-L339  and re-runs the same drain rules: the one re-check
+ok   core/scaledown/actuation/actuator.go#L333-L339  a blocked re-check aborts the deletion of that node
+ok   core/scaledown/actuation/delete_in_batch.go#L194-L210  the abort emits a ScaleDownFailed event
+ok   core/scaledown/actuation/delete_in_batch.go#L194-L210  and removes the taint (and the cordon)
+ok   core/scaledown/actuation/drain.go#L44-L44  eviction is retried every 10 s
+ok   core/scaledown/actuation/drain.go#L239-L256  the retry loop calls the Eviction API with the pod it started with, and reads no annotation
+ok   simulator/fake/pod.go#L25-L35  "fake" pods are those annotated podtype=fakepod; kwok pods are not
+ok   cloudprovider/kwok/kwok_nodegroups.go#L100-L125  the kwok provider deletes the Node object
+ok   cloudprovider/kwok/kwok_nodegroups.go#L229-L233  no per-group options: only global flags apply
+ok   config/flags/flags.go#L162-L162  default recheck timeout 5m
+ok   config/flags/flags.go#L180-L180  default: cordon before terminating
+ok   config/flags/flags.go#L200-L200  default: local storage blocks
+ok   config/flags/flags.go#L204-L204  default taint delay 5s
+ok   config/flags/flags.go#L129-L129  default eviction retry budget 2m
+ok   config/flags/flags.go#L76-L76  default delay after add 10m
+ok   config/const.go#L46-L46  default unneeded time 10m
+ok   config/const.go#L54-L54  default delay after failure 3m
+ok   config/const.go#L56-L56  default scan interval 10s
+
+== the same files at cluster-autoscaler-1.36.1
+changed  cloudprovider/kwok/kwok_nodegroups.go
+same     config/const.go
+changed  config/flags/flags.go
+changed  core/scaledown/actuation/actuator.go
+changed  core/scaledown/actuation/delete_in_batch.go
+changed  core/scaledown/actuation/drain.go
+changed  core/scaledown/eligibility/eligibility.go
+changed  core/scaledown/planner/planner.go
+changed  core/scaledown/unneeded/nodes.go
+same     core/scaledown/unremovable/nodes.go
+changed  core/static_autoscaler.go
+changed  simulator/cluster.go
+changed  simulator/drain.go
+same     simulator/drainability/rules/localstorage/rule.go
+same     simulator/drainability/rules/notsafetoevict/rule.go
+changed  simulator/drainability/rules/rules.go
+same     simulator/drainability/rules/safetoevict/rule.go
+same     simulator/fake/pod.go
+changed  utils/drain/drain.go
+excerpts in changed files, at cluster-autoscaler-1.36.1:
+  utils/drain/drain.go#L144-L147                             found at L151
+  utils/drain/drain.go#L149-L153                             found at L163
+  utils/drain/drain.go#L38-L38                               found at L43
+  utils/drain/drain.go#L116-L139                             found at L126
+  utils/drain/drain.go#L140-L142                             found at L146
+  simulator/drainability/rules/rules.go#L57-L57              found at L58
+  simulator/drainability/rules/rules.go#L62-L62              found at L63
+  simulator/drainability/rules/rules.go#L63-L63              found at L64
+  simulator/drainability/rules/rules.go#L64-L64              found at L65
+  simulator/drainability/rules/rules.go#L67-L67              found at L69
+  simulator/drainability/rules/rules.go#L68-L68              found at L70
+  simulator/drainability/rules/rules.go#L69-L69              found at L71
+  simulator/drainability/rules/rules.go#L70-L70              found at L72
+  simulator/drainability/rules/rules.go#L71-L71              found at L73
+  simulator/drainability/rules/rules.go#L93-L111             found at L111
+  simulator/drain.go#L53-L69                                 found at L77
+  simulator/cluster.go#L145-L152                             found at L151
+  simulator/cluster.go#L155-L160                             found at L162
+  core/scaledown/eligibility/eligibility.go#L163-L163        found at L162
+  core/scaledown/unneeded/nodes.go#L132-L150                 found at L138
+  core/scaledown/unneeded/nodes.go#L132-L150                 found at L146
+  core/scaledown/unneeded/nodes.go#L153-L153                 found at L150
+  core/scaledown/planner/planner.go#L277-L277                found at L287
+  core/scaledown/planner/planner.go#L315-L318                found at L328
+  core/scaledown/eligibility/eligibility.go#L83-L88          found at L84
+  core/scaledown/eligibility/eligibility.go#L104-L104        found at L103
+  core/scaledown/planner/planner.go#L322-L324                found at L334
+  core/scaledown/planner/planner.go#L281-L281                found at L291
+  core/scaledown/planner/planner.go#L283-L285                found at L294
+  core/static_autoscaler.go#L289-L289                        found at L308
+  core/static_autoscaler.go#L620-L620                        found at L781
+  core/static_autoscaler.go#L661-L661                        found at L822
+  core/scaledown/planner/planner.go#L303-L306                found at L316
+  core/scaledown/planner/planner.go#L152-L183                found at L170
+  core/scaledown/planner/planner.go#L438-L449                found at L463
+  core/scaledown/actuation/actuator.go#L155-L164             found at L158
+  core/scaledown/actuation/actuator.go#L269-L269             found at L269,270
+  core/scaledown/actuation/actuator.go#L295-L298             found at L297
+  core/scaledown/actuation/actuator.go#L300-L300             found at L300
+  core/scaledown/actuation/actuator.go#L400-L403             found at L412
+  core/scaledown/actuation/actuator.go#L333-L339             found at L335
+  core/scaledown/actuation/actuator.go#L333-L339             found at L338
+  core/scaledown/actuation/delete_in_batch.go#L194-L210      found at L208
+  core/scaledown/actuation/delete_in_batch.go#L194-L210      found at L209
+  core/scaledown/actuation/drain.go#L44-L44                  found at L45
+  core/scaledown/actuation/drain.go#L239-L256                found at L251
+  cloudprovider/kwok/kwok_nodegroups.go#L100-L125            found at L118
+  cloudprovider/kwok/kwok_nodegroups.go#L229-L233            found at L232
+  config/flags/flags.go#L162-L162                            found at L165
+  config/flags/flags.go#L180-L180                            found at L184
+  config/flags/flags.go#L200-L200                            found at L205
+  config/flags/flags.go#L204-L204                            found at L209
+  config/flags/flags.go#L129-L129                            found at L131
+  config/flags/flags.go#L76-L76                              found at L76
+drain rule order at cluster-autoscaler-1.35.2: mirror longterminating replicacount daemonset safetoevict terminal replicated system notsafetoevict localstorage pdbrule 
+drain rule order at cluster-autoscaler-1.36.1: mirror longterminating replicacount daemonset safetoevict terminal oncompletion replicated system notsafetoevict localstorage pdbrule 
+
+== safe-to-evict "on-completion" (autoscaler PR #9355)
+PR #9355 "Add safe-to-evict=on-completion", merged 2026-04-01T08:40:15Z as ea7f8c4cf37bbc6517386f13b202b5b73343c399
+cluster-autoscaler-1.35.2  contains the merge: no  (compare: diverged); rules/oncompletion/rule.go: absent
+cluster-autoscaler-1.36.0  contains the merge: yes (compare: behind); rules/oncompletion/rule.go: present
+cluster-autoscaler-1.36.1  contains the merge: yes (compare: behind); rules/oncompletion/rule.go: present

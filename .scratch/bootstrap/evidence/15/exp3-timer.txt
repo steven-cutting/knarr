@@ -1,0 +1,43 @@
+date: 2026-10-07T20:05Z
+
+== cluster
+server: v1.35.5
+NODE          CPU   MEMORY   TAINTS
+node-000000   32    256Gi    <none>
+kwok provider ConfigMaps: nodegroup ng-a, 0..3 nodes, 2 CPU / 4Gi (as in 10)
+
+== leg A: absent -> "true"
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
+pod exp3-a-666b6f6fc4-25nhf (absent) is on new node ng-a-xd575
+  since0 20:05:27.003; flip absent -> true seen by the loop at since0 +20.1 s; since1 20:05:27.003
+  removal 20:06:07.178: since0 +40.2 s, since1 +40.2 s (unneeded time 40 s)
+ok   leg A: timer kept
+
+== leg B: "true" -> absent
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
+pod exp3-b-6445b54f6-mshgq (true) is on new node ng-a-rtpl7
+  since0 20:06:28.769; flip true -> absent seen by the loop at since0 +20.1 s; since1 20:06:28.769
+  removal 20:07:09.000: since0 +40.2 s, since1 +40.2 s (unneeded time 40 s)
+ok   leg B: timer kept
+
+== leg C: absent -> "false" -> absent
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
+pod exp3-c-9654b7f44-g6fl2 (absent) is on new node ng-a-kxc8x
+  since0 20:07:30.847; flip absent -> false seen by the loop at since0 +20.1 s; since1 (not unneeded)
+  20:07:50.937866 Node ng-a-kxc8x cannot be removed: pod annotated as not safe to evict present: exp3-c-9654b7f44-g6fl2
+  20:07:50.937883 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-07 20:08:05.937023907 +0000 UTC m=+50.951383995
+  flip false -> absent seen by the loop at since0 +25.1 s; CA's recheck time is since0 +35.1 s
+  every loop from the flip back to the return:
+  20:07:55.971942 Starting main loop
+  20:07:55.972458 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  20:08:00.989722 Starting main loop
+  20:08:00.990464 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  20:08:06.011429 Starting main loop
+  20:08:06.012581 ng-a-kxc8x is unneeded since 2026-10-07 20:08:06.011402202 +0000 UTC m=+51.025762289 duration 0s
+  ng-a-kxc8x unneeded again: since1 20:08:06.011 (since0 +35.2 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
+  removal 20:08:46.220: since0 +75.4 s, since1 +40.2 s (unneeded time 40 s)
+  removal is +35.4 s later than since0 + 40 s
+ok   leg C: timer reset
+ok   leg C: the node stayed out after the loops that saw the annotation gone, and came back on the first loop at CA's recheck time (block + 15 s)
+
+verdict: switching between absent and "true" keeps the unneeded timer; a spell of "false" drops the node from the unneeded set, it is looked at again only when the unremovable recheck timeout runs out (counted from when CA found it blocked, not from the flip back), and then it starts a new timer

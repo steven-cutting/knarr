@@ -14,6 +14,8 @@ S2a (15) supplies the upstream CA evidence. S2b (16) may amend the clauses once 
 
 **Blocked by:** 15, 17
 
+**From 15:** [Decision 0008](../../../docs/decisions/0008-safe-to-evict-on-upstream-ca.md) records S2a's findings and a recommended starting position for §9.9. [15's hand-back notes](15-spike-s2a-ca-on-kwok.md#follow-ups-for-25) list the open points this ticket settles, each with the evidence it cites.
+
 **MVP critical path:** yes, for the opt-in `safe-to-evict` feature only.
 
 **Status:** needs-human

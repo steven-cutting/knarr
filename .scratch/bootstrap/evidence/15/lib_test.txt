@@ -1,0 +1,17 @@
+ok   since_of gives the latest since for the node, in epoch seconds
+ok   since_of ignores lines for other nodes
+ok   since_of gives nothing for a node that was never unneeded
+ok   since_of does not match a node whose name is a prefix of another
+ok   since_of reads an empty log as nothing
+ok   same since, removal 40.1 s later: kept
+ok   since moved by under 1 s, removal 45 s later: kept
+ok   since moved 30 s, removal 40.5 s after the new one: reset
+ok   removal before the unneeded time: unclear, exit 1
+ok   removal 10 s late: unclear, exit 1
+ok   since moved 5 s, within the margin: unclear, exit 1
+ok   since reset but removal on the old timer: unclear, exit 1
+ok   recheck_of gives the latest recheck time, in epoch seconds
+ok   recheck_of reads the first of them from a log cut after it
+ok   recheck_of gives nothing when no node was found unremovable
+ok   klog_epoch reads a klog prefix with this year
+16 passed, 0 failed

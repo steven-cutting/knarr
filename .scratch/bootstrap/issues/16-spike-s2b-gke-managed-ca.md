@@ -8,6 +8,8 @@
 
 **Blocked by:** 15, plus GKE Standard access (external)
 
+**From 15:** [Decision 0008](../../../docs/decisions/0008-safe-to-evict-on-upstream-ca.md) records S2a on upstream CA 1.35.2. [15's hand-back notes](15-spike-s2a-ca-on-kwok.md#follow-ups-for-16) give the test plan for this ticket: the same experiments, GKE's visibility events in place of CA's log, what to record, timelines and teardown.
+
 **MVP critical path:** yes, for the opt-in `safe-to-evict` feature only. The core mechanism and the GKE deploy proceed without it.
 
 **Status:** needs-human

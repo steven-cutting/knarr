@@ -147,7 +147,7 @@ How each checker changes to read it:
   - `bridges` replaces `PROVIDERS`
   - `tolerated` replaces `TOLERATED`
 
-  Upstream's `PROVIDERS` (`claude`, `codex`) was two things at once: the bridge directories (`.claude/skills`) and the managed directories (`.claude`, the whole provider directory). Both now derive from `bridges`. A bridge directory is the value as given. Its managed directory is the value's first path component, so `.claude/skills` manages all of `.claude/`, as upstream did. Any committed file there that is neither a bridge nor listed in `tolerated` still fails the gate. A committed `.claude/settings.json` therefore goes in `tolerated`, as it was upstream. A Copilot adapter (`.github/copilot-instructions.md`) is an adapter, not a bridge. Where Copilot's skill bridges live, if anywhere, is 09's call. The `CODEX.md is forbidden` check goes, because knarr supports no Codex runtime.
+  Upstream's `PROVIDERS` (`claude`, `codex`) was two things at once: the bridge directories (`.claude/skills`) and the managed directories (`.claude`, the whole provider directory). Both now derive from `bridges`. A bridge directory is the value as given. Its managed directory is the value's first path component, so `.claude/skills` manages all of `.claude/`, as upstream did. `.agents` stays managed whatever `bridges` says. Any committed file there that is neither a bridge nor listed in `tolerated` still fails the gate. A committed `.claude/settings.json` therefore goes in `tolerated`, as it was upstream. A Copilot adapter (`.github/copilot-instructions.md`) is an adapter, not a bridge. Where Copilot's skill bridges live, if anywhere, is 09's call. The `CODEX.md is forbidden` check goes, because knarr supports no Codex runtime.
 - **run_allium** reads `[allium] specs` in place of its `SPECS` constant.
 
 **A starting phrase list for 09.** Upstream's list was `untrusted`, `just check`, `explicit authorization`, `ai_tmp/`, `docs/specs/` and `runes`. `runes` named the Svelte games' reactivity rule and is gone. The first four carry over unchanged. 09's invariants suggest these:
@@ -199,7 +199,7 @@ Four deliberate differences from the Python original:
 
 - **Status 2 for a refusal.** The original's refusal exits 1, the same as a finding. A refusal now exits 2 so it never reads as a finding.
 - **Only the pinned binary.** The original took ripsecrets from `PATH`. The wrapper runs `<root>/.tools/bin/ripsecrets` and nothing else, and the case with another ripsecrets on `PATH` shows that. This also settles how the hook reaches the binary. Hooks run without the Justfile's `PATH`, so the wrapper finds the binary itself and the hook entry needs no `PATH`.
-- **Every argument is a path.** The wrapper passes `--` before the paths, so a staged file named `-x` is scanned, not read as a flag. The wrapper itself passes ripsecrets no flags.
+- **Every argument is a path.** The wrapper passes `--` before the paths, so a staged file named `-x` is scanned, not read as a flag. The wrapper itself passes ripsecrets no flags. A flag the hook needs, such as `--strict-ignore`, goes inside the wrapper before `--`, not in the hook entry.
 - **The refusal message** says "run just initialize", knarr's first-run command, not `just install-hooks`.
 
 ### editorconfig-checker is kept

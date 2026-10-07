@@ -1,13 +1,13 @@
-date: 2026-10-07T17:39Z
+date: 2026-10-07T17:41Z
 host: Darwin arm64
 pixi: pixi 0.81.0
-commit: 3b11ee6 (03-foundation)
+commit: cbd8a39 (03-foundation)
 
 ok   a fresh clone is a primary checkout
 
 == first run (network): one command, just initialize
 ok   just initialize (just 1.51.0), the only command run before the gate
-ok   first run took 8s (pixi and gleam caches may be warm on this machine)
+ok   first run took 7s (pixi and gleam caches may be warm on this machine)
      sh scripts/initialize.sh
      ✔ The default environment has been installed.
           rebar3 3.27.1 Sigstore bundle verified
@@ -28,7 +28,7 @@ ok   initialize left the worktree clean
 ok   curl https://github.com fails inside the sandbox
 
 == just check, offline
-ok   just check passed offline in 32s
+ok   just check passed offline in 23s
      ==> just lock-check
      ==> just manifest-check
      ==> just format-check
@@ -36,7 +36,7 @@ ok   just check passed offline in 32s
      ==> just test
      1 passed, no failures
      ==> just test-checkers
-     ============================== 69 passed in 9.73s ==============================
+     ============================== 71 passed in 8.64s ==============================
      ==> just toml-check
      ==> just lint
      ==> just check-clean

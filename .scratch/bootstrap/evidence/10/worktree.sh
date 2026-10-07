@@ -34,9 +34,9 @@ cleanup() {
 }
 trap cleanup EXIT
 sha() { if command -v sha256sum >/dev/null; then sha256sum; else shasum -a 256; fi | cut -c1-16; }
-fingerprint() { # a path's content hash, or "absent"
+fingerprint() { # a hash of a file, or of a tree's names and contents; or "absent"
   if [ -f "$1" ]; then sha < "$1"
-  elif [ -d "$1" ]; then (cd "$1" && find . -type f -exec cat {} + | sha)
+  elif [ -d "$1" ]; then (cd "$1" && { find . | LC_ALL=C sort; find . -type f -exec cat {} +; } | sha)
   else echo absent; fi
 }
 outside() { for p in "$HOME/.kube/config" "$HOME/.kwok" "$HOME/.k3d" "$HOME/.config/k3d"; do printf '%s %s\n' "$p" "$(fingerprint "$p")"; done; }
@@ -74,6 +74,12 @@ for runner in kind k3d kwokctl envtest; do
   dups=$(printf '%s\n' $ports | sort | uniq -d)
   [ -z "$dups" ] || fail "host port shared: $dups"
   echo 'ok   every apiserver has its own host port, and every kubeconfig one context'
+  # Where docker publishes the apiserver: kind and k3d use 127.0.0.1 only.
+  n1=$(nm "$work/one/knarr" name)
+  case $runner in
+    kind) c=$n1-control-plane;; k3d) c=k3d-$n1-server-0;; kwokctl) c=kwok-$n1-kube-apiserver;; *) c=;;
+  esac
+  [ -z "$c" ] || printf 'host binding of %s: %s\n' "$c" "$(docker port "$c" 6443/tcp | tr '\n' ' ')"
   for wt in $trees; do
     n=$(nm "$wt" name)
     got=$(KUBECONFIG=$(nm "$wt" kubeconfig) kubectl get configmap whoami -o jsonpath='{.data.cluster}')
@@ -118,8 +124,20 @@ done
 wait || true
 pa=$(sed -n 's/^ *- hostPort: //p' "$ctl/kwok/clusters/control-a-$$/kwok.yaml" | head -1)
 pb=$(sed -n 's/^ *- hostPort: //p' "$ctl/kwok/clusters/control-b-$$/kwok.yaml" | head -1)
+[ -n "$pa" ] && [ -n "$pb" ] || { cat "$ctl/a.log" "$ctl/b.log"; fail 'a control create wrote no host port'; }
 if [ "$pa" = "$pb" ]; then echo "collided: both clusters were given host port $pa"
 else echo "no collision this time: ports $pa and $pb"; fi
+# Give both apiservers up to 60s, then show how each container fares.
+i=0; while [ "$i" -lt 120 ]; do
+  up=0; for x in a b; do KUBECONFIG=$ctl/kubeconfig-$x kubectl get --raw /readyz > /dev/null 2>&1 && up=$((up + 1)); done
+  restarts=$(docker inspect -f '{{.RestartCount}}' "kwok-control-a-$$-kube-apiserver" "kwok-control-b-$$-kube-apiserver" 2> /dev/null | awk '{s += $1} END {print s + 0}')
+  [ "$up" -lt 2 ] && [ "$restarts" -eq 0 ] || break
+  i=$((i + 1)); sleep 0.5
+done
+for x in a b; do
+  KUBECONFIG=$ctl/kubeconfig-$x kubectl get --raw /readyz > /dev/null 2>&1 && r=ready || r='not ready'
+  printf 'control-%s apiserver: %s, %s\n' "$x" "$r" "$(docker inspect -f '{{.State.Status}}, restarts {{.RestartCount}}' "kwok-control-$x-$$-kube-apiserver" 2> /dev/null || echo 'no container')"
+done
 for x in a b; do
   KWOK_WORKDIR=$ctl/kwok kwokctl delete cluster --name "control-$x-$$" --kubeconfig "$ctl/kubeconfig-$x" > /dev/null 2>&1 || true
 done

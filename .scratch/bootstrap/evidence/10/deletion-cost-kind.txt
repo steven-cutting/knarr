@@ -1,23 +1,23 @@
-date: 2026-10-07T09:41Z
+date: 2026-10-07T09:56Z
 runner: kind
 Client Version: v1.34.3
 Server Version: v1.35.8
-deletion-cost-kind-93581ddc-control-plane   v1.35.8
+deletion-cost-kind-d83dbed6-control-plane   v1.35.8
 
 == round 1: one pod at 1000, two at -1000, scale 3 -> 1
   before scale to 1:
-    victim-68bb98cf76-bsgmz   1000    True   2026-10-07T09:41:59Z
-    victim-68bb98cf76-jsslx   -1000   True   2026-10-07T09:41:59Z
-    victim-68bb98cf76-jzkkw   -1000   True   2026-10-07T09:41:59Z
-  after:  victim-68bb98cf76-bsgmz
+    victim-68bb98cf76-bqhv6   1000    True   2026-10-07T09:57:13Z
+    victim-68bb98cf76-g6xt2   -1000   True   2026-10-07T09:57:13Z
+    victim-68bb98cf76-mxh64   -1000   True   2026-10-07T09:57:13Z
+  after:  victim-68bb98cf76-bqhv6
 ok   round 1: the cost-1000 pod is the only survivor
 
 == round 2 (reversed): the survivor, now oldest, at -1000; a new pod at 1000
   before scale to 1:
-    victim-68bb98cf76-bsgmz   -1000   True   2026-10-07T09:41:59Z
-    victim-68bb98cf76-26n4g   1000    True   2026-10-07T09:42:05Z
-    victim-68bb98cf76-w7wkc   -1000   True   2026-10-07T09:42:05Z
-  after:  victim-68bb98cf76-26n4g
+    victim-68bb98cf76-bqhv6   -1000   True   2026-10-07T09:57:13Z
+    victim-68bb98cf76-5r7gz   1000    True   2026-10-07T09:57:19Z
+    victim-68bb98cf76-vlr7g   -1000   True   2026-10-07T09:57:19Z
+  after:  victim-68bb98cf76-5r7gz
 ok   round 2: the cost-1000 pod is the only survivor
 
 verdict: kind's ReplicaSet scale-down honours pod-deletion-cost

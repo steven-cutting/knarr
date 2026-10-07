@@ -1,4 +1,4 @@
-date: 2026-10-07T09:47Z
+date: 2026-10-07T10:02Z
 
 == 1. the kwok provider at cluster-autoscaler-1.35.2
 OWNERS README.md docs kwok_config.go kwok_config_test.go kwok_constants.go kwok_helpers.go kwok_helpers_test.go kwok_nodegroups.go kwok_nodegroups_test.go kwok_provider.go kwok_provider_test.go kwok_types.go samples 
@@ -32,11 +32,11 @@ pod is Pending, PodScheduled=False reason Unschedulable
 
 == 6. one scale-up
 NODE         NODEGROUP   PROVIDER-ID       KWOK   TAINTS
-ng-a-b99kl   ng-a        kwok:ng-a-b99kl   fake   kwok-provider
+ng-a-5pkbh   ng-a        kwok:ng-a-5pkbh   fake   kwok-provider
 CA log:
   Final scale-up plan: [{ng-a 0->1 (max: 3)}]
   Scale-up: setting group ng-a size to 1
-  Event(v1.ObjectReference{Kind:"ConfigMap", Namespace:"default", Name:"cluster-autoscaler-status", UID:"755d1c4b-7a84-42f8-9b89-b1cd2eebdc7b", APIVersion:"v1", ResourceVersion:"252", FieldPath:""}): 
-ok   one scale-up: pod Pending -> CA added ng-a-b99kl to ng-a -> pod Ready, 5.4s after the pod was created
+  Event(v1.ObjectReference{Kind:"ConfigMap", Namespace:"default", Name:"cluster-autoscaler-status", UID:"91853a2b-fbc4-45e2-8aaf-af89848d6470", APIVersion:"v1", ResourceVersion:"253", FieldPath:""}): 
+ok   one scale-up: pod Pending -> CA added ng-a-5pkbh to ng-a -> pod Ready, 5.4s after the pod was created
 
 verdict: the kwok provider exists at cluster-autoscaler-1.35.2 and scales up a kwokctl cluster, with CA as a container

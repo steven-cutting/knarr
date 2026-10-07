@@ -41,7 +41,8 @@ echo; echo "== 1. the kwok provider at $tag"
 src=repos/kubernetes/autoscaler/contents/cluster-autoscaler/cloudprovider/kwok
 gh api "$src?ref=$tag" --jq '.[] | .name' | tr '\n' ' '; echo
 gh api "$src/README.md?ref=$tag" --jq .content | base64 -d > "$work/README.md"
-printf 'README.md sha256 %s\n' "$(shasum -a 256 "$work/README.md" | cut -d' ' -f1)"
+sha() { if command -v sha256sum >/dev/null; then sha256sum; else shasum -a 256; fi | cut -d' ' -f1; }
+printf 'README.md sha256 %s\n' "$(sha < "$work/README.md")"
 echo 'prerequisites it states:'
 # shellcheck disable=SC2016  # the backticks are literal Markdown
 grep -E 'Install `kwok` controller|Create `kwok-provider-(config|templates)` ConfigMap|Set `POD_NAMESPACE`|Set `--cloud-provider=kwok`|KWOK_PROVIDER_MODE=local|taints the template nodes|fromNodeLabelKey`/`fromNodeAnnotationKey` in the kwok provider config is actually present' \

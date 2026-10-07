@@ -21,7 +21,7 @@ PATH=$tools/bin:$tools/.pixi/envs/cluster/bin:$PATH; export PATH
 fail() { printf 'FAIL: %s\n' "$*"; exit 1; }
 now() { perl -MTime::HiRes=time -e 'printf "%.1f\n", time'; }
 since() { perl -e 'printf "%.1f\n", $ARGV[1] - $ARGV[0]' "$1" "$(now)"; }
-median() { printf '%s\n' "$@" | sort -n | sed -n 2p; }
+median() { printf '%s\n' "$@" | sort -n | sed -n "$(( ($# + 1) / 2 ))p"; }  # the middle of an odd count
 runs=3
 standin=knarr-standin:timing-$$
 current=

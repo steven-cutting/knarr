@@ -4,8 +4,11 @@
 #
 #   name          <basename>-<8 hex>, at most 32 characters. The basename is
 #                 cut to DNS-1123 label characters and 23 characters; the hash
-#                 is of the physical absolute path, so two worktrees that share
-#                 a basename differ and a symlinked path names the same cluster.
+#                 is of the physical absolute path, lower-cased, so two worktrees
+#                 that share a basename differ, and a symlinked path or a path
+#                 typed in another case (macOS filesystems ignore case) names
+#                 the same cluster. The cost: on a case-sensitive filesystem,
+#                 two directories whose paths differ only in case share a name.
 #   dir           <worktree>/.cluster, all per-worktree cluster state
 #   kubeconfig    <worktree>/.cluster/kubeconfig
 #   kwok-workdir  <worktree>/.cluster/kwok (KWOK_WORKDIR; kwokctl's default is ~/.kwok)
@@ -27,7 +30,7 @@ base=$(printf '%s' "${abs##*/}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '
 # A basename with no usable character (all punctuation or non-ASCII) is "wt".
 base=${base:-wt}
 case $field in
-  name) printf '%s-%s\n' "$base" "$(printf '%s' "$abs" | sha)";;
+  name) printf '%s-%s\n' "$base" "$(printf '%s' "$abs" | tr '[:upper:]' '[:lower:]' | sha)";;
   dir) printf '%s\n' "$abs/.cluster";;
   kubeconfig) printf '%s\n' "$abs/.cluster/kubeconfig";;
   kwok-workdir) printf '%s\n' "$abs/.cluster/kwok";;

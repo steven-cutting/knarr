@@ -35,12 +35,23 @@ kwok_kube=v1.35.5
 envtest_version=1.35.0
 
 ready() { # wait for a schedulable cluster: a Ready node and the default SA
+  # kubectl wait --all fails at once if no node exists yet, so wait for one first.
+  i=0; until [ -n "$(kubectl get nodes -o name 2> /dev/null)" ]; do
+    i=$((i + 1)); [ "$i" -lt 360 ] || fail "$n: no node registered"; sleep 0.5
+  done
   kubectl wait --for=condition=Ready node --all --timeout=180s > /dev/null
   i=0; until kubectl get serviceaccount default > /dev/null 2>&1; do
     i=$((i + 1)); [ "$i" -lt 120 ] || fail "$n: no default ServiceAccount"; sleep 0.5
   done
 }
-freeport() { perl -MIO::Socket::INET -e 'print IO::Socket::INET->new(Listen => 1, LocalAddr => "127.0.0.1", LocalPort => 0)->sockport, "\n"'; }
+# freeports [count]: ports the OS reports free on 127.0.0.1, distinct because
+# every socket stays open until all are chosen. The socket closes before the
+# apiserver binds the port, so this narrows the race between worktrees (an
+# ephemeral port is rarely handed out again within seconds) without closing
+# it: a lost race fails "up", and rerunning picks new ports.
+freeports() {
+  perl -MIO::Socket::INET -e 'my @s = map { IO::Socket::INET->new(Listen => 1, LocalAddr => "127.0.0.1", LocalPort => 0) or die "$!\n" } 1 .. ($ARGV[0] || 1); print join(" ", map { $_->sockport } @s), "\n"' "${1:-1}"
+}
 
 envtest_up() {
   bins=$(setup-envtest use "$envtest_version" --bin-dir "$tools/envtest" -i -p path)
@@ -49,10 +60,10 @@ envtest_up() {
   openssl rsa -in "$e/sa.key" -pubout -out "$e/sa.pub" 2> /dev/null
   token=$(openssl rand -hex 16)
   printf '%s,admin,admin,system:masters\n' "$token" > "$e/tokens.csv"
-  # shellcheck disable=SC2218  # false positive in 0.11.0: freeport is defined above
-  {
-    cport=$(freeport); pport=$(freeport); aport=$(freeport)
-  }
+  # SC2218: false positive in 0.11.0, freeports is defined above. SC2046: the
+  # split into three ports is the point.
+  # shellcheck disable=SC2218,SC2046
+  set -- $(freeports 3); cport=$1; pport=$2; aport=$3
   "$bins/etcd" --data-dir "$e/etcd" --name envtest \
     --listen-client-urls "http://127.0.0.1:$cport" --advertise-client-urls "http://127.0.0.1:$cport" \
     --listen-peer-urls "http://127.0.0.1:$pport" --initial-advertise-peer-urls "http://127.0.0.1:$pport" \
@@ -77,7 +88,7 @@ envtest_down() {
     f=$dir/envtest/$p.pid
     [ -f "$f" ] || continue
     pid=$(cat "$f"); kill "$pid" 2> /dev/null || true
-    i=0; while kill -0 "$pid" 2> /dev/null; do i=$((i + 1)); [ "$i" -lt 100 ] || { kill -9 "$pid"; break; }; sleep 0.1; done
+    i=0; while kill -0 "$pid" 2> /dev/null; do i=$((i + 1)); [ "$i" -lt 100 ] || { kill -9 "$pid" 2> /dev/null || true; break; }; sleep 0.1; done
   done
 }
 
@@ -108,7 +119,7 @@ case $runner:$action in
     # kwokctl's default port is the first free one counting down from 32766,
     # so two clusters created at once both take it; pass a free port instead.
     KWOK_KUBE_VERSION=$kwok_kube kwokctl create cluster --name "$n" --runtime docker --kubeconfig "$kc" \
-      --kube-apiserver-port "$(freeport)" \
+      --kube-apiserver-port "$(freeports)" \
       --wait 180s > "$dir/up.log" 2>&1 || { cat "$dir/up.log" >&2; fail "kwokctl create $n"; }
     kwokctl scale node --name "$n" --replicas 1 > /dev/null 2>&1
     ready;;

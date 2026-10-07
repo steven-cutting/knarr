@@ -35,14 +35,14 @@
 
 These are corrections to the premise above, found while gathering the evidence on 2026-10-07:
 
-- envtest is not a tier. kwok gives the "envtest equivalent or substitute" that OVERVIEW §9.16 asks for, with a real kube-controller-manager, under 3 s slower to start. envtest has none, and it is a Go library.
+- envtest is not a tier. kwok gives the "envtest equivalent or substitute" that OVERVIEW §9.16 asks for, with a real kube-controller-manager, about 1 s slower to start. envtest has none, and it is a Go library.
 - OrbStack's apiserver is on a fixed port, 26443, with one cluster per machine. It fails the worktree criterion outright, and is not just "optional".
 - kwokctl's default apiserver port is not random. It counts down from 32766, so concurrent creates collide.
 - The Cluster Autoscaler kwok provider exists at 1.35.2 and works without patches.
 
 ### Follow-ups for 13
 
-- Port [`name.sh`](../evidence/10/name.sh) and [`name_test.sh`](../evidence/10/name_test.sh) into the repository, for example as `scripts/cluster-name.sh` with its test in `just check`. Keep the behaviour: `<basename>-<8 hex>`, at most 32 characters, and the path fields under `<worktree>/.cluster/`. Gitignore `.cluster/`.
+- Port [`name.sh`](../evidence/10/name.sh) and [`name_test.sh`](../evidence/10/name_test.sh) into the repository, for example as `scripts/cluster-name.sh` with its test in `just check`. Keep the behaviour: `<basename>-<8 hex>`, at most 32 characters, a hash of the lower-cased physical path, and the path fields under `<worktree>/.cluster/`. Gitignore `.cluster/` before the first `cluster-up`, because the kubeconfig holds an admin client key. The repository has no `.gitignore` yet (03 creates one).
 - Add these `tools.txt` lines, copied from 0003 ([tools.txt](../evidence/01/tools.txt)). Do not add k3d or setup-envtest.
 
   ```text
@@ -69,15 +69,20 @@ These are corrections to the premise above, found while gathering the evidence o
       case {{runner}} in
         kind) kind create cluster --name {{cluster}} --image {{kind_node}} --kubeconfig "$KUBECONFIG" --wait 180s;;
         kwok)
-          # kwokctl's default port races between worktrees; take one the OS says is free.
+          # kwokctl's default port collides between worktrees; take one the OS says is
+          # free. That narrows the race without closing it: on a bind failure, rerun.
           port=$(perl -MIO::Socket::INET -e 'print IO::Socket::INET->new(Listen=>1,LocalAddr=>"127.0.0.1",LocalPort=>0)->sockport')
           KWOK_KUBE_VERSION=v1.35.5 kwokctl create cluster --name {{cluster}} --runtime docker \
             --kubeconfig "$KUBECONFIG" --kube-apiserver-port "$port" --wait 180s
           kwokctl scale node --name {{cluster}} --replicas 1;;
         *) echo "KNARR_CLUSTER must be kind or kwok" >&2; exit 2;;
       esac
+      # kubectl wait --all fails at once while no node exists, so wait for one first.
+      i=0; until [ -n "$(kubectl get nodes -o name 2>/dev/null)" ]; do
+        i=$((i + 1)); [ "$i" -lt 360 ] || { echo "no node registered" >&2; exit 1; }; sleep 0.5; done
       kubectl wait --for=condition=Ready node --all --timeout=180s
-      until kubectl get serviceaccount default >/dev/null 2>&1; do sleep 0.5; done
+      i=0; until kubectl get serviceaccount default >/dev/null 2>&1; do
+        i=$((i + 1)); [ "$i" -lt 120 ] || { echo "no default ServiceAccount" >&2; exit 1; }; sleep 0.5; done
 
   cluster-down:
       #!/bin/sh
@@ -103,7 +108,8 @@ These are corrections to the premise above, found while gathering the evidence o
       set -eu
       kubectl port-forward deployment/knarr 18080:8080 >/dev/null & pf=$!
       trap 'kill $pf' EXIT
-      sleep 1
+      i=0; until curl -fsS --max-time 2 -o /dev/null http://127.0.0.1:18080/healthz 2>/dev/null; do
+        i=$((i + 1)); [ "$i" -lt 60 ] || { echo "port-forward never answered" >&2; exit 1; }; sleep 0.5; done
       for p in healthz readyz metrics; do curl -fsS --max-time 5 "http://127.0.0.1:18080/$p" >/dev/null; echo "ok /$p"; done
   ```
 

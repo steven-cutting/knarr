@@ -22,7 +22,7 @@ KUBECONFIG=$HOME/.orbstack/k8s/config.yml; export KUBECONFIG
 fail() { printf 'FAIL: %s\n' "$*"; exit 1; }
 now() { perl -MTime::HiRes=time -e 'printf "%.1f\n", time'; }
 since() { perl -e 'printf "%.1f\n", $ARGV[1] - $ARGV[0]' "$1" "$(now)"; }
-median() { printf '%s\n' "$@" | sort -n | sed -n 2p; }
+median() { printf '%s\n' "$@" | sort -n | sed -n "$(( ($# + 1) / 2 ))p"; }  # the middle of an odd count
 sha() { if command -v sha256sum >/dev/null; then sha256sum; else shasum -a 256; fi | cut -c1-16; }
 standin=knarr-standin:orbstack-$$
 # Per-run names: OrbStack keeps the cluster between starts, so a pod from an

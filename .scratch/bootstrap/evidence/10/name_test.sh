@@ -27,6 +27,15 @@ l=$(name "$tmp/link" name)
 if [ "$l" = "$a" ]; then ok 'a symlink to a worktree names the same cluster'
 else no 'a symlink to a worktree names the same cluster' "'$l' vs '$a'"; fi
 
+# On a case-insensitive filesystem (macOS by default) one directory has many
+# spellings, and pwd -P keeps the one typed.
+mkdir -p "$tmp/Case/Tree"
+if [ -d "$tmp/CASE/TREE" ]; then
+  u=$(name "$tmp/CASE/TREE" name); m=$(name "$tmp/Case/Tree" name)
+  if [ "$u" = "$m" ]; then ok 'one worktree spelled in two cases names the same cluster'
+  else no 'one worktree spelled in two cases names the same cluster' "'$u' vs '$m'"; fi
+else ok 'one worktree spelled in two cases names the same cluster (skipped: case-sensitive filesystem)'; fi
+
 mkdir -p "$tmp/c/_Feature__Branch #12!.v2-"
 check 'odd characters become DNS-1123: lower case, runs of others to one dash, trimmed' \
   "$(name "$tmp/c/_Feature__Branch #12!.v2-" name)" 'feature-branch-12-v2-[0-9a-f]{8}'

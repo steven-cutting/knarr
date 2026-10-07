@@ -1,4 +1,4 @@
-date: 2026-10-07T09:46Z
+date: 2026-10-07T10:02Z
 Version: 2.2.3 (2020300)
 k8s.enable when this script started: false
 
@@ -11,11 +11,11 @@ server: v1.35.6+orb1
 orbstack   v1.35.6+orb1   docker://29.4.0
 
 == a local image, no load step
-ok   knarr-standin:orbstack-5592, built with docker build, runs with imagePullPolicy: Never
+ok   knarr-standin:orbstack-31585, built with docker build, runs with imagePullPolicy: Never
 
 == pod IP and ClusterIP reach from the Mac
-ok   pod IP 192.168.194.11:8080 answers from the Mac
-ok   ClusterIP 192.168.194.185:80 answers from the Mac
+ok   pod IP 192.168.194.15:8080 answers from the Mac
+ok   ClusterIP 192.168.194.164:80 answers from the Mac
 
 == one cluster per machine
 contexts in .orbstack/k8s/config.yml: orbstack 

@@ -83,7 +83,7 @@ There are three environments, and one solve group gives all three the same build
 Each version is conda-forge's newest on both platforms on that date ([search.txt](../../.scratch/bootstrap/evidence/01/search.txt)).
 
 | Package | Binary | Pin | Environment |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `gleam` | `gleam` | 1.19.0 | default |
 | `erlang` | `erl`, `escript`, `erlc` | 29.1.1 (OTP 29, erts 17.1) | default, cluster, runtime |
 | `just` | `just` | 1.58.0 | default |
@@ -110,7 +110,7 @@ Two corrections to the ticket's premise:
 A tool conda-forge does not carry is downloaded from its upstream release into the gitignored `.tools/bin`, and only if its sha256 matches a committed pin. Each pin line gives the name, version, platform, URL, sha256 and the archive member to extract. The lines below are the pin list [tools.sh](../../.scratch/bootstrap/evidence/01/tools.sh) printed and verified. 03 writes the list as `tools.txt` with the rebar3 lines, along with the recipe that installs it. Each other lane copies its own lines from here when it first uses the tool, so the foundation stays small.
 
 | Tool | Version | Source | sha256 verified against | Added by |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | rebar3 | 3.27.1 | `erlang/rebar3` release, one escript for both platforms | GitHub asset digest; the Sigstore bundle verifies against `erlang/rebar3/.github/workflows/publish.yml@refs/tags/3.27.1` | 03 |
 | ripsecrets | 0.1.11 | `sirwart/ripsecrets` release, both platforms | nothing upstream (see below) | 03, if 02 keeps it |
 | editorconfig-checker | 4.0.2 | release, linux-amd64 and darwin-all | GitHub asset digest and `checksums.txt` | 03, if 02 keeps it |
@@ -175,7 +175,7 @@ The cluster directory comes after the default one, so `gleam` and the other shar
 ### pixi commands
 
 | Purpose | Command | Evidence |
-|---|---|---|
+| --- | --- | --- |
 | Install (first run, CI) | `pixi install --locked`, which installs `default` only. Cluster lanes add `pixi install --locked -e cluster`. | It installs only `default`. On drift it exits 1 and leaves `pixi.lock` unchanged. |
 | Lock check (gate) | `pixi lock --check --offline --dry-run` | On drift it exits 1 and leaves `pixi.lock` unchanged. On a fresh lock it passes offline. |
 | Move transitives within the pins | `pixi update`, or `pixi update <package>`, then commit `pixi.lock` | |

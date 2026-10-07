@@ -11,7 +11,7 @@ The MVP uses option (a), annotations only (OVERVIEW §7). Option (b) is the plan
 Who sets the replica count? The primary mechanism works under every option, because HPA, KEDA, `kubectl scale` and Knarr all end up at the ReplicaSet's victim ranking. The options differ in **when Knarr can know a scale-down is coming**, and so in how much API write load it generates.
 
 | | (a) Annotations only | (b) Feed KEDA; KEDA owns replicas | (c) Knarr owns replicas |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Who sets replicas | HPA / KEDA | KEDA (HPA), using Knarr's metric | Knarr (`/scale` subresource) |
 | Knarr adds | Cost annotations | Annotations plus a per-workload aggregate (for example busy count or headroom) | Annotations plus scaling logic |
 | "Annotate before scale-down" (KEP pattern) | **Not possible.** Costs must stay fresh all the time, so banding and debounce are essential. | Partly. Knarr can refresh costs when its own metric implies scale-in, but HPA still controls timing. | **Yes.** Annotate, then scale (Windmill's pattern). Fewest writes. |
@@ -62,7 +62,7 @@ The MVP runs a single replica with no leader election (OVERVIEW §8). Notes for 
 - **Failure mode (from old §8):**
 
   | Scenario | Knarr behavior (proposed) | Effect on scale-down | Ticket |
-  |---|---|---|---|
+  | --- | --- | --- | --- |
   | Two replicas running (split-brain) | Must share one logical writer identity | Extra load; values may flap if not | §9.19, §9.10 |
 
 - **Extra RBAC:** `coordination.k8s.io` `leases`: get, create, update.

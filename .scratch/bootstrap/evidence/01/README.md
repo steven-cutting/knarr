@@ -15,7 +15,7 @@ This needs network, pixi 0.81.0, curl, an authenticated `gh` (for asset digests 
 ## Scripts
 
 | Script | Transcript | What it shows |
-|---|---|---|
+| --- | --- | --- |
 | [search.sh](search.sh) | [search.txt](search.txt) | Every conda-forge package at its pinned version on both platforms, the tools absent from conda-forge, and that conda-forge's `k3d` is a Python package |
 | [solve.sh](solve.sh) `<dir>` | [solve.txt](solve.txt) | [pixi.toml.proposed](pixi.toml.proposed) solves and installs on both platforms; one erlang and openssl build per platform; no activation scripts; tools run from a `PATH` export; which pixi commands rewrite `pixi.lock` on drift |
 | [tls/run.sh](tls/run.sh) `<env> <dir>` | [tls.txt](tls.txt) | Verify 1: [tls_check.escript](tls/tls_check.escript) with certificates from [gen-certs.sh](tls/gen-certs.sh). Six cases: right CA by name and by IP SAN, wrong CA, wrong name, missing IP SAN |

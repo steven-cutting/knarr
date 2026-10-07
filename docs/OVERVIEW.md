@@ -30,7 +30,7 @@ flowchart LR
 ### MVP at a glance
 
 | Item | Status | Where |
-|---|---|---|
+| --- | --- | --- |
 | Target platform: GKE Standard; MVP bar is running a real production workload | Decided | §6 |
 | Runtime: Gleam on the BEAM (Erlang target) | Decided | §8 |
 | Workload kind: Deployments only | Decided | §3 |
@@ -65,7 +65,7 @@ Autoscalers such as HPA and KEDA (ScaledObject) decide **how many** replicas to 
 ### Several paths can kill a pod
 
 | Path | Triggered by | Honors `pod-deletion-cost` | Honors PDBs | Honors `safe-to-evict` |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **A. ReplicaSet scale-down** | HPA, KEDA, `kubectl scale`, Deployment rollouts | Yes, within one ReplicaSet | No (direct delete) | No |
 | **B. Node removal through the Eviction API** | Cluster Autoscaler, Karpenter, `kubectl drain`, node upgrades | No (Karpenter may read it for consolidation scoring, see [DEFERRED.md §7](DEFERRED.md#7-karpenter)) | Yes (Eviction API) | Cluster Autoscaler only (GKE has its own behavior); not Karpenter or `kubectl drain` |
 | **C. Other** | Direct pod delete, scheduler preemption, kubelet node-pressure eviction, spot or instance reclaim, node removal outside CA | No | Direct delete: no. Others: not verified here | No |
@@ -224,7 +224,7 @@ Readiness also controls Service routing, so the right guidance depends on the ki
 `accepting: false` matters to Knarr only when the **worker starts the drain itself**, for example before a self-restart or when an operator asks it to drain through the worker's own API. Once Kubernetes terminates a pod (SIGTERM, `deletionTimestamp` set), the annotation no longer affects ReplicaSet scale-down and Knarr stops patching.
 
 | `accepting` | `cost` | Terminating | Meaning | Candidate handling (OPEN, §9.5) |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | true | low | no | Idle or running quick tasks only | Low band; preferred victim |
 | true | high | no | Busy with expensive work | High band; biased against removal |
 | false | high | no | Not accepting; expensive work remains | Biased against removal. One option: keep the reported cost, or apply a floor. Still best-effort. Kubernetes does not bound a drain the worker starts itself; the grace period applies only once termination begins |
@@ -293,7 +293,7 @@ Knarr only biases which pod is chosen. Workers must still:
 ### `controller.kubernetes.io/pod-deletion-cost` (primary)
 
 | Aspect | Fact |
-|---|---|
+| --- | --- |
 | Feature state | Alpha in 1.21. **Beta and on by default since 1.22.** Still beta in current `kube_features.go` (checked 2026-10). |
 | Feature gate | `PodDeletionCost` on kube-controller-manager (the ReplicaSet docs also list kube-apiserver). Disabling it on the controller-manager turns off cost-aware ranking. It is hard to detect on managed clusters, so it is a documented prerequisite (§9.11). |
 | Value | A string that parses as **int32** (`-2147483648`..`2147483647`). Unset means an implicit `0`. Negative values are allowed. |
@@ -425,7 +425,7 @@ Ship a documented guide for pairing Knarr with a KEDA ScaledObject.
 
 This is concept level only. Module boundaries and process layout will be refined in tickets.
 
-```
+```text
 knarr_sup (one_for_one)
 ├── config          : target workloads and settings from labels/annotations, one namespace (§9.1)
 ├── k8s_client      : in-cluster auth, list/get/patch; pure Gleam + Erlang FFI (§9.2)
@@ -473,7 +473,7 @@ flowchart TB
 ### Failure modes (proposed v1 defaults, all to be confirmed in tickets)
 
 | Scenario | Knarr behavior (proposed) | Effect on scale-down | Ticket |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Pod unreachable, timeout or 5xx | Keep the last value for a bounded number of polls and time, then write neutral | Bias fades to neutral once that write succeeds | §9.6 |
 | Endpoint 404 or never implemented | Treat as unmanaged; remove Knarr-owned annotations; Event and metric | No bias for that pod once cleaned up | §9.6, §9.4a |
 | Invalid payload | Same as a transient failure; log and count | As above | §9.6 |
@@ -533,14 +533,14 @@ flowchart LR
 
 ## 10. Glossary and references
 
-**Glossary**
+### Glossary
 
 - **Cost:** a number the worker supplies; higher means it would be more expensive to kill the pod now.
 - **Band:** a quantized cost level. A band change is one of the triggers for a patch (§4).
 - **Accepting / draining:** the worker's statement that it is or is not taking new work.
 - **Path A / B / C:** ReplicaSet scale-down; node removal through the Eviction API; other ways a pod can be killed (§2).
 
-**References**
+### References
 
 - [Kubernetes: ReplicaSet, Pod deletion cost](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost)
 - [Kubernetes: well-known labels, annotations and taints](https://kubernetes.io/docs/reference/labels-annotations-taints/)

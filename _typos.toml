@@ -1,0 +1,10 @@
+# The only typos configuration. Adapted from libpawdoku's _typos.toml.
+
+[files]
+# The environment and tool directories hold binaries, and the lockfile and
+# Gleam's build output carry hashes and generated names.
+extend-exclude = [".pixi/", ".tools/", "pixi.lock", "build/", "ai_tmp/"]
+
+[default.extend-words]
+# AIMD: additive increase, multiplicative decrease (docs/DEFERRED.md).
+aimd = "aimd"

@@ -34,7 +34,7 @@ Copy four checkers, rewrite one in POSIX shell, drop the installer, and keep edi
 Paths are at biscuit_games_tooling `v0.3.0`, under `src/biscuit_games_tooling/`.
 
 | Checker | Decision | Runtime | Lane |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `run_project_check.py`, with `root()` from `_project.py` | **Copy.** The snapshot guarantee is kept as is. One adaptation: the recipe list comes from the Justfile as arguments, not from a config file. | pixi Python | 03 |
 | `validate_docs.py` | **Copy.** Predicates come from `checks.toml`, not `pyproject.toml`. | pixi Python | 06 |
 | `validate_agents.py` | **Copy.** The phrase list, adapters and skill bridges move to `checks.toml`. `runes` is gone. | pixi Python | 09 |
@@ -57,7 +57,7 @@ The reasons, checker by checker:
 The source is [github.com/steven-cutting/biscuit_games_tooling](https://github.com/steven-cutting/biscuit_games_tooling) at tag `v0.3.0`, commit `6c5c07f6bec86e86b3930dfa41392e4b440e8c85` (2026-09-22). Upstream `main` (`6245d5d`) changes only `README.md` and `CHANGELOG.md` after the tag, so `v0.3.0` is the newest source ([provenance.txt](../../.scratch/bootstrap/evidence/02/provenance.txt)).
 
 | Source file | sha256 at `v0.3.0` | Lines | Becomes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `_project.py` | `f03dac86…4be62c0a` | 64 | `scripts/checks/_project.py`, reduced (below) |
 | `run_project_check.py` | `aef50384…ab3faaac` | 151 | `scripts/checks/run_project_check.py` |
 | `validate_docs.py` | `3a3af978…b18795eb` | 332 | `scripts/checks/validate_docs.py` |

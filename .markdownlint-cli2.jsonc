@@ -1,0 +1,16 @@
+// Adapted from libpawdoku's .markdownlint-cli2.jsonc (house style).
+{
+  "config": {
+    "default": true,
+    // Prose is wrapped by the author, not by a column limit.
+    "MD013": false,
+    // Duplicate headings are legitimate under different parents.
+    "MD024": { "siblings_only": true },
+    // Frontmatter carries a title field, but the level-one heading in the body
+    // is the document's real title and the docs contract requires it.
+    "MD025": { "front_matter_title": "" }
+  },
+  // .scratch/ is named because ** does not descend into dot-directories.
+  "globs": ["**/*.md", ".scratch/**/*.md"],
+  "ignores": [".pixi", ".tools", "build", "ai_tmp"]
+}

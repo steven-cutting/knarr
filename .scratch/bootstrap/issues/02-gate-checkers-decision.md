@@ -55,7 +55,7 @@ These are corrections to the premise above, found while gathering the evidence o
 - Add both platforms' ripsecrets and editorconfig-checker lines to `tools.txt`, from [01's tools.txt](../evidence/01/tools.txt). The ripsecrets archive nests its binary under `ripsecrets-0.1.11-<target>/`. The editorconfig-checker archive has its own layout. allium's sits at the archive root. So the installer matches a member by its basename. Run editorconfig-checker as a hook or a recipe inside `just check`.
 - Gitignore `__pycache__/`, `.pytest_cache/` and `.ruff_cache/`, and export `PYTHONDONTWRITEBYTECODE=1` from the Justfile.
 - Put ruff's configuration in `ruff.toml`, starting from upstream's rule selection. Pick pytest's configuration file. knarr has no `pyproject.toml`.
-- Configure typos to skip the evidence transcripts, which carry hashes, as upstream skipped `uv.lock`.
+- `.markdownlint-cli2.jsonc` and `_typos.toml` already exist at the root, adapted from libpawdoku's house style: MD013 is off, the frontmatter title is not a second H1, and `AIMD` is a word. The whole repository, evidence transcripts included, passes both. Keep them, and wire both into `just check`.
 
 ### Follow-ups for 06
 

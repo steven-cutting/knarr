@@ -15,7 +15,7 @@ This needs network, pixi 0.81.0, curl, an authenticated `gh` and a clone of [bis
 ## Scripts
 
 | Script | Transcript | What it shows |
-|---|---|---|
+| --- | --- | --- |
 | [provenance.sh](provenance.sh) `<clone>` | [provenance.txt](provenance.txt) | Tag `v0.3.0` is commit `6c5c07f` locally and on the remote; upstream `main` changes only the README and CHANGELOG after it; the tree has no licence file and `pyproject.toml` no `license` field; the sha256 and line count of each of the seven source files |
 | [python.sh](python.sh) `<dir>` | [python.txt](python.txt) | python 3.14.8, pytest 9.1.1 and ruff 0.16.10 on both platforms; 0003's [pixi.toml.proposed](../01/pixi.toml.proposed) solves with and without them; the default environment grows from 521 MB to 622 MB on osx-arm64; `tomllib` and `hashlib.file_digest` import; `python3` resolves through a `PATH` export alone |
 | [allium.sh](allium.sh) `<dir>` | [allium.txt](allium.txt) | allium-tools 3.6.1 for linux-64 and osx-arm64 matches both the checksums `install_allium.py` carried and GitHub's asset digests; each archive holds one member, `allium`; the macOS binary prints `allium 3.6.1`; the two `tools.txt` lines; 3.6.1 is still the newest release |

@@ -90,7 +90,7 @@ flowchart TD
 A wave is the earliest point a ticket can start if every lane runs in parallel: one step after its latest blocker. `needs-human` tickets also wait for a maintainer session.
 
 | Wave | Tickets |
-|---|---|
+| --- | --- |
 | 0 | [01](issues/01-tool-manager-decision.md) |
 | 1 | [02](issues/02-gate-checkers-decision.md), [10](issues/10-spike-local-cluster.md) |
 | 2 | [03](issues/03-foundation.md), [15](issues/15-spike-s2a-ca-on-kwok.md) |

@@ -58,6 +58,8 @@ sed 's/^[0-9a-f]* *//' "$work/SHA256SUMS.txt"
 echo
 echo '== newest allium-tools releases (07 may move the pin)'
 gh release list -R "$repo" -L 3
+latest=$(gh release view -R "$repo" --json tagName --jq .tagName)
+[ "$latest" = "v$version" ] || fail "the newest release is $latest, not v$version; 0004's pin needs a deliberate move"
 echo
 echo '== tools.txt lines (name version platform url sha256 member)'
 cat "$work/lines"

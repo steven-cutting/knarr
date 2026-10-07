@@ -1,8 +1,8 @@
-date: 2026-10-07T09:06Z
+date: 2026-10-07T09:13Z
 pixi 0.81.0
 host: Darwin arm64
 
-== conda-forge: each pin is the newest in its series on both platforms
+== conda-forge: each pin is the newest (python: the newest 3.14) on both platforms
 ok      linux-64  python  3.14.8     build hcd007b5_101_cp314
 ok      linux-64  pytest  9.1.1      build pyhc364b38_2
 ok      linux-64  ruff    0.16.10    build hc0d6792_0

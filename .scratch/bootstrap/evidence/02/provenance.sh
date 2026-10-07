@@ -3,7 +3,8 @@
 # drops. Reads a local clone of biscuit_games_tooling and prints the commit
 # behind tag v0.3.0, what changed after it, the licence evidence, and each
 # source file's sha256 and line count at that commit. Exits non-zero if the tag
-# has moved or a source file is missing.
+# has moved, anything under src/ changed after it, a licence appears, or a
+# source file is missing.
 # Usage: sh provenance.sh <biscuit_games_tooling-clone> > provenance.txt 2>&1
 set -eu
 clone=${1:?usage: provenance.sh <biscuit_games_tooling-clone>}
@@ -31,11 +32,11 @@ g diff --name-only "$tag" origin/main -- src | grep . && fail "src changed after
 echo
 echo "== licence at $tag"
 if g ls-tree -r --name-only "$tag" | grep -iE '(^|/)(licen[cs]e|notice|copying)' ; then
-  echo 'a licence file exists'
+  fail "a licence file exists at $tag; 0004's grant assumed none"
 else
   echo 'no LICENSE, NOTICE or COPYING file in the tree'
 fi
-if g show "$tag:pyproject.toml" | grep -iE '^license' ; then :; else echo 'pyproject.toml declares no license field'; fi
+if g show "$tag:pyproject.toml" | grep -iE '^license' ; then fail "pyproject.toml declares a licence at $tag"; else echo 'pyproject.toml declares no license field'; fi
 echo
 echo "== source files at $tag (sha256 of the blob content, lines)"
 for f in _project run_project_check validate_docs validate_agents install_allium run_allium run_ripsecrets_redacted; do

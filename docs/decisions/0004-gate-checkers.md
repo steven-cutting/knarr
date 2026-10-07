@@ -87,15 +87,18 @@ The full digests are in [provenance.txt](../../.scratch/bootstrap/evidence/02/pr
 
 The one adaptation is the recipe list. Upstream read it from `[tool.biscuit-games-tooling] recipes` in `pyproject.toml`, with a default list from another project. The copy takes it from its arguments instead: the Justfile's `check` recipe runs `python3 scripts/checks/run_project_check.py run <recipe>...`, and the runner appends `check-clean`. The list lives once, in the Justfile, beside the recipes it names. `run` with no recipes refuses with status 2, so a gate that ran nothing cannot pass.
 
+The runner calls the last step as `just check-clean <baseline.json>`. So the Justfile's `check-clean` recipe takes one optional parameter, `baseline`, with an empty default, and passes it on as `run_project_check.py clean <baseline>`. A recipe without the parameter makes every `just check` fail at its last step. A recipe that drops the argument asserts that `git status` is empty instead, so `just check` would fail on any uncommitted work.
+
 ### `checks.toml`
 
-The copied checkers read one root file, `checks.toml`, with Python's `tomllib`. `_project.py` keeps `root()` and gains one loader. The loader fails closed:
+The copied checkers read one root file, `checks.toml`, with Python's `tomllib`. `_project.py` keeps `root()` and gains one loader, `table(root, name)`. It fails closed:
 
 - a missing `checks.toml` is an error, never an empty default
-- a missing table that a checker reads is an error
-- an empty `[agents] required_guidance` is an error
+- a missing table that a checker asks for is an error
 
-Upstream's `settings()` returned `{}` for a missing `pyproject.toml`. That would let the agents validator pass with no phrases at all.
+Each checker then refuses its own empty values. validate_agents refuses an empty `required_guidance`. Upstream's `settings()` returned `{}` for a missing `pyproject.toml`, which would let the agents validator pass with no phrases at all.
+
+03 writes the loader and `checks.toml`, though no checker of 03's reads it. 03's tests cover both refusals, so the loader is proven before 06, 07 and 09 depend on it. That way no two of those lanes write it in parallel.
 
 Each lane writes its own table. This is the shape all four agree on:
 
@@ -113,9 +116,10 @@ predicates = {}
 # Phrases AGENTS.md must contain, compared case-insensitively. Must not be
 # empty. 09 owns the final list. (09)
 required_guidance = ["untrusted", "just check", "explicit authorization", "ai_tmp/"]
-# Committed provider files that are neither skills nor adapters, permitted
-# without being required.
-tolerated = []
+# Committed files under a managed directory that are neither skills nor
+# adapters, permitted without being required. Upstream tolerated
+# .claude/settings.json; 09 lists what knarr commits.
+tolerated = [".claude/settings.json"]
 
 # Each agent runtime that gets skill bridges, and the directory its bridges
 # live in. The bridge body's relative path to .agents/skills/ is derived from
@@ -136,14 +140,14 @@ specs = "docs/specs/"
 
 How each checker changes to read it:
 
-- **validate_docs** reads `[docs] predicates` in place of `[tool.biscuit-games-tooling] predicates`. Nothing else changes. Any exception the HTML explainer needs is 06's to add.
+- **validate_docs** reads `[docs] predicates` in place of `[tool.biscuit-games-tooling] predicates`, through `_project.predicates(root)`. That function is kept, rewritten to read `checks.toml`. It still returns the declared predicates and the subset that is enabled, and only the boolean `true` enables one. A quoted `"false"` must not count as enabled. Nothing else in validate_docs changes. Any exception the HTML explainer needs is 06's to add.
 - **validate_agents** reads four things from `[agents]`, each of which was a constant upstream:
   - `required_guidance` replaces `REQUIRED_GUIDANCE`
   - `adapters` replaces `ADAPTERS`
   - `bridges` replaces `PROVIDERS`
   - `tolerated` replaces `TOLERATED`
 
-  Upstream's `PROVIDERS` (`claude`, `codex`) was two things at once: the bridge directories and the managed directories. Both now derive from `bridges`. A Copilot adapter (`.github/copilot-instructions.md`) is an adapter, not a bridge. Where Copilot's skill bridges live, if anywhere, is 09's call. The `CODEX.md is forbidden` check goes, because knarr supports no Codex runtime.
+  Upstream's `PROVIDERS` (`claude`, `codex`) was two things at once: the bridge directories (`.claude/skills`) and the managed directories (`.claude`, the whole provider directory). Both now derive from `bridges`. A bridge directory is the value as given. Its managed directory is the value's first path component, so `.claude/skills` manages all of `.claude/`, as upstream did. Any committed file there that is neither a bridge nor listed in `tolerated` still fails the gate. A committed `.claude/settings.json` therefore goes in `tolerated`, as it was upstream. A Copilot adapter (`.github/copilot-instructions.md`) is an adapter, not a bridge. Where Copilot's skill bridges live, if anywhere, is 09's call. The `CODEX.md is forbidden` check goes, because knarr supports no Codex runtime.
 - **run_allium** reads `[allium] specs` in place of its `SPECS` constant.
 
 **A starting phrase list for 09.** Upstream's list was `untrusted`, `just check`, `explicit authorization`, `ai_tmp/`, `docs/specs/` and `runes`. `runes` named the Svelte games' reactivity rule and is gone. The first four carry over unchanged. 09's invariants suggest these:
@@ -191,10 +195,11 @@ Two things change:
 
 [ripsecrets.txt](../../.scratch/bootstrap/evidence/02/ripsecrets.txt) shows each case against 0003's pinned ripsecrets 0.1.11. A planted token gives status 1 and the fixed message, and the token appears in neither stream.
 
-Three deliberate differences from the Python original:
+Four deliberate differences from the Python original:
 
-- **Status 2 for a refusal.** The original's refusal exits 1, the same as a finding. A refusal now exits 2 so it never reads as a finding. ripsecrets' own usage errors also exit 2. Both are failures that are not findings, and each prints its own message.
+- **Status 2 for a refusal.** The original's refusal exits 1, the same as a finding. A refusal now exits 2 so it never reads as a finding.
 - **Only the pinned binary.** The original took ripsecrets from `PATH`. The wrapper runs `<root>/.tools/bin/ripsecrets` and nothing else, and the case with another ripsecrets on `PATH` shows that. This also settles how the hook reaches the binary. Hooks run without the Justfile's `PATH`, so the wrapper finds the binary itself and the hook entry needs no `PATH`.
+- **Every argument is a path.** The wrapper passes `--` before the paths, so a staged file named `-x` is scanned, not read as a flag. The wrapper itself passes ripsecrets no flags.
 - **The refusal message** says "run just initialize", knarr's first-run command, not `just install-hooks`.
 
 ### editorconfig-checker is kept
@@ -225,8 +230,8 @@ Running Python in the worktree writes `__pycache__/`, `.pytest_cache/` and `.ruf
 
 - Copies go in `scripts/checks/`. The Justfile runs each one as `python3 scripts/checks/<name>.py`, and each imports `_project` as a sibling module.
 - Each copied or rewritten file starts with a header comment naming three things: the source repository, the commit, and the original path. It also carries `SPDX-License-Identifier: Apache-2.0`.
-- `_project.py` keeps `root()` and gains the `checks.toml` loader. `DEFAULT_RECIPES`, `settings()`, `recipes()` and `predicates()` go.
-- Each lane copies only its own checker, so no file arrives before the lane that runs it.
+- `_project.py` keeps `root()`, gains the `checks.toml` loader, and keeps `predicates()` rewritten to read `[docs]`. `DEFAULT_RECIPES`, `settings()` and `recipes()` go.
+- Each lane copies only its own checker, so no checker arrives before the lane that runs it. The exception is the shared `_project.py`, which 03 writes whole.
 - Tests live beside the checkers in `scripts/checks/tests/`.
 
 ## Verification
@@ -236,7 +241,7 @@ Each script exits non-zero on an unexpected result. The [README](../../.scratch/
 - **Provenance.** [provenance.txt](../../.scratch/bootstrap/evidence/02/provenance.txt) shows that `v0.3.0` is `6c5c07f` locally and on the remote, and that nothing under `src/` changed after it. It also shows that no licence file or field exists, and gives each source file's sha256 and line count.
 - **Python.** [python.txt](../../.scratch/bootstrap/evidence/02/python.txt) shows the three pins on both platforms, the solve with and without them, the 100 MB difference, and the imports.
 - **Allium.** [allium.txt](../../.scratch/bootstrap/evidence/02/allium.txt) shows both checksums matching v0.3.0 and GitHub, the single-member archives, `allium 3.6.1` running on macOS, and the two `tools.txt` lines.
-- **ripsecrets.** [ripsecrets.txt](../../.scratch/bootstrap/evidence/02/ripsecrets.txt) shows twelve cases, among them a control that proves bare ripsecrets prints the planted token. The wrapper was built test-first against these cases, and shellcheck 0.11.0 passes it.
+- **ripsecrets.** [ripsecrets.txt](../../.scratch/bootstrap/evidence/02/ripsecrets.txt) shows thirteen cases, among them a control that proves bare ripsecrets prints the planted token. The wrapper was built test-first against these cases, and shellcheck 0.11.0 passes it.
 
 Not verified here:
 

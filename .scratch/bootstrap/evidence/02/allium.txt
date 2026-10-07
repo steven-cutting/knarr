@@ -1,4 +1,4 @@
-date: 2026-10-07T09:06Z
+date: 2026-10-07T09:13Z
 host: Darwin arm64
 
 ok   linux-64   allium-x86_64-unknown-linux-gnu.tar.gz

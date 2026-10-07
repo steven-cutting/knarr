@@ -16,18 +16,20 @@ step() { printf '\n== %s\n' "$*"; }
 # The pins 0004 adds to the default feature. python is held at 3.14: the bare
 # newest on conda-forge is a 3.15 release candidate, and the upstream checkers
 # declare requires-python >= 3.14.
+# name, series searched (_ for the newest of any series), the pin.
 pins='
 python 3.14.* 3.14.8
-pytest 9.1.1 9.1.1
-ruff 0.16.10 0.16.10
+pytest _ 9.1.1
+ruff _ 0.16.10
 '
 printf 'date: %s\n%s\nhost: %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "$(pixi --version)" "$(uname -sm)"
 
-step 'conda-forge: each pin is the newest in its series on both platforms'
+step 'conda-forge: each pin is the newest (python: the newest 3.14) on both platforms'
 for platform in linux-64 osx-arm64; do
   printf '%s\n' "$pins" | while read -r name spec want; do
     [ -n "$name" ] || continue
-    out=$(pixi search -c conda-forge -p "$platform" "$name $spec" 2>&1) || fail "$name $spec missing on $platform"
+    if [ "$spec" = _ ]; then query=$name; else query="$name $spec"; fi
+    out=$(pixi search -c conda-forge -p "$platform" "$query" 2>&1) || fail "$query missing on $platform"
     got=$(printf '%s\n' "$out" | sed -n 's/^Version[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
     build=$(printf '%s\n' "$out" | sed -n 's/^Build[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
     [ "$got" = "$want" ] || fail "$name on $platform: want $want got $got"

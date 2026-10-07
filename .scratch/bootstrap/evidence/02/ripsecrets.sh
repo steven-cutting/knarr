@@ -73,11 +73,16 @@ grep -qF "$token" "$work/out" "$work/err" && fail 'the token reached the output'
 printf 'ok   %-58s\n' 'the token is absent from stdout and stderr'
 check 'planted file named as an argument (as prek passes it)' 1 "$found" '' "$r" config.py
 check 'clean file named as an argument, token elsewhere' 0 '' '' "$r" clean.txt
+# A staged path may start with '-'; it must be scanned, not read as a flag.
+cp "$r/config.py" "$r/-planted.py"
+check 'planted file whose name starts with "-"' 1 "$found" '' "$r" -planted.py
+rm "$r/-planted.py"
 
-# Any other non-zero status is kept, with its own fixed message. The real
-# binary gives one on an unknown flag; a stand-in that prints the token and
-# exits 3 shows that this path suppresses output too.
-check 'ripsecrets errors (unknown flag): status kept' 2 'ripsecrets failed with status 2; output suppressed' '' "$r" --no-such-flag
+# The wrapper passes no flags: a flag-shaped argument is a path that does not
+# exist, which ripsecrets 0.1.11 passes (status 0, as above).
+check 'flag-shaped argument is a path, not a flag' 0 '' '' "$r" --no-such-flag
+# Any other non-zero status is kept, with its own fixed message. A stand-in
+# that prints the token and exits 3 shows that this path suppresses output too.
 printf '#!/bin/sh\necho "%s"; echo "%s" >&2; exit 3\n' "$token" "$token" > "$r/.tools/bin/ripsecrets"
 check 'stand-in prints the token and exits 3: status kept' 3 'ripsecrets failed with status 3; output suppressed' '' "$r"
 

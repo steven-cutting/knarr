@@ -8,6 +8,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 root=${1:?usage: run-all.sh <empty-work-root> <biscuit_games_tooling-clone>}
 clone=${2:?usage: run-all.sh <empty-work-root> <biscuit_games_tooling-clone>}
 mkdir -p "$root"; root=$(cd "$root" && pwd)
+clone=$(cd "$clone" && pwd)
 [ -z "$(ls -A "$root")" ] || { echo "work root $root is not empty" >&2; exit 2; }
 cd "$here"
 run() { # transcript, command...

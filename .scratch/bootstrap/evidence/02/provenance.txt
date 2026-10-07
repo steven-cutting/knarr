@@ -1,0 +1,22 @@
+date: 2026-10-07T09:06Z
+repository: git@github.com:steven-cutting/biscuit_games_tooling.git
+tag v0.3.0: commit 6c5c07f6bec86e86b3930dfa41392e4b440e8c85 (2026-09-22), same on the remote
+origin/main: 6245d5d177581df8687d869f4888ec8bbdf5e6fc
+
+== files changed between v0.3.0 and origin/main
+CHANGELOG.md
+README.md
+(nothing under src/)
+
+== licence at v0.3.0
+no LICENSE, NOTICE or COPYING file in the tree
+pyproject.toml declares no license field
+
+== source files at v0.3.0 (sha256 of the blob content, lines)
+f03dac86b46a8925483214bad8b506dd7aefec2584f2de3c0f43580c4be62c0a    64  src/biscuit_games_tooling/_project.py
+aef503840c32dc9157c1f7fa13668326e91400dce6b8ef8d4dfa9adbab3faaac   151  src/biscuit_games_tooling/run_project_check.py
+3a3af9789f5295080cc9e080872011f9ce86815f23e16b0c7fe47ed3b18795eb   332  src/biscuit_games_tooling/validate_docs.py
+24c59cae5dbc5dc1a034fb0db0ace83999db06befc476d047f466d464807d350   260  src/biscuit_games_tooling/validate_agents.py
+3d4c8f24cd0e880a229b526f5f3ad743363e5f64a681dea603fc822356549a4b   238  src/biscuit_games_tooling/install_allium.py
+e0c5d7fc0b645c38140e31a1b1b6e05d209e47d4ef393c98091f6bfbda93ad19   213  src/biscuit_games_tooling/run_allium.py
+a9852cdd4888b946f31b838c00be08d05261bc63466b286e78659d840ff2039e    29  src/biscuit_games_tooling/run_ripsecrets_redacted.py

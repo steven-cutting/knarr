@@ -8,6 +8,8 @@
 
 **Blocked by:** 06, 07
 
+**From 02:** [Decision 0004](../../../docs/decisions/0004-gate-checkers.md) settles 02. This ticket copies `validate_agents.py`, with its phrases, adapters and bridge directories in `checks.toml` `[agents]`, and fixes the final phrase list from 0004's proposal. See [02's hand-back notes](02-gate-checkers-decision.md#follow-ups-for-09).
+
 **MVP critical path:** yes. It gates the Allium objective map (17) and so every elicitation.
 
 **Status:** ready-for-agent

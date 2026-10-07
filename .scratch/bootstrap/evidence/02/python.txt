@@ -1,0 +1,33 @@
+date: 2026-10-07T09:06Z
+pixi 0.81.0
+host: Darwin arm64
+
+== conda-forge: each pin is the newest in its series on both platforms
+ok      linux-64  python  3.14.8     build hcd007b5_101_cp314
+ok      linux-64  pytest  9.1.1      build pyhc364b38_2
+ok      linux-64  ruff    0.16.10    build hc0d6792_0
+info    linux-64  python newest of any series: 3.15.0rc3 (not pinned)
+ok      osx-arm64 python  3.14.8     build h0ae1c2c_101_cp314
+ok      osx-arm64 pytest  9.1.1      build pyhc364b38_2
+ok      osx-arm64 ruff    0.16.10    build hc57303c_0
+info    osx-arm64 python newest of any series: 3.15.0rc3 (not pinned)
+
+== solve 0003's manifest as proposed (base) and with the three pins (with-python)
+25a26,28
+> python = "==3.14.8"
+> pytest = "==9.1.1"
+> ruff = "==0.16.10"
+base         solved both platforms; default installed
+with-python  solved both platforms; default installed
+linux-64: pytest 9.1.1 pyhc364b38_2   python 3.14.8 hcd007b5_101_cp314   ruff 0.16.10 hc0d6792_0   
+osx-arm64: pytest 9.1.1 pyhc364b38_2   python 3.14.8 h0ae1c2c_101_cp314   ruff 0.16.10 hc57303c_0   
+
+== default environment size on osx-arm64 (du -sk, as 01 measured with du)
+base 521 MB, with-python 622 MB, delta 100 MB
+
+== the copied checkers need nothing beyond the standard library
+python3 resolves to the environment through a PATH export alone: <work>/with-python/.pixi/envs/default/bin/python3
+python 3.14.8 tomllib ok, hashlib.file_digest ok
+pytest 9.1.1
+ruff 0.16.10
+python.sh: all checks passed

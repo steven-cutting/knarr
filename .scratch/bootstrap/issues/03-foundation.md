@@ -10,6 +10,8 @@
 
 **From 01:** [Decision 0003](../../../docs/decisions/0003-tool-manager.md) settles 01. It gives the exact `pixi.toml`, the rebar3 pin and the lock-check command. [01's hand-back notes](01-tool-manager-decision.md#follow-ups-for-03) list what this ticket takes from it.
 
+**From 02:** [Decision 0004](../../../docs/decisions/0004-gate-checkers.md) settles 02. This ticket copies the snapshot runner and the ripsecrets wrapper (rewritten in shell), keeps editorconfig-checker, adds python, pytest and ruff to `pixi.toml`, and writes `checks.toml`. [02's hand-back notes](02-gate-checkers-decision.md#follow-ups-for-03) list what this ticket takes from it, including the cache directories to gitignore so the snapshot runner does not trip.
+
 **MVP critical path:** yes. Every later lane builds on it.
 
 **Status:** ready-for-agent

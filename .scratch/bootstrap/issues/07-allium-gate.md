@@ -8,6 +8,8 @@
 
 **Blocked by:** 03
 
+**From 02:** [Decision 0004](../../../docs/decisions/0004-gate-checkers.md) settles 02. The installer is dropped: allium is two `tools.txt` lines, installed by 0003's recipe, so the first box below is met by adding those lines. This ticket copies `run_allium.py`, with the specs path in `checks.toml` `[allium]` and its version check reading `tools.txt`. See [02's hand-back notes](02-gate-checkers-decision.md#follow-ups-for-07).
+
 **MVP critical path:** yes. Every elicitation ticket writes clauses that must pass this gate.
 
 **Status:** ready-for-agent

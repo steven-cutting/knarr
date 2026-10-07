@@ -8,6 +8,8 @@
 
 **Blocked by:** 03
 
+**From 02:** [Decision 0004](../../../docs/decisions/0004-gate-checkers.md) settles 02. This ticket copies `validate_docs.py` into `scripts/checks/`, with its predicates in `checks.toml` `[docs]`. See [02's hand-back notes](02-gate-checkers-decision.md#follow-ups-for-06).
+
 **MVP critical path:** yes. It gates the testing toolkit (08) and the agent contract (09).
 
 **Status:** ready-for-agent

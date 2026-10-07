@@ -1,0 +1,25 @@
+date: 2026-10-07T09:06Z
+host: Darwin arm64
+
+ok   linux-64   allium-x86_64-unknown-linux-gnu.tar.gz
+     sha256 e00c99ae234b10207719257a70e7c2dcad73060864468cd293fb7ad40524e970
+     (matches v0.3.0 install_allium.py and the GitHub asset digest; not in SHA256SUMS.txt)
+     members: allium 
+ok   osx-arm64  allium-aarch64-apple-darwin.tar.gz
+     sha256 ecfae02fcf8e60475a014944183158ccde4104f6f0223e1bf91f98519fcb19eb
+     (matches v0.3.0 install_allium.py and the GitHub asset digest; not in SHA256SUMS.txt)
+     members: allium 
+     runs: allium 3.6.1 (language versions: 1, 2, 3)
+
+== SHA256SUMS.txt covers only these (why v0.3.0 hashed the binaries itself)
+./allium-vscode-3.6.1.vsix
+./allium-lsp-3.6.1.tar.gz
+
+== newest allium-tools releases (07 may move the pin)
+v3.6.1	Latest	v3.6.1	2026-08-26T18:34:05Z
+v3.6.0		v3.6.0	2026-08-23T11:01:37Z
+v3.5.3		v3.5.3	2026-08-06T23:40:20Z
+
+== tools.txt lines (name version platform url sha256 member)
+allium 3.6.1 linux-64 https://github.com/juxt/allium-tools/releases/download/v3.6.1/allium-x86_64-unknown-linux-gnu.tar.gz e00c99ae234b10207719257a70e7c2dcad73060864468cd293fb7ad40524e970 allium
+allium 3.6.1 osx-arm64 https://github.com/juxt/allium-tools/releases/download/v3.6.1/allium-aarch64-apple-darwin.tar.gz ecfae02fcf8e60475a014944183158ccde4104f6f0223e1bf91f98519fcb19eb allium

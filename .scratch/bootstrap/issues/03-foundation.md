@@ -8,6 +8,8 @@
 
 **Blocked by:** 01, 02
 
+**From 01:** [Decision 0003](../../../docs/decisions/0003-tool-manager.md) settles 01. It gives the exact `pixi.toml`, the rebar3 pin and the lock-check command. [01's hand-back notes](01-tool-manager-decision.md#follow-ups-for-03) list what this ticket takes from it.
+
 **MVP critical path:** yes. Every later lane builds on it.
 
 **Status:** ready-for-agent

@@ -1,0 +1,90 @@
+date: 2026-10-07T08:28Z
+pixi: pixi 0.81.0
+host: Darwin arm64
+
+== linux-64
+ok      gleam                1.19.0     build hf19af3b_0
+ok      erlang               29.1.1     build pl5321h8f2c242_0
+ok      just                 1.58.0     build hf19af3b_2
+ok      prek                 0.5.5      build hf19af3b_0
+ok      typos                1.51.1     build hf19af3b_0
+ok      lychee               0.24.2     build h39d0f39_1
+ok      taplo                0.10.0     build he64ecbb_2
+ok      markdownlint-cli2    0.23.3     build h5ac6406_0
+ok      actionlint           1.7.12     build h8bc977c_0
+ok      shellcheck           0.11.0     build ha770c72_2
+ok      kubernetes-kind      0.33.0     build ha770c72_0
+ok      kubernetes-client    1.34.3     build h6950dcc_0
+ok      kustomize            5.8.2      build h2c09266_0
+ok      tilt                 0.37.8     build hff4d740_0
+ok      kubernetes-helm      4.3.0      build hd3da7ce_0
+absent  rebar3
+absent  kubeconform
+absent  hadolint
+absent  ripsecrets
+absent  editorconfig-checker
+absent  kwok
+absent  setup-envtest
+absent  cluster-autoscaler
+-- k3d (conda-forge; not k3d.io's k3d):
+Name                k3d
+Version             3.2.0
+Build               pyhd8ed1ab_0
+License             MIT
+Subdir              noarch
+NoArch              python
+SHA256              2d3bbadf7a9fd9405f878a007fa194ef61df9c2f48d713e02790482b9bdc62c1
+
+Dependencies:
+ - anywidget >=0.9.13
+ - ipywidgets >=7.6.0,<9.0.0
+ - msgpack-python
+ - numpy >=1.11.0
+ - python >=3.11
+ - traitlets
+ - traittypes
+
+
+== osx-arm64
+ok      gleam                1.19.0     build hc2d82ec_0
+ok      erlang               29.1.1     build pl5321h4aabdd8_0
+ok      just                 1.58.0     build hc2d82ec_2
+ok      prek                 0.5.5      build hc2d82ec_0
+ok      typos                1.51.1     build hc2d82ec_0
+ok      lychee               0.24.2     build h9d00c72_1
+ok      taplo                0.10.0     build h17e24d4_2
+ok      markdownlint-cli2    0.23.3     build h5ac6406_0
+ok      actionlint           1.7.12     build h7969508_0
+ok      shellcheck           0.11.0     build hecfb573_2
+ok      kubernetes-kind      0.33.0     build hce30654_0
+ok      kubernetes-client    1.34.3     build h91756fb_0
+ok      kustomize            5.8.2      build h7021a9e_0
+ok      tilt                 0.37.8     build h0dd1077_0
+ok      kubernetes-helm      4.3.0      build hbb040a8_0
+absent  rebar3
+absent  kubeconform
+absent  hadolint
+absent  ripsecrets
+absent  editorconfig-checker
+absent  kwok
+absent  setup-envtest
+absent  cluster-autoscaler
+-- k3d (conda-forge; not k3d.io's k3d):
+Name                k3d
+Version             3.2.0
+Build               pyhd8ed1ab_0
+License             MIT
+Subdir              noarch
+NoArch              python
+SHA256              2d3bbadf7a9fd9405f878a007fa194ef61df9c2f48d713e02790482b9bdc62c1
+
+Dependencies:
+ - anywidget >=0.9.13
+ - ipywidgets >=7.6.0,<9.0.0
+ - msgpack-python
+ - numpy >=1.11.0
+ - python >=3.11
+ - traitlets
+ - traittypes
+
+

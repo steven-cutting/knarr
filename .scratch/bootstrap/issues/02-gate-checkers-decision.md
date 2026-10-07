@@ -14,6 +14,8 @@
 
 **Blocked by:** 01
 
+**From 01:** [Decision 0003](../../../docs/decisions/0003-tool-manager.md) settles 01. Read [01's hand-back notes](01-tool-manager-decision.md#follow-ups-for-02) first: they fix where a checker's runtime comes from, rule out remote hooks for tools pixi already provides, and name the source of ripsecrets and editorconfig-checker.
+
 **MVP critical path:** yes. It gates the foundation (03).
 
 **Status:** ready-for-agent

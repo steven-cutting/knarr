@@ -1,0 +1,74 @@
+date: 2026-10-07T08:29Z
+host: Darwin arm64
+
+ok   rebar3                3.27.1  linux-64   rebar3
+     sha256 708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f  (matches GitHub asset digest; no checksum file published)
+ok   rebar3                3.27.1  osx-arm64  rebar3
+     sha256 708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f  (matches GitHub asset digest; no checksum file published)
+     runs: (skipped: an escript; rebar3/run.sh runs it)
+ok   kubeconform           0.8.0   linux-64   kubeconform-linux-amd64.tar.gz
+     sha256 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883  (matches GitHub asset digest and CHECKSUMS)
+ok   kubeconform           0.8.0   osx-arm64  kubeconform-darwin-arm64.tar.gz
+     sha256 f84f4dfbebf4a6b0b230385fa065a39ea35e02608c2b50d025dcf64775a69d67  (matches GitHub asset digest and CHECKSUMS)
+     runs: v0.8.0
+ok   hadolint              2.15.1  linux-64   hadolint-linux-x86_64
+     sha256 c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507  (matches GitHub asset digest and checksums.sha256)
+ok   hadolint              2.15.1  osx-arm64  hadolint-macos-arm64
+     sha256 5c09f3213f8e40406abe048233d985eebef336d4a6a20021be47fadb6cf480a2  (matches GitHub asset digest and checksums.sha256)
+     runs: Haskell Dockerfile Linter 2.15.1
+ok   ripsecrets            0.1.11  linux-64   ripsecrets-0.1.11-x86_64-unknown-linux-gnu.tar.gz
+     sha256 9daf017dfdea242a58f672450a2526f0406211afe9e872c740adc49b42feccf5  (nothing upstream: first-use pin computed here)
+ok   ripsecrets            0.1.11  osx-arm64  ripsecrets-0.1.11-aarch64-apple-darwin.tar.gz
+     sha256 b2c822742e8cbf355ba0cb4cc690c3cd8fdc9ec1916c8148f27bd9098cb7aee4  (nothing upstream: first-use pin computed here)
+     runs: ripsecrets 0.1.11
+ok   editorconfig-checker  4.0.2   linux-64   editorconfig-checker-linux-amd64.tar.gz
+     sha256 44efaef3ed14c6ab52eb87481d78e5e5c204796dccf26e2f4598a61ba17f8003  (matches GitHub asset digest and checksums.txt)
+ok   editorconfig-checker  4.0.2   osx-arm64  editorconfig-checker-darwin-all.tar.gz
+     sha256 ff59f57717d95fc62b8e372c8051dbbb766f7d660942409a85d027b0feb2422c  (matches GitHub asset digest and checksums.txt)
+     runs: v4.0.2
+ok   kwok                  0.8.0   linux-64   kwok-linux-amd64
+     sha256 f5a4385a2ae1b9dd7f8acae18e002a75c0ebba124ae9d7259aa8dadb50711f46  (matches GitHub asset digest; no checksum file published)
+ok   kwok                  0.8.0   osx-arm64  kwok-darwin-arm64
+     sha256 69a064ec98d37844d9d742b5b28ff57825659a983ccc3e208daa6948b94d64ba  (matches GitHub asset digest; no checksum file published)
+     runs: kwok version v0.8.0 go1.26.0 (darwin/arm64)
+ok   kwokctl               0.8.0   linux-64   kwokctl-linux-amd64
+     sha256 d5743166c657283d6e827c7c4c20cacfd9009fd94830f06718ca7b2c7099461f  (matches GitHub asset digest; no checksum file published)
+ok   kwokctl               0.8.0   osx-arm64  kwokctl-darwin-arm64
+     sha256 9323a59adb9c27854bd2a76652ad00258bcbb68acc40aba0dc21e362b67b7d6a  (matches GitHub asset digest; no checksum file published)
+     runs: kwokctl version v0.8.0 go1.26.0 (darwin/arm64)
+ok   k3d                   5.9.0   linux-64   k3d-linux-amd64
+     sha256 06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0  (matches GitHub asset digest and checksums.txt)
+ok   k3d                   5.9.0   osx-arm64  k3d-darwin-arm64
+     sha256 fe106541d5d0a3f18debcd4d432a16f8c0ce3e6ddc06f8fbb6f696a122313e00  (matches GitHub asset digest and checksums.txt)
+     runs: k3d version v5.9.0
+ok   setup-envtest         0.25.2  linux-64   setup-envtest-linux-amd64
+     sha256 94534f83896f3b09934d9570b213fbda04aa5c17457942270928cdca0317bf9b  (matches GitHub asset digest; no checksum file published)
+ok   setup-envtest         0.25.2  osx-arm64  setup-envtest-darwin-arm64
+     sha256 7c95d67911e157d2caa02f599bcf9321b4e759d2f008749b4d03ed9d3e6a8c69  (matches GitHub asset digest; no checksum file published)
+     runs: Usage: setup-envtest [FLAGS] use|list|cleanup|sideload [VERSION]
+
+== Cluster Autoscaler: no binary assets; images only, pinned by digest
+cluster-autoscaler-1.35.2: 0 release assets
+cluster-autoscaler-1.36.1: 0 release assets
+registry.k8s.io/autoscaling/cluster-autoscaler:v1.35.2@sha256:aac369dc283927a623deb1af54696efcc722ae79255aa07788422e495bab887d
+registry.k8s.io/autoscaling/cluster-autoscaler:v1.36.1@sha256:461388d03eb5b55db58941ee7a81d9a619dd15302b01cbab9f5a9946715994b4
+
+== pin list (name version platform url sha256 member)
+rebar3 3.27.1 linux-64 https://github.com/erlang/rebar3/releases/download/3.27.1/rebar3 708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f rebar3
+rebar3 3.27.1 osx-arm64 https://github.com/erlang/rebar3/releases/download/3.27.1/rebar3 708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f rebar3
+kubeconform 0.8.0 linux-64 https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883 kubeconform
+kubeconform 0.8.0 osx-arm64 https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-darwin-arm64.tar.gz f84f4dfbebf4a6b0b230385fa065a39ea35e02608c2b50d025dcf64775a69d67 kubeconform
+hadolint 2.15.1 linux-64 https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64 c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507 -
+hadolint 2.15.1 osx-arm64 https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-macos-arm64 5c09f3213f8e40406abe048233d985eebef336d4a6a20021be47fadb6cf480a2 -
+ripsecrets 0.1.11 linux-64 https://github.com/sirwart/ripsecrets/releases/download/v0.1.11/ripsecrets-0.1.11-x86_64-unknown-linux-gnu.tar.gz 9daf017dfdea242a58f672450a2526f0406211afe9e872c740adc49b42feccf5 ripsecrets
+ripsecrets 0.1.11 osx-arm64 https://github.com/sirwart/ripsecrets/releases/download/v0.1.11/ripsecrets-0.1.11-aarch64-apple-darwin.tar.gz b2c822742e8cbf355ba0cb4cc690c3cd8fdc9ec1916c8148f27bd9098cb7aee4 ripsecrets
+editorconfig-checker 4.0.2 linux-64 https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v4.0.2/editorconfig-checker-linux-amd64.tar.gz 44efaef3ed14c6ab52eb87481d78e5e5c204796dccf26e2f4598a61ba17f8003 editorconfig-checker
+editorconfig-checker 4.0.2 osx-arm64 https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v4.0.2/editorconfig-checker-darwin-all.tar.gz ff59f57717d95fc62b8e372c8051dbbb766f7d660942409a85d027b0feb2422c editorconfig-checker
+kwok 0.8.0 linux-64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwok-linux-amd64 f5a4385a2ae1b9dd7f8acae18e002a75c0ebba124ae9d7259aa8dadb50711f46 -
+kwok 0.8.0 osx-arm64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwok-darwin-arm64 69a064ec98d37844d9d742b5b28ff57825659a983ccc3e208daa6948b94d64ba -
+kwokctl 0.8.0 linux-64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwokctl-linux-amd64 d5743166c657283d6e827c7c4c20cacfd9009fd94830f06718ca7b2c7099461f -
+kwokctl 0.8.0 osx-arm64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwokctl-darwin-arm64 9323a59adb9c27854bd2a76652ad00258bcbb68acc40aba0dc21e362b67b7d6a -
+k3d 5.9.0 linux-64 https://github.com/k3d-io/k3d/releases/download/v5.9.0/k3d-linux-amd64 06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0 -
+k3d 5.9.0 osx-arm64 https://github.com/k3d-io/k3d/releases/download/v5.9.0/k3d-darwin-arm64 fe106541d5d0a3f18debcd4d432a16f8c0ce3e6ddc06f8fbb6f696a122313e00 -
+setup-envtest 0.25.2 linux-64 https://github.com/kubernetes-sigs/controller-runtime/releases/download/v0.25.2/setup-envtest-linux-amd64 94534f83896f3b09934d9570b213fbda04aa5c17457942270928cdca0317bf9b -
+setup-envtest 0.25.2 osx-arm64 https://github.com/kubernetes-sigs/controller-runtime/releases/download/v0.25.2/setup-envtest-darwin-arm64 7c95d67911e157d2caa02f599bcf9321b4e759d2f008749b4d03ed9d3e6a8c69 -

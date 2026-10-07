@@ -1,0 +1,89 @@
+== control: official erlang:29 image, linux/amd64
+model name	: VirtualApple @ 2.50GHz
+no flag: exit 1
++JMsingle true: otp_release 29
+
+image: ghcr.io/prefix-dev/pixi:0.81.0 (x86_64, Ubuntu 24.04.4 LTS, pixi 0.81.0)
+debconf: delaying package configuration, since apt-utils is not installed
+pixi.toml is pixi.toml.proposed
+The following environments have been installed: default, cluster, runtime.
+i Dry-run: lock file would not change
+default: Installed for: linux-64
+erlang 29.1.1 pl5321h8f2c242_0  openssl 3.6.5 h781a0a9_0  
+runtime: Environment: runtime
+Installed for: linux-64
+erlang 29.1.1 pl5321h8f2c242_0  openssl 3.6.5 h781a0a9_0  
+Rosetta: erl without a flag fails to boot, as in the control
+ERL_FLAGS=+JMsingle true (emulation only)
+otp_release default: 29, runtime: 29
+runtime environment installed size (what the runtime image copies): 257M; of which lib/erlang 122M, lib/perl5 56M
+
+== Verify 1, TLS, default environment
+date: 2026-10-07T08:31Z
+host: Linux x86_64
+env: /work/.pixi/envs/default
+openssl: OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026) (/work/.pixi/envs/default/bin/openssl)
+escript: /work/.pixi/envs/default/bin/escript
+server.pem: OK
+server-dns.pem: OK
+X509v3 Subject Alternative Name: 
+    DNS:localhost, IP Address:127.0.0.1
+otp_release 29, erts 17.1
+crypto:info_lib() [{<<"OpenSSL">>,810549376,<<"OpenSSL 3.6.5 29 Sep 2026">>}]
+ssl:versions() ['tlsv1.3','tlsv1.2']
+ok   right CA, by name localhost                  want ok         got {ok,[{protocol,'tlsv1.3'}, {selected_cipher_suite,#{prf => sha384,cipher => aes_256_gcm, key_exchange => any,mac => aead}}]}
+ok   right CA, by IP tuple (IP SAN)               want ok         got {ok,[{protocol,'tlsv1.3'}, {selected_cipher_suite,#{prf => sha384,cipher => aes_256_gcm, key_exchange => any,mac => aead}}]}
+ok   wrong CA (ca-b), by name                     want unknown_ca got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   wrong CA (ca-b), by IP tuple                 want unknown_ca got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   right CA, wrong name (SNI wrong.example)     want hostname   got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,\n {hostname_check_failed,\n {requested,\"wrong.example\"},\n {received,[{dNSName,\"localhost\"},{iPAddress,<<127,0,0,1>>}]}}}"}}}
+ok   right CA, IP tuple, cert has no IP SAN       want hostname   got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,{hostname_check_failed,{requested,{127,0,0,1}},\n {received,[{dNSName,\"localhost\"}]}}}"}}}
+tls_check: all 6 cases matched
+
+== Verify 1, TLS, runtime environment (erlang and its dependencies only)
+date: 2026-10-07T08:31Z
+host: Linux x86_64
+env: /work/.pixi/envs/runtime
+openssl: OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026) (/work/.pixi/envs/runtime/bin/openssl)
+escript: /work/.pixi/envs/runtime/bin/escript
+server.pem: OK
+server-dns.pem: OK
+X509v3 Subject Alternative Name: 
+    DNS:localhost, IP Address:127.0.0.1
+otp_release 29, erts 17.1
+crypto:info_lib() [{<<"OpenSSL">>,810549376,<<"OpenSSL 3.6.5 29 Sep 2026">>}]
+ssl:versions() ['tlsv1.3','tlsv1.2']
+ok   right CA, by name localhost                  want ok         got {ok,[{protocol,'tlsv1.3'}, {selected_cipher_suite,#{prf => sha384,cipher => aes_256_gcm, key_exchange => any,mac => aead}}]}
+ok   right CA, by IP tuple (IP SAN)               want ok         got {ok,[{protocol,'tlsv1.3'}, {selected_cipher_suite,#{prf => sha384,cipher => aes_256_gcm, key_exchange => any,mac => aead}}]}
+ok   wrong CA (ca-b), by name                     want unknown_ca got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   wrong CA (ca-b), by IP tuple                 want unknown_ca got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   right CA, wrong name (SNI wrong.example)     want hostname   got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,\n {hostname_check_failed,\n {requested,\"wrong.example\"},\n {received,[{dNSName,\"localhost\"},{iPAddress,<<127,0,0,1>>}]}}}"}}}
+ok   right CA, IP tuple, cert has no IP SAN       want hostname   got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,{hostname_check_failed,{requested,{127,0,0,1}},\n {received,[{dNSName,\"localhost\"}]}}}"}}}
+tls_check: all 6 cases matched
+
+== Verify 3, rebar3
+rebar3 3.27.1 sha256 708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f: matches pin
+sigstore: skipped (gh not installed or not authenticated); the sha256 pin is the check
+date: 2026-10-07T08:31Z
+host: Linux x86_64
+gleam 1.19.0
+rebar 3.27.1 on Erlang/OTP 29 Erts 17.1
+Downloading packages
+ Downloaded 3 packages in 0.38s
+  Compiling ddskerl
+===> Analyzing applications...
+===> Compiling ddskerl
+  Compiling gleam_stdlib
+  Compiling prometheus
+===> Analyzing applications...
+===> Compiling prometheus
+  Compiling probe
+   Compiled in 2.40s
+  { name = "ddskerl", version = "0.4.3", build_tools = ["rebar3"]
+  { name = "prometheus", version = "6.1.3", build_tools = ["rebar3"]
+compiled: build/dev/erlang/{prometheus,ddskerl}/ebin
+prometheus counter after two inc: 2
+without rebar3 on PATH, gleam build fails:
+There was a problem when running the shell command `rebar3`.
+rebar3/run.sh: ok
+
+linux.sh: all checks passed

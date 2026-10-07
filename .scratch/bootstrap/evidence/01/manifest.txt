@@ -1,0 +1,50 @@
+date: 2026-10-07T08:29Z
+host: Darwin arm64
+gleam 1.19.0
+
+== flags: no locked/frozen/offline option on build, check, deps download or update
+build          --help --no-print-progress --target --warnings-as-errors 
+check          --help --target 
+deps download  --help 
+update         --help 
+test           --help --runtime --target 
+run            --help --module --no-print-progress --runtime --target 
+changelogs to v1.19.0 (11367 lines): 0 mentions of --frozen, --locked, --offline or --no-update
+
+== edit                                         command          exit   manifest.toml
+   none (agreeing files)                        gleam check      0      unchanged
+   none (agreeing files)                        gleam build      0      unchanged
+   none (agreeing files)                        gleam deps download 0      unchanged
+   gleam.toml: widen prometheus range           gleam check      0      REWRITTEN
+   gleam.toml: widen prometheus range           gleam build      0      REWRITTEN
+   gleam.toml: widen prometheus range           gleam deps download 0      REWRITTEN
+   gleam.toml: drop prometheus                  gleam check      0      REWRITTEN
+   gleam.toml: drop prometheus                  gleam build      0      REWRITTEN
+   gleam.toml: drop prometheus                  gleam deps download 0      REWRITTEN
+   gleam.toml: add gleam_json                   gleam check      0      REWRITTEN
+   gleam.toml: add gleam_json                   gleam build      0      REWRITTEN
+   gleam.toml: add gleam_json                   gleam deps download 0      REWRITTEN
+   manifest.toml: stale [requirements]          gleam check      0      REWRITTEN
+   manifest.toml: stale [requirements]          gleam build      0      REWRITTEN
+   manifest.toml: stale [requirements]          gleam deps download 0      REWRITTEN
+
+12 command runs rewrote manifest.toml and exited 0
+
+== diff from the "add gleam_json" build (what a gate would see)
+10a11
+>   { name = "gleam_json", version = "3.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_json", source = "hex", outer_checksum = "44FDAA8847BE8FC48CA7A1C089706BD54BADCC4C45B237A992EDDF9F2CDB2836" },
+15a17
+> gleam_json = { version = ">= 3.0.0 and < 4.0.0" }
+
+== workaround: git diff --exit-code manifest.toml after the build
+gleam build: exit 0
+git diff --exit-code manifest.toml: exit 1 (drift caught)
+agreeing files: git diff --exit-code manifest.toml exit 0
+
+== pre-check before gleam runs: requirements_check.escript, nothing written
+   none       exit 0  manifest.toml [requirements] matches gleam.toml
+   widen      exit 1    prometheus: gleam.toml {"version":">= 6.0.0 and < 7.0.0"}, manifest.toml {"version":">= 6.1.3 and < 7.0.0"}
+   remove     exit 1    prometheus: gleam.toml absent, manifest.toml {"version":">= 6.1.3 and < 7.0.0"}
+   add        exit 1    gleam_json: gleam.toml {"version":">= 3.0.0 and < 4.0.0"}, manifest.toml absent
+   manifest   exit 1    prometheus: gleam.toml {"version":">= 6.1.3 and < 7.0.0"}, manifest.toml {"version":">= 6.1.0 and < 7.0.0"}
+manifest/run.sh: ok

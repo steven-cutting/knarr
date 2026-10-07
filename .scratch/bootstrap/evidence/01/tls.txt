@@ -1,0 +1,19 @@
+date: 2026-10-07T08:29Z
+host: Darwin arm64
+env: /private/tmp/claude-501/-Users-scutting-projects-knarr/1b4ef282-873c-4a23-9c6e-7b46e1006b40/scratchpad/all2/solve/.pixi/envs/default
+openssl: OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026) (/private/tmp/claude-501/-Users-scutting-projects-knarr/1b4ef282-873c-4a23-9c6e-7b46e1006b40/scratchpad/all2/solve/.pixi/envs/default/bin/openssl)
+escript: /private/tmp/claude-501/-Users-scutting-projects-knarr/1b4ef282-873c-4a23-9c6e-7b46e1006b40/scratchpad/all2/solve/.pixi/envs/default/bin/escript
+server.pem: OK
+server-dns.pem: OK
+X509v3 Subject Alternative Name: 
+    DNS:localhost, IP Address:127.0.0.1
+otp_release 29, erts 17.1
+crypto:info_lib() [{<<"OpenSSL">>,810549376,<<"OpenSSL 3.6.5 29 Sep 2026">>}]
+ssl:versions() ['tlsv1.3','tlsv1.2']
+ok   right CA, by name localhost                  want ok         got {ok,[{protocol,'tlsv1.3'}, {selected_cipher_suite,#{prf => sha384,cipher => aes_256_gcm, key_exchange => any,mac => aead}}]}
+ok   right CA, by IP tuple (IP SAN)               want ok         got {ok,[{protocol,'tlsv1.3'}, {selected_cipher_suite,#{prf => sha384,cipher => aes_256_gcm, key_exchange => any,mac => aead}}]}
+ok   wrong CA (ca-b), by name                     want unknown_ca got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   wrong CA (ca-b), by IP tuple                 want unknown_ca got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   right CA, wrong name (SNI wrong.example)     want hostname   got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,\n {hostname_check_failed,\n {requested,\"wrong.example\"},\n {received,[{dNSName,\"localhost\"},{iPAddress,<<127,0,0,1>>}]}}}"}}}
+ok   right CA, IP tuple, cert has no IP SAN       want hostname   got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,{hostname_check_failed,{requested,{127,0,0,1}},\n {received,[{dNSName,\"localhost\"}]}}}"}}}
+tls_check: all 6 cases matched

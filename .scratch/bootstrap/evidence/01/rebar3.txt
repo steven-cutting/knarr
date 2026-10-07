@@ -1,0 +1,27 @@
+rebar3 3.27.1 sha256 708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f: matches pin
+sigstore: signed by https://github.com/erlang/rebar3/.github/workflows/publish.yml@refs/tags/3.27.1
+sigstore: a copy with one byte appended is refused
+date: 2026-10-07T08:29Z
+host: Darwin arm64
+gleam 1.19.0
+rebar 3.27.1 on Erlang/OTP 29 Erts 17.1
+Downloading packages
+ Downloaded 3 packages in 0.01s
+  Compiling ddskerl
+===> Analyzing applications...
+===> Compiling ddskerl
+  Compiling gleam_stdlib
+  Compiling prometheus
+===> Analyzing applications...
+===> Compiling prometheus
+  Compiling probe
+   Compiled in 0.99s
+  { name = "ddskerl", version = "0.4.3", build_tools = ["rebar3"]
+  { name = "prometheus", version = "6.1.3", build_tools = ["rebar3"]
+compiled: build/dev/erlang/{prometheus,ddskerl}/ebin
+prometheus counter after two inc: 2
+without rebar3 on PATH, gleam build fails:
+The program `rebar3` was not found. Is it installed?
+You can install Rebar3 via homebrew: brew install rebar3
+Documentation for installing Rebar3 can be viewed here:
+rebar3/run.sh: ok

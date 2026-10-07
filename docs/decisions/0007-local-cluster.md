@@ -32,7 +32,7 @@ Every local cluster belongs to one worktree. Its name comes from the worktree pa
 ### Tiers
 
 | Tier | Runner | What it proves | What it cannot prove | Where it runs |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | unit | gleeunit, qcheck, birdie (08) | Mapping, banding and every pure function. Request builders and decoders through the sans-IO pattern, with `send` injected | Anything about a real apiserver | `just check`: locally and in CI, on every change |
 | kwok | kwokctl 0.8.0, Kubernetes 1.35.5 | Real API semantics: RBAC, `resourceVersion` conflicts, watch and list, patch shapes. Real controllers, including ReplicaSet scale-down honouring `pod-deletion-cost`, and Deployment rollouts. Cluster Autoscaler's kwok provider (15). Up in about 4 s | Anything that needs a pod to run: in-pod TLS, the ServiceAccount token, pod networking, polling a worker. kwok pods never start a container | Locally and in CI, as its own job, outside the read-only gate |
 | kind | kind 0.33.0, node v1.35.8 | Everything kwok proves, plus real pods: the in-cluster client with cluster TLS and token reload (S1), knarr's image, the fake worker, KEDA. Up in about 25 s, plus image load | Managed-cloud behaviour: GKE's CA, node pools, Autopilot | Locally, and in CI as 13's smoke job, then the e2e job |
@@ -43,7 +43,7 @@ Every local cluster belongs to one worktree. Its name comes from the worktree pa
 Measured with [timing.sh](../../.scratch/bootstrap/evidence/10/timing.txt), [orbstack.sh](../../.scratch/bootstrap/evidence/10/orbstack.txt), [worktree.sh](../../.scratch/bootstrap/evidence/10/worktree.txt) and [deletion-cost.sh](../../.scratch/bootstrap/evidence/10/deletion-cost-kwokctl.txt). Times are medians of three, in seconds, from the committed transcripts. Medians moved between full runs of the evidence by up to 1.6 s (kwok measured 4.1, 4.4 and 5.7), so read them as about 25, 10, 4 and 3 s. "Load" is a 256 MB stand-in image, about the size of 0003's runtime environment.
 
 | Runner | Real kube-controller-manager | Same runner locally and in CI | Up | Load | Delete | Concurrent worktrees |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | kind | Yes, upstream kubeadm. `pod-deletion-cost` honoured | Yes. Docker only, and the node image is pinned for amd64 and arm64 | 25.3 | 3.5 | 0.7 | Yes. Three at once, each on its own random `127.0.0.1` port |
 | k3d | k3s embeds the upstream controllers in one binary | Possible, but it is a third tool next to kind and kwokctl | 10.6 | 5.5 | 0.4 | Yes, with two workarounds: names of 32 characters or fewer, and `--api-port 127.0.0.1:0` writes `:0` into the kubeconfig. Every new cluster pulls its sandbox image from Docker Hub |
 | OrbStack | k3s-based (`v1.35.6+orb1`) | No: macOS only | 2.5 (start) | none needed | | No. One cluster per machine, on the fixed port 26443 |
@@ -73,7 +73,7 @@ Why each one sits where it does:
 These come from [pins.txt](../../.scratch/bootstrap/evidence/10/pins.txt). Each image publishes both linux/amd64 and linux/arm64.
 
 | What | Pin |
-|---|---|
+| --- | --- |
 | kind node image | `kindest/node:v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0`, the digest the kind v0.33.0 release notes publish, equal to the registry's |
 | kwok, kwokctl | 0.8.0, the binaries 0003 pinned (`tools.txt` lines below) |
 | kwok Kubernetes version | `KWOK_KUBE_VERSION=v1.35.5`. kwokctl then pulls `registry.k8s.io/kube-apiserver`, `kube-controller-manager` and `kube-scheduler` at `v1.35.5`, `etcd:3.6.10-0` and `kwok/kwok:v0.8.0`. Their digests are in pins.txt |
@@ -90,7 +90,7 @@ It exists, and it runs. At tag `cluster-autoscaler-1.35.2`, `cluster-autoscaler/
 ### TestContainers, respx and inline-snapshot
 
 | Python habit | knarr's answer | Reason |
-|---|---|---|
+| --- | --- | --- |
 | TestContainers | Skipped | The only Gleam option wraps the Elixir library. A container started from a test cannot exercise what the cluster tiers exist for: in-pod TLS against the cluster CA and the projected ServiceAccount token. kind covers those, and kwok covers the API semantics without a container |
 | respx (mocking an HTTP client) | Sans-IO, with `send` injected | Request builders and decoders are pure, and the function that performs I/O takes `send` as an argument, which a test replaces with a closure (08). `http_server_mock` (hex, young) is the fallback only where a test needs a real socket |
 | inline-snapshot | birdie file snapshots | Gleam has no source-rewriting snapshot tool. birdie 2.x gives insta-style file snapshots with review, accept and stale commands (08). A snapshot proves no spec clause |

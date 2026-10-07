@@ -1,0 +1,107 @@
+# The read-only hook config: the pre-commit hook `just initialize` installs in
+# the primary checkout, and what `just lint` runs over every file inside
+# `just check`. It may report, never repair; .pre-commit-fix.yaml repairs.
+#
+# Every tool comes from pixi or .tools/bin, so every hook is `repo: local` with
+# `language: system` and no hook installs its own copy (Decision 0003, "One
+# owner per pin"). A remote hook is allowed only for a tool with no pixi or
+# .tools source, and must then pin `rev` to a full commit SHA with a version
+# comment (`rev: <40 hex> # vX.Y.Z`); scripts/checks/tests/test_hook_configs.py
+# enforces that. Git runs hooks without the Justfile's PATH, so each entry goes
+# through scripts/with-env.sh.
+exclude: >-
+  (?x)^(
+    \.pixi/|
+    \.tools/|
+    build/|
+    ai_tmp/|
+    pixi\.lock$
+  )
+repos:
+  - repo: builtin
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=768]
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: gleam-format
+        name: gleam format check
+        entry: sh scripts/with-env.sh gleam format --check
+        language: system
+        files: \.gleam$
+        # A recorded probe from ticket 01's evidence, kept byte for byte.
+        exclude: ^\.scratch/bootstrap/evidence/
+
+      - id: taplo
+        name: taplo format check and lint
+        entry: sh scripts/with-env.sh just toml-check
+        language: system
+        pass_filenames: false
+        types: [toml]
+
+      - id: typos
+        name: typos
+        entry: sh scripts/with-env.sh typos --force-exclude
+        language: system
+        types: [text]
+
+      - id: markdownlint
+        name: markdownlint
+        entry: sh scripts/with-env.sh markdownlint-cli2
+        language: system
+        types: [markdown]
+
+      - id: lychee
+        name: lychee (offline, local links only)
+        entry: sh scripts/with-env.sh lychee --offline --no-progress --include-fragments
+        language: system
+        types: [markdown]
+
+      - id: shellcheck
+        name: shellcheck
+        entry: sh scripts/with-env.sh shellcheck
+        language: system
+        types: [shell]
+
+      - id: editorconfig-checker
+        name: editorconfig-checker
+        entry: sh scripts/with-env.sh editorconfig-checker
+        language: system
+        types: [text]
+        # Evidence transcripts are recorded tool output, kept byte for byte,
+        # and the evidence scripts keep the layout they were verified with.
+        exclude: ^\.scratch/bootstrap/evidence/
+
+      - id: ruff-check
+        name: ruff check
+        entry: sh scripts/with-env.sh ruff check --no-cache --force-exclude
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format check
+        entry: sh scripts/with-env.sh ruff format --check --no-cache --force-exclude
+        language: system
+        types: [python]
+
+      - id: actionlint
+        name: actionlint
+        entry: sh scripts/with-env.sh actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+
+      # The wrapper runs the pinned .tools/bin/ripsecrets itself and keeps any
+      # matched value out of the log (Decision 0004).
+      - id: ripsecrets
+        name: ripsecrets (output redacted)
+        entry: sh scripts/checks/ripsecrets-redacted.sh
+        language: system
+        types: [text]

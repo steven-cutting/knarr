@@ -85,6 +85,10 @@ flowchart TD
     classDef offpath stroke:#9e9e9e,stroke-dasharray:2 2,color:#757575
 ```
 
+## Branches
+
+Each ticket is worked on its own branch, in its own git worktree. The branch name is the ticket's file name without `.md`, so [03](issues/03-foundation.md) is worked on `03-foundation`. Ticket 03 fixed this convention, and the root [README](../../README.md#branches-and-worktrees) states it with the worktree rules.
+
 ## Execution waves
 
 A wave is the earliest point a ticket can start if every lane runs in parallel: one step after its latest blocker. `needs-human` tickets also wait for a maintainer session.

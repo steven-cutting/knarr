@@ -1,0 +1,56 @@
+# The fix config: the mutating counterpart to .pre-commit-config.yaml. Never
+# installed as a hook; only `just fix` runs it. Every hook is local, from pixi.
+exclude: >-
+  (?x)^(
+    \.pixi/|
+    \.tools/|
+    build/|
+    ai_tmp/|
+    pixi\.lock$|
+    manifest\.toml$|
+    \.scratch/bootstrap/evidence/
+  )
+repos:
+  - repo: builtin
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        exclude: \.md$
+
+  - repo: local
+    hooks:
+      - id: gleam-format
+        name: gleam format
+        entry: sh scripts/with-env.sh gleam format
+        language: system
+        files: \.gleam$
+
+      - id: taplo-fmt
+        name: taplo format
+        entry: sh scripts/with-env.sh taplo fmt
+        language: system
+        types: [toml]
+
+      - id: ruff-fix
+        name: ruff check --fix
+        entry: sh scripts/with-env.sh ruff check --fix --no-cache --force-exclude
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format
+        entry: sh scripts/with-env.sh ruff format --no-cache --force-exclude
+        language: system
+        types: [python]
+
+      - id: markdownlint-fix
+        name: markdownlint --fix
+        entry: sh scripts/with-env.sh markdownlint-cli2 --fix
+        language: system
+        types: [markdown]
+
+      - id: typos-fix
+        name: typos --write-changes
+        entry: sh scripts/with-env.sh typos --force-exclude --write-changes
+        language: system
+        types: [text]

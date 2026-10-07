@@ -1,0 +1,96 @@
+# ruff's configuration (knarr has no pyproject.toml). The rule selection is
+# biscuit_games_tooling v0.3.0's, which the copied checkers were written against
+# (Decision 0004).
+line-length = 99
+target-version = "py314"
+src = ["scripts/checks", "scripts/checks/tests"]
+unsafe-fixes = false
+
+[lint]
+select = [
+  "A",
+  "ANN",
+  "ARG",
+  "B",
+  "BLE",
+  "C4",
+  "COM",
+  "DTZ",
+  "E",
+  "EM",
+  "EXE",
+  "F",
+  "FA",
+  "FLY",
+  "FURB",
+  "G",
+  "I",
+  "INP",
+  "INT",
+  "ISC",
+  "LOG",
+  "N",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PTH",
+  "PYI",
+  "Q",
+  "RET",
+  "RSE",
+  "RUF",
+  "S",
+  "SIM",
+  "SLF",
+  "T10",
+  "TC",
+  "TID",
+  "TRY",
+  "UP",
+  "W",
+]
+ignore = ["COM812", "E501", "ISC001"]
+fixable = ["ALL"]
+unfixable = []
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.per-file-ignores]
+# Command-line checkers run as scripts from a directory that is not a package:
+# they print, they shell out to git by design, and they import `_project` as a
+# sibling module.
+"scripts/checks/*.py" = [
+  "ANN",
+  "BLE001",
+  "EM101",
+  "EM102",
+  "INP001",
+  "PLR0912",
+  "PLR0915",
+  "PLR2004",
+  "S404",
+  "S603",
+  "S607",
+  "T201",
+  "TRY003",
+]
+# The tests assert, shell out to git and the scripts under test, and import
+# `conftest` and `_project` from the directories pytest puts on the path.
+# TC003: fixtures are annotated with Path, which then never runs outside annotations.
+"scripts/checks/tests/*.py" = [
+  "TC003",
+  "INP001",
+  "PLR2004",
+  "S101",
+  "S404",
+  "S603",
+  "S607",
+  "S108",
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

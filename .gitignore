@@ -1,0 +1,36 @@
+# Every path Git can see is part of the read-only gate's snapshot (Decision
+# 0004): `just check` hashes each tracked and untracked-unignored file after
+# every recipe and fails on any change. So everything a tool writes during the
+# gate must be ignored here, or the gate trips on its own first run.
+#
+# .scratch/ is tracked on purpose: the bootstrap tickets and the evidence the
+# decision records cite live there.
+
+.DS_Store
+
+# Gleam's build output and its downloaded packages.
+build/
+erl_crash.dump
+
+# The pixi environments `just initialize` installs from pixi.lock (Decision
+# 0003): the compiler, OTP, Python and every gate tool.
+.pixi/
+
+# The checksum-pinned downloads tools.txt names (rebar3, ripsecrets,
+# editorconfig-checker), installed into .tools/bin by `just initialize`.
+.tools/
+
+# What Python writes when the gate checkers and their tests run. The Justfile
+# also exports PYTHONDONTWRITEBYTECODE=1 and pytest runs without its cache
+# plugin; these lines catch a run outside the recipes.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Scratch for agents and maintainers alike: anything that is not a deliverable
+# goes here, never in a commit.
+ai_tmp/
+
+# Assistant state written on first use.
+.claude/settings.local.json

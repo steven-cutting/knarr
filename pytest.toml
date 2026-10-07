@@ -1,0 +1,12 @@
+# pytest's configuration (Decision 0004 left the choice to 03). pytest 9 reads
+# this file natively; knarr has no pyproject.toml.
+[pytest]
+addopts = [
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
+  "-p",
+  "no:cacheprovider",
+]
+testpaths = ["scripts"]
+xfail_strict = true

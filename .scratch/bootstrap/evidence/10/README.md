@@ -1,4 +1,4 @@
-|# Ticket 10 evidence
+# Ticket 10 evidence
 
 Evidence for [Decision 0007: Local cluster and test tiers](../../../../docs/decisions/0007-local-cluster.md). Gathered on 2026-10-07 on an Apple M5 Pro (Darwin arm64) with pixi 0.81.0 and OrbStack 2.2.3, whose Docker engine is 29.4 (linux/arm64). Every timing here is a Mac number on a warm image cache. CI runners are linux/amd64 and will differ.
 
@@ -17,7 +17,7 @@ setup-envtest leaves its asset directory read-only, so remove a work root with `
 ## Scripts
 
 | Script | Transcript | What it shows |
-|---|---|---|
+| --- | --- | --- |
 | [fetch.sh](fetch.sh) `<dir>` | [fetch.txt](fetch.txt) | 0003's `cluster` environment, locked and installed from [01's manifest](../01/pixi.toml.proposed) (kind 0.33.0, kubectl 1.34.3, helm, shellcheck; 836 MB). kwok, kwokctl, k3d and setup-envtest are downloaded and kept only if they match the sha256 pin lines copied from [01's tools.txt](../01/tools.txt), and a tampered copy is refused. setup-envtest then installs the envtest 1.35.0 assets (etcd and kube-apiserver) |
 | [name.sh](name.sh) | [name_test.txt](name_test.txt) from [name_test.sh](name_test.sh) | The per-worktree naming seam, built test-first: `<basename>-<8 hex>`, at most 32 characters (k3d's limit), DNS-1123 characters, and a hash of the lower-cased physical path, so a symlink or another letter case names the same cluster. State lives under `<worktree>/.cluster/` |
 | [cluster.sh](cluster.sh) `<tools> <runner> up\|down\|load <worktree>` | (used by the scripts below) | One cluster per worktree for kind, k3d, kwokctl and envtest. It is the draft of 13's `cluster-up`, `cluster-down` and `image-load` recipes |

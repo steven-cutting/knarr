@@ -1,0 +1,38 @@
+date: 2026-10-07T09:40Z
+host: Darwin arm64 (osx-arm64)
+pixi 0.81.0
+
+== pixi: the cluster environment from 01/pixi.toml.proposed
+pixi.lock sha256 cdd5d02d505a49101a8274564d56213b8e104ea8f9143154b581ad4960fdd48d
+✔ The cluster environment has been installed.
+kind:       kind v0.33.0 go1.26.6 darwin/arm64
+kubectl:    Client Version: v1.34.3
+helm:       v4.3.0+conda-forge
+shellcheck: 0.11.0
+cluster env size: 836M
+
+== .tools-style downloads (pin lines copied from evidence/01/tools.txt)
+ok   kwok           0.8.0   kwok-darwin-arm64
+     sha256 69a064ec98d37844d9d742b5b28ff57825659a983ccc3e208daa6948b94d64ba (matches pin)
+ok   kwokctl        0.8.0   kwokctl-darwin-arm64
+     sha256 9323a59adb9c27854bd2a76652ad00258bcbb68acc40aba0dc21e362b67b7d6a (matches pin)
+ok   k3d            5.9.0   k3d-darwin-arm64
+     sha256 fe106541d5d0a3f18debcd4d432a16f8c0ce3e6ddc06f8fbb6f696a122313e00 (matches pin)
+ok   setup-envtest  0.25.2  setup-envtest-darwin-arm64
+     sha256 7c95d67911e157d2caa02f599bcf9321b4e759d2f008749b4d03ed9d3e6a8c69 (matches pin)
+kwok:          kwok version v0.8.0 go1.26.0 (darwin/arm64)
+kwokctl:       kwokctl version v0.8.0 go1.26.0 (darwin/arm64)
+k3d:           k3d version v5.9.0 k3s version v1.35.5-k3s1 (default) 
+setup-envtest: Usage: setup-envtest [FLAGS] use|list|cleanup|sideload [VERSION]
+
+== a tampered download is refused by the same check
+kwok with one byte appended: refused (sha256 763dfc8d299b01dabb0ec2be0aeb2f1e649df3d9de4ca59fc1765eb537ba0567)
+
+== envtest assets: etcd and kube-apiserver 1.35 from setup-envtest
+(available)  v1.37.0  darwin/arm64
+(available)  v1.36.2  darwin/arm64
+(available)  v1.36.0  darwin/arm64
+(available)  v1.35.0  darwin/arm64
+installed: envtest/k8s/1.35.0-darwin-arm64
+kube-apiserver: Kubernetes v1.35.0
+etcd: etcd Version: 3.6.6

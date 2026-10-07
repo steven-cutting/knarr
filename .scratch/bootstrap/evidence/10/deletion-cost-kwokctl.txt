@@ -1,0 +1,23 @@
+date: 2026-10-07T09:41Z
+runner: kwokctl
+Client Version: v1.34.3
+Server Version: v1.35.5
+node-000000   kwok-v0.8.0
+
+== round 1: one pod at 1000, two at -1000, scale 3 -> 1
+  before scale to 1:
+    victim-68bb98cf76-5fnbv   1000    True   2026-10-07T09:41:30Z
+    victim-68bb98cf76-64vqt   -1000   True   2026-10-07T09:41:30Z
+    victim-68bb98cf76-9qz6g   -1000   True   2026-10-07T09:41:30Z
+  after:  victim-68bb98cf76-5fnbv
+ok   round 1: the cost-1000 pod is the only survivor
+
+== round 2 (reversed): the survivor, now oldest, at -1000; a new pod at 1000
+  before scale to 1:
+    victim-68bb98cf76-5fnbv   -1000   True   2026-10-07T09:41:30Z
+    victim-68bb98cf76-cfsbg   1000    True   2026-10-07T09:41:31Z
+    victim-68bb98cf76-fb44k   -1000   True   2026-10-07T09:41:31Z
+  after:  victim-68bb98cf76-cfsbg
+ok   round 2: the cost-1000 pod is the only survivor
+
+verdict: kwokctl's ReplicaSet scale-down honours pod-deletion-cost

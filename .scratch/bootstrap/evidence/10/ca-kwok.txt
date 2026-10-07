@@ -1,0 +1,42 @@
+date: 2026-10-07T09:47Z
+
+== 1. the kwok provider at cluster-autoscaler-1.35.2
+OWNERS README.md docs kwok_config.go kwok_config_test.go kwok_constants.go kwok_helpers.go kwok_helpers_test.go kwok_nodegroups.go kwok_nodegroups_test.go kwok_provider.go kwok_provider_test.go kwok_types.go samples 
+README.md sha256 b93fbba100c92c8754bb54fd315283329804bd6857862504b10a247c67e31881
+prerequisites it states:
+  #### 1. Install `kwok` controller
+  1. Create `kwok-provider-config` ConfigMap for kwok provider config
+  2. Create `kwok-provider-templates` ConfigMap for node templates
+  3. Set `POD_NAMESPACE` env variable in the CA Deployment (if it is not there already)
+  4. Set `--cloud-provider=kwok` in the CA Deployment
+  export KWOK_PROVIDER_MODE=local
+  1. The kwok provider by default taints the template nodes with `kwok-provider: true` taint so that production workloads don't get scheduled on these nodes acc
+  2. Make sure the label/annotation for `fromNodeLabelKey`/`fromNodeAnnotationKey` in the kwok provider config is actually present on the template nodes. If it 
+
+== 2. kwokctl cluster
+server: v1.35.5
+node-000000   Ready   agent   1s    kwok-v0.8.0
+
+== 3. kwok provider ConfigMaps (namespace default = POD_NAMESPACE)
+applied: nodegroup ng-a, 0..3 nodes, 2 CPU / 4Gi, provider taint kept
+
+== 4. CA cluster-autoscaler-1.35.2 as a container on the cluster's network
+image: registry.k8s.io/autoscaling/cluster-autoscaler:v1.35.2@sha256:aac369dc283927a623deb1af54696efcc722ae79255aa07788422e495bab887d
+ca: Cluster Autoscaler 1.35.2
+ca: Building kwok cloud provider.
+ca: env variable 'KWOK_PROVIDER_CONFIGMAP' is empty (defaulting to 'kwok-provider-config')
+ca: got current pod namespace 'default'
+
+== 5. a pod that fits no node
+pod is Pending, PodScheduled=False reason Unschedulable
+
+== 6. one scale-up
+NODE         NODEGROUP   PROVIDER-ID       KWOK   TAINTS
+ng-a-b99kl   ng-a        kwok:ng-a-b99kl   fake   kwok-provider
+CA log:
+  Final scale-up plan: [{ng-a 0->1 (max: 3)}]
+  Scale-up: setting group ng-a size to 1
+  Event(v1.ObjectReference{Kind:"ConfigMap", Namespace:"default", Name:"cluster-autoscaler-status", UID:"755d1c4b-7a84-42f8-9b89-b1cd2eebdc7b", APIVersion:"v1", ResourceVersion:"252", FieldPath:""}): 
+ok   one scale-up: pod Pending -> CA added ng-a-b99kl to ng-a -> pod Ready, 5.4s after the pod was created
+
+verdict: the kwok provider exists at cluster-autoscaler-1.35.2 and scales up a kwokctl cluster, with CA as a container

@@ -1,0 +1,13 @@
+ok   a plain basename gives <basename>-<8 hex>
+ok   two worktrees sharing a basename get different names
+ok   a symlink to a worktree names the same cluster
+ok   odd characters become DNS-1123: lower case, runs of others to one dash, trimmed
+ok   a long basename is cut so the name is exactly 32 characters
+ok   a cut that lands on a dash leaves no double dash
+ok   a basename with nothing usable falls back to wt-<8 hex>
+ok   dir is under the worktree, spaces kept
+ok   kubeconfig is under the worktree, spaces kept
+ok   kwok-workdir is under the worktree, spaces kept
+ok   an unknown field exits non-zero
+ok   a missing worktree exits non-zero
+12 passed, 0 failed

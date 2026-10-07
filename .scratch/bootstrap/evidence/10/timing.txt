@@ -1,0 +1,36 @@
+date: 2026-10-07T09:42Z
+host: Apple M5 Pro, Darwin arm64, docker 29.4.0 linux/arm64
+
+== warm the image cache (pull time is not measured)
+pulled
+
+== the stand-in image
+knarr-standin:timing-93251: 268784311 bytes
+
+== kind
+run 1: up 24.9s  load 3.6  down 0.6s
+run 2: up 26.7s  load 3.5  down 0.6s
+run 3: up 23.9s  load 3.5  down 0.8s
+
+== k3d
+run 1: up 9.9s  load 5.5  down 0.4s
+run 2: up 9.9s  load 5.6  down 0.4s
+run 3: up 9.8s  load 5.5  down 0.4s
+
+== kwokctl
+run 1: up 4.6s  load n/a  down 0.8s
+run 2: up 5.7s  load n/a  down 0.8s
+run 3: up 6.1s  load n/a  down 0.8s
+
+== envtest
+run 1: up 3.2s  load n/a  down 1.3s
+run 2: up 3.1s  load n/a  down 0.3s
+run 3: up 2.9s  load n/a  down 1.4s
+
+== summary (seconds; 3 runs each, median of 3)
+runner   up (s)                 median  load (s)               median  down (s)               median
+kind     24.9 26.7 23.9         24.9    3.6 3.5 3.5            3.5     0.6 0.6 0.8            0.6
+k3d      9.9 9.9 9.8            9.9     5.5 5.6 5.5            5.5     0.4 0.4 0.4            0.4
+kwokctl  4.6 5.7 6.1            5.7     n/a n/a n/a            n/a     0.8 0.8 0.8            0.8
+envtest  3.2 3.1 2.9            3.1     n/a n/a n/a            n/a     1.3 0.3 1.4            1.3
+load n/a: kwok pods never run, so nothing is pulled; envtest has no kubelet.

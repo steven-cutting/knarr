@@ -39,25 +39,31 @@ if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
 else
   echo 'changelogs: skipped (gh not installed or not authenticated)'
 fi
-tables() { # dir: write the three JSON inputs taplo extracts
-  for t in dependencies dev_dependencies; do taplo get -f "$1/gleam.toml" -o json "$t" 2>/dev/null > "$1/$t.json" || echo '{}' > "$1/$t.json"; done
+# dir: write the JSON inputs taplo extracts. gleam accepts both spellings of
+# the dev table, so both are read; a missing table is {}.
+tables() {
+  for t in dependencies dev_dependencies dev-dependencies; do
+    taplo get -f "$1/gleam.toml" -o json "$t" > "$1/$t.json" 2>/dev/null || echo '{}' > "$1/$t.json"
+  done
   taplo get -f "$1/manifest.toml" -o json requirements > "$1/requirements.json" 2>/dev/null || echo '{}' > "$1/requirements.json"
 }
 sum() { if command -v sha256sum >/dev/null; then sha256sum manifest.toml; else shasum -a 256 manifest.toml; fi | cut -d' ' -f1; }
 mkdir -p "$work"
 seed=$work/seed
 cp -R "$probe" "$seed"
-(cd "$seed" && gleam deps download >/dev/null 2>&1)   # warm the hex cache once
+(cd "$seed" && gleam deps download > download.log 2>&1) || { cat "$seed/download.log"; exit 1; }   # warm the hex cache once
 edit_none() { :; }
 edit_widen() { sed 's/^prometheus = .*/prometheus = ">= 6.0.0 and < 7.0.0"/' gleam.toml > t && mv t gleam.toml; }
 edit_remove() { sed '/^prometheus = /d' gleam.toml > t && mv t gleam.toml; }
 edit_add() { printf 'gleam_json = ">= 3.0.0 and < 4.0.0"\n' >> gleam.toml; }
+edit_devspell() { sed 's/^\[dev_dependencies\]/[dev-dependencies]/' gleam.toml > t && mv t gleam.toml; grep -q '^\[dev-dependencies\]' gleam.toml; }
 edit_manifest() { sed 's/^prometheus = { version = .*/prometheus = { version = ">= 6.1.0 and < 7.0.0" }/' manifest.toml > t && mv t manifest.toml; }
 printf '\n== %-44s %-16s %-6s %s\n' 'edit' 'command' 'exit' 'manifest.toml'
 rewrites=0
-for e in none widen remove add manifest; do
+for e in none devspell widen remove add manifest; do
   case $e in
     none) label='none (agreeing files)';;
+    devspell) label='gleam.toml: [dev-dependencies] spelling';;
     widen) label='gleam.toml: widen prometheus range';;
     remove) label='gleam.toml: drop prometheus';;
     add) label='gleam.toml: add gleam_json';;
@@ -75,9 +81,13 @@ for e in none widen remove add manifest; do
       set -e
       if [ "$(sum)" = "$before" ]; then w=unchanged; else w=REWRITTEN; fi
       printf '   %-44s %-16s %-6s %s\n' "$label" "gleam $c" "$rc" "$w"
-      [ "$e" = none ] && [ "$w" != unchanged ] && { echo 'agreeing files rewrote manifest' >&2; exit 1; }
-      [ "$w" = REWRITTEN ] && echo "$e $c" >> "$work/rewrites"
-      true )
+      # Asserted, not only printed: 0003 states that agreeing files are left
+      # alone and that every disagreement is rewritten with exit 0.
+      case $e in
+        none|devspell) [ "$rc" -eq 0 ] && [ "$w" = unchanged ] || { echo "agreeing files ($e): exit $rc, manifest $w" >&2; exit 1; } ;;
+        *) [ "$rc" -eq 0 ] && [ "$w" = REWRITTEN ] || { echo "gleam behaviour changed ($e, gleam $c: exit $rc, manifest $w); revisit 0003" >&2; exit 1; }
+           echo "$e $c" >> "$work/rewrites" ;;
+      esac )
   done
 done
 [ -s "$work/rewrites" ] && rewrites=$(wc -l < "$work/rewrites" | tr -d ' ')
@@ -92,25 +102,27 @@ cp -R "$seed" "$g"
 cd "$g"
 git init -q && git add gleam.toml manifest.toml src && git -c user.name=t -c user.email=t@t commit -qm seed
 edit_add
-gleam build >/dev/null 2>&1 && echo 'gleam build: exit 0'
+gleam build >/dev/null 2>&1 || { echo 'gleam build failed' >&2; exit 1; }
+echo 'gleam build: exit 0'
 if git diff --quiet --exit-code manifest.toml; then echo 'workaround missed the rewrite' >&2; exit 1; fi
 echo 'git diff --exit-code manifest.toml: exit 1 (drift caught)'
 git checkout -q manifest.toml gleam.toml
-gleam build >/dev/null 2>&1
-git diff --quiet --exit-code manifest.toml && echo 'agreeing files: git diff --exit-code manifest.toml exit 0'
+gleam build >/dev/null 2>&1 || { echo 'gleam build failed' >&2; exit 1; }
+git diff --quiet --exit-code manifest.toml || { echo 'backstop fails on agreeing files' >&2; exit 1; }
+echo 'agreeing files: git diff --exit-code manifest.toml exit 0'
 echo
 echo '== pre-check before gleam runs: requirements_check.escript, nothing written'
-for e in none widen remove add manifest; do
+for e in none devspell widen remove add manifest; do
   d=$work/pre-$e
   cp -R "$seed" "$d"
   (cd "$d" && "edit_$e")
   before=$(cd "$d" && sum)
   tables "$d"
   set +e
-  out=$(escript "$here/requirements_check.escript" "$d/dependencies.json" "$d/dev_dependencies.json" "$d/requirements.json" 2>&1); rc=$?
+  out=$(escript "$here/requirements_check.escript" "$d/requirements.json" "$d/dependencies.json" "$d/dev_dependencies.json" "$d/dev-dependencies.json" 2>&1); rc=$?
   set -e
   [ "$(cd "$d" && sum)" = "$before" ] || { echo 'pre-check wrote manifest.toml' >&2; exit 1; }
   printf '   %-10s exit %s  %s\n' "$e" "$rc" "$(printf '%s' "$out" | head -1)"
-  if [ "$e" = none ]; then [ "$rc" -eq 0 ] || exit 1; else [ "$rc" -eq 1 ] || { echo "pre-check missed $e" >&2; exit 1; }; fi
+  if [ "$e" = none ] || [ "$e" = devspell ]; then [ "$rc" -eq 0 ] || exit 1; else [ "$rc" -eq 1 ] || { echo "pre-check missed $e" >&2; exit 1; }; fi
 done
 echo 'manifest/run.sh: ok'

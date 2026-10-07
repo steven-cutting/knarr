@@ -11,17 +11,28 @@ cd "$work"
 [ -z "$(ls -A .)" ] || { echo "work dir $work is not empty" >&2; exit 2; }
 cp "$here/pixi.toml.proposed" pixi.toml
 fail() { printf 'FAIL: %s\n' "$*"; exit 1; }
-sum() { shasum -a 256 pixi.lock | cut -d' ' -f1; }
+sum() { if command -v sha256sum >/dev/null; then sha256sum pixi.lock; else shasum -a 256 pixi.lock; fi | cut -d' ' -f1; }
+# Runs a command with its output in a log, failing (with the log) if it fails;
+# a pipe into tail or grep would hide the exit status from set -e.
+quiet() { log=$1; shift; "$@" > "$log" 2>&1 || { cat "$log"; fail "$*"; }; }
 step() { printf '\n== %s\n' "$*"; }
 
 printf 'date: %s\n%s\nhost: %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "$(pixi --version)" "$(uname -sm)"
 
 step 'pixi lock (both platforms, every environment)'
-pixi lock 2>&1 | grep -E '^(Platform|  \+ \(conda\) (erlang|openssl|gleam) )' || true
+quiet lock.log pixi lock
+grep -E '^(Platform|  \+ \(conda\) (erlang|openssl|gleam) )' lock.log || true
 locked=$(sum); echo "pixi.lock sha256 $locked"
+[ -n "$locked" ] || fail 'no pixi.lock to hash'
+
+step 'pixi install --locked (no -e) installs the default environment only'
+quiet install-default.log pixi install --locked; tail -1 install-default.log
+envs=$(find .pixi/envs -mindepth 1 -maxdepth 1 -exec basename {} \; | tr '\n' ' ')
+echo "installed: $envs"
+[ "$envs" = 'default ' ] || fail "bare install --locked installed: $envs"
 
 step 'pixi install --locked --all'
-pixi install --locked --all 2>&1 | tail -3
+quiet install-all.log pixi install --locked --all; tail -1 install-all.log
 [ "$(sum)" = "$locked" ] || fail 'install --locked changed pixi.lock'
 
 step 'pixi lock --check on the fresh lock'
@@ -83,16 +94,23 @@ try() { # label, command...; prints exit code and whether pixi.lock changed, the
   cp pixi.lock.orig pixi.lock
   last_rc=$rc last_w=$w
 }
+# Each row below is asserted, not only printed: 0003's lock-check command and
+# its PATH-export rule rest on them, and a pixi release that changes one of
+# them must fail this script so that 0003 is revisited.
 try 'pixi lock --check'                       pixi lock --check
-[ "$last_rc" -ne 0 ] || fail 'lock --check passed on drift'; check_w=$last_w
+[ "$last_rc" -ne 0 ] && [ "$last_w" = REWRITTEN ] || fail 'plain lock --check no longer rewrites on drift; revisit 0003'
+check_w=$last_w
 try 'pixi lock --check --offline --dry-run'   pixi lock --check --offline --dry-run
 [ "$last_rc" -ne 0 ] && [ "$last_w" = unchanged ] || fail 'dry-run lock check did not fail cleanly'
 try 'pixi install --locked'                   pixi install --locked
 [ "$last_rc" -ne 0 ] && [ "$last_w" = unchanged ] || fail 'install --locked did not refuse drift'
 try 'pixi install --frozen'                   pixi install --frozen
+[ "$last_rc" -eq 0 ] && [ "$last_w" = unchanged ] || fail 'install --frozen no longer installs a stale lock silently; revisit 0003'
 try 'pixi run true'                           pixi run true
+[ "$last_rc" -eq 0 ] && [ "$last_w" = REWRITTEN ] || fail 'pixi run no longer rewrites a stale lock; revisit 0003'
 run_w=$last_w
 try 'pixi run --frozen true'                  pixi run --frozen true
+[ "$last_rc" -eq 0 ] && [ "$last_w" = unchanged ] || fail 'pixi run --frozen changed; revisit 0003'
 cp pixi.toml.orig pixi.toml
 printf 'plain lock --check on drift: pixi.lock %s; pixi run on drift: pixi.lock %s\n' "$check_w" "$run_w"
 

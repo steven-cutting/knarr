@@ -1,31 +1,35 @@
-date: 2026-10-07T08:29Z
+date: 2026-10-07T08:37Z
 pixi 0.81.0
 host: Darwin arm64
 
 == pixi lock (both platforms, every environment)
-Platform: cluster:osx-arm64                                     
-  + (conda) erlang             29.1.1 pl5321h4aabdd8_0          
-  + (conda) gleam              1.19.0 hc2d82ec_0                
-  + (conda) openssl            3.6.5 h55eecbc_0                 
 Platform: cluster:linux-64                                      
   + (conda) erlang             29.1.1 pl5321h8f2c242_0          
   + (conda) gleam              1.19.0 hf19af3b_0                
   + (conda) openssl            3.6.5 h781a0a9_0                 
-Platform: default:linux-64                                      
-  + (conda) erlang             29.1.1 pl5321h8f2c242_0          
-  + (conda) gleam              1.19.0 hf19af3b_0                
-  + (conda) openssl            3.6.5 h781a0a9_0                 
+Platform: cluster:osx-arm64                                     
+  + (conda) erlang             29.1.1 pl5321h4aabdd8_0          
+  + (conda) gleam              1.19.0 hc2d82ec_0                
+  + (conda) openssl            3.6.5 h55eecbc_0                 
 Platform: default:osx-arm64                                     
   + (conda) erlang             29.1.1 pl5321h4aabdd8_0          
   + (conda) gleam              1.19.0 hc2d82ec_0                
   + (conda) openssl            3.6.5 h55eecbc_0                 
-Platform: runtime:linux-64                                      
+Platform: default:linux-64                                      
   + (conda) erlang             29.1.1 pl5321h8f2c242_0          
+  + (conda) gleam              1.19.0 hf19af3b_0                
   + (conda) openssl            3.6.5 h781a0a9_0                 
 Platform: runtime:osx-arm64                                     
   + (conda) erlang             29.1.1 pl5321h4aabdd8_0          
   + (conda) openssl            3.6.5 h55eecbc_0                 
+Platform: runtime:linux-64                                      
+  + (conda) erlang             29.1.1 pl5321h8f2c242_0          
+  + (conda) openssl            3.6.5 h781a0a9_0                 
 pixi.lock sha256 cdd5d02d505a49101a8274564d56213b8e104ea8f9143154b581ad4960fdd48d
+
+== pixi install --locked (no -e) installs the default environment only
+✔ The default environment has been installed.
+installed: default 
 
 == pixi install --locked --all
 ✔ The following environments have been installed: default, cluster, runtime.

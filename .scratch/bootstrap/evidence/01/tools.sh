@@ -40,8 +40,14 @@ while read -r name version repo tag sums linux mac member; do
     gh_digest=$(awk -v a="$asset" '$1==a{sub("sha256:","",$2); print $2}' "$d/digests")
     if [ "$gh_digest" = null ] && [ "$sums" = - ] && [ "$name" = ripsecrets ]; then
       # v0.1.11 (2025-05-27) predates GitHub's asset digests and publishes no
-      # checksum file, so this sha256 is a first-use pin: it was computed here.
-      src='nothing upstream: first-use pin computed here'
+      # checksum file, so its sha256 is a first-use pin, computed on
+      # 2026-10-07 and fixed here so a replaced asset fails rather than re-pins.
+      case $platform in
+        linux-64) want=9daf017dfdea242a58f672450a2526f0406211afe9e872c740adc49b42feccf5;;
+        osx-arm64) want=b2c822742e8cbf355ba0cb4cc690c3cd8fdc9ec1916c8148f27bd9098cb7aee4;;
+      esac
+      [ "$got" = "$want" ] || { printf 'FAIL %s %s: sha256 %s, first-use pin %s\n' "$name" "$asset" "$got" "$want"; exit 1; }
+      src='matches the first-use pin of 2026-10-07; nothing upstream to match'
     elif [ "$got" != "$gh_digest" ]; then
       printf 'FAIL %s %s: sha256 %s, GitHub digest %s\n' "$name" "$asset" "$got" "$gh_digest"; exit 1
     elif [ "$sums" = - ]; then src='matches GitHub asset digest; no checksum file published'; else

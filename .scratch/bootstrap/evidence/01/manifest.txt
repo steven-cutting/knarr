@@ -1,4 +1,4 @@
-date: 2026-10-07T08:29Z
+date: 2026-10-07T08:37Z
 host: Darwin arm64
 gleam 1.19.0
 
@@ -15,6 +15,9 @@ changelogs to v1.19.0 (11367 lines): 0 mentions of --frozen, --locked, --offline
    none (agreeing files)                        gleam check      0      unchanged
    none (agreeing files)                        gleam build      0      unchanged
    none (agreeing files)                        gleam deps download 0      unchanged
+   gleam.toml: [dev-dependencies] spelling      gleam check      0      unchanged
+   gleam.toml: [dev-dependencies] spelling      gleam build      0      unchanged
+   gleam.toml: [dev-dependencies] spelling      gleam deps download 0      unchanged
    gleam.toml: widen prometheus range           gleam check      0      REWRITTEN
    gleam.toml: widen prometheus range           gleam build      0      REWRITTEN
    gleam.toml: widen prometheus range           gleam deps download 0      REWRITTEN
@@ -33,7 +36,7 @@ changelogs to v1.19.0 (11367 lines): 0 mentions of --frozen, --locked, --offline
 == diff from the "add gleam_json" build (what a gate would see)
 10a11
 >   { name = "gleam_json", version = "3.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_json", source = "hex", outer_checksum = "44FDAA8847BE8FC48CA7A1C089706BD54BADCC4C45B237A992EDDF9F2CDB2836" },
-15a17
+16a18
 > gleam_json = { version = ">= 3.0.0 and < 4.0.0" }
 
 == workaround: git diff --exit-code manifest.toml after the build
@@ -43,6 +46,7 @@ agreeing files: git diff --exit-code manifest.toml exit 0
 
 == pre-check before gleam runs: requirements_check.escript, nothing written
    none       exit 0  manifest.toml [requirements] matches gleam.toml
+   devspell   exit 0  manifest.toml [requirements] matches gleam.toml
    widen      exit 1    prometheus: gleam.toml {"version":">= 6.0.0 and < 7.0.0"}, manifest.toml {"version":">= 6.1.3 and < 7.0.0"}
    remove     exit 1    prometheus: gleam.toml absent, manifest.toml {"version":">= 6.1.3 and < 7.0.0"}
    add        exit 1    gleam_json: gleam.toml {"version":">= 3.0.0 and < 4.0.0"}, manifest.toml absent

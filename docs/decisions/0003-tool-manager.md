@@ -149,7 +149,7 @@ The OTP version has one owner: the `erlang` pin in `pixi.toml`, resolved in `pix
 
 - **pixi and contributors** get it from `pixi install --locked`.
 - **CI** gets it from the same lock through setup-pixi with `locked: true`. No workflow names an OTP version.
-- **Dockerfile build stage** installs the locked `default` environment, which supplies gleam, erlang and rebar3, and runs `gleam export erlang-shipment`. It also installs the locked `runtime` environment.
+- **Dockerfile build stage** installs the locked `default` environment, which supplies gleam and erlang. It then runs the `tools.txt` installer for rebar3, which comes from `.tools/bin` and not from pixi, and runs `gleam export erlang-shipment`. It also installs the locked `runtime` environment.
 - **Dockerfile runtime stage** copies the `runtime` environment from the build stage to the same absolute prefix (conda environments are not relocatable), and puts its `bin` on `PATH`. No `ARG`, tag or base image names an OTP version. The one solve group makes the runtime environment's erlang and openssl the same builds that Verify 1 tested.
 
 13 writes the Dockerfile. Its check that "the build and runtime stages use the same OTP major" runs `erl -noshell -eval 'io:put_chars(erlang:system_info(otp_release)), halt().'` in both stages and compares the output with `pixi.lock`.
@@ -176,7 +176,7 @@ The cluster directory comes after the default one, so `gleam` and the other shar
 
 | Purpose | Command | Evidence |
 |---|---|---|
-| Install (first run, CI) | `pixi install --locked`, which installs `default`. Cluster lanes add `pixi install --locked -e cluster`. | On drift it exits 1 and leaves `pixi.lock` unchanged. |
+| Install (first run, CI) | `pixi install --locked`, which installs `default` only. Cluster lanes add `pixi install --locked -e cluster`. | It installs only `default`. On drift it exits 1 and leaves `pixi.lock` unchanged. |
 | Lock check (gate) | `pixi lock --check --offline --dry-run` | On drift it exits 1 and leaves `pixi.lock` unchanged. On a fresh lock it passes offline. |
 | Move transitives within the pins | `pixi update`, or `pixi update <package>`, then commit `pixi.lock` | |
 | Move a pin | Edit its `==` line, run `pixi update <package>`, read the lockfile diff, commit both files | |
@@ -196,11 +196,11 @@ Gleam 1.19.0 cannot refuse to rewrite `manifest.toml`:
 
 - No locked, frozen or offline option exists on `build`, `check`, `deps download`, `update`, `test` or `run`.
 - No changelog up to v1.19.0 mentions `--frozen`, `--locked`, `--offline` or `--no-update`.
-- Whenever `gleam.toml` and `manifest.toml` disagree, `gleam check`, `gleam build` and `gleam deps download` all rewrite `manifest.toml` and exit 0. The test covered four disagreements: a widened range, a dropped dependency, an added dependency and a stale `[requirements]` table.
+- Whenever `gleam.toml` and `manifest.toml` disagree, `gleam check`, `gleam build` and `gleam deps download` all rewrite `manifest.toml` and exit 0. The test covered four disagreements: a widened range, a dropped dependency, an added dependency and a stale `[requirements]` table. Agreeing files are left alone, including when the dev table is spelled `[dev-dependencies]`.
 
 So the gate uses two checks:
 
-1. **A pre-check that never writes**, before any gleam command. `taplo get -o json` extracts `gleam.toml`'s `[dependencies]` and `[dev_dependencies]` and `manifest.toml`'s `[requirements]`. A small comparison then fails on any difference: [requirements_check.escript](../../.scratch/bootstrap/evidence/01/manifest/requirements_check.escript) normalises a bare version string to `{version = ...}`. It refused all four disagreements and accepted the agreeing pair, without writing. This is what makes drift fail "rather than being rewritten" (03).
+1. **A pre-check that never writes**, before any gleam command. `taplo get -o json` extracts `gleam.toml`'s `[dependencies]` and its dev table, which gleam accepts as either `[dev_dependencies]` or `[dev-dependencies]`, and `manifest.toml`'s `[requirements]`. A small comparison then fails on any difference: [requirements_check.escript](../../.scratch/bootstrap/evidence/01/manifest/requirements_check.escript) normalises a bare version string to `{version = ...}`. It refused all four disagreements without writing. It accepted the agreeing pair under both spellings of the dev table. This is what makes drift fail "rather than being rewritten" (03).
 2. **The backstop:** the snapshot runner from 02 aborts if any gate recipe changes a file. The gleam recipes also end with `git diff --exit-code manifest.toml`. Together they catch any rewrite the pre-check cannot predict, for example an edited `[packages]` entry.
 
 ## Verification
@@ -244,7 +244,7 @@ OTP 29 reports a failed hostname check as a `bad_certificate` alert that carries
 
 **Verify 3, rebar3.** [rebar3/fetch.sh](../../.scratch/bootstrap/evidence/01/rebar3/fetch.sh) refuses an escript whose sha256 differs from the pin and verifies the Sigstore bundle. It also checks that the bundle refuses a copy with one byte appended. [rebar3/run.sh](../../.scratch/bootstrap/evidence/01/rebar3/run.sh) builds the [probe](../../.scratch/bootstrap/evidence/01/rebar3/probe/) on both platforms. The probe is a Gleam project that depends on `prometheus` 6.1.3 and `ddskerl` 0.4.3, and both have `build_tools = ["rebar3"]`. `===> Compiling prometheus` shows that rebar3 compiled them, and the probe's counter reads 2 after two increments. With rebar3 removed from `PATH`, the same build fails.
 
-**Verify 4, missing tools.** [tools.txt](../../.scratch/bootstrap/evidence/01/tools.txt) has, for each tool, both platform assets downloaded and hashed. Each hash matches the GitHub asset digest and the publisher's checksum file where one exists. ripsecrets is the exception, as noted above. Each macOS binary prints its version. The autoscaler releases have zero assets, and the image digests are resolved.
+**Verify 4, missing tools.** [tools.txt](../../.scratch/bootstrap/evidence/01/tools.txt) has, for each tool, both platform assets downloaded and hashed. Each hash matches the GitHub asset digest and the publisher's checksum file where one exists. ripsecrets is the exception, as noted above. Each macOS binary runs and prints its version, except setup-envtest, which has no version flag and prints its usage. The autoscaler releases have zero assets, and the image digests are resolved.
 
 **Verify 5, manifest.toml.** [manifest.txt](../../.scratch/bootstrap/evidence/01/manifest.txt) shows the flag survey, the rewrite table, the `git diff --exit-code` backstop catching a rewrite, and the pre-check refusing every disagreement without writing.
 

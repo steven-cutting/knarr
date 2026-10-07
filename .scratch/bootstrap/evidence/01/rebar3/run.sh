@@ -13,9 +13,12 @@ printf 'date: %s\nhost: %s\n%s\n%s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "$(uname -sm
 mkdir -p "$work"
 cp -R "$here/probe/." "$work/"
 cd "$work"
-gleam build 2>&1 | tee build.log
-grep -q 'build_tools = \["rebar3"\]' manifest.toml || { echo 'manifest records no rebar3 package' >&2; exit 1; }
+gleam build > build.log 2>&1 || { cat build.log; echo 'gleam build failed' >&2; exit 1; }
+cat build.log
 grep 'build_tools = \["rebar3"\]' manifest.toml | sed 's/, requirements.*//'
+for app in prometheus ddskerl; do
+  grep -q "^===> Compiling $app\$" build.log || { echo "rebar3 did not compile $app" >&2; exit 1; }
+done
 for app in prometheus ddskerl; do
   ls build/dev/erlang/$app/ebin/$app.app >/dev/null || { echo "$app was not compiled" >&2; exit 1; }
 done

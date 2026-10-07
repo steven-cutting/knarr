@@ -10,7 +10,7 @@ Each script exits non-zero on an unexpected result, and each `.txt` file is the 
 sh .scratch/bootstrap/evidence/01/run-all.sh "$(mktemp -d)"
 ```
 
-This needs network, pixi 0.81.0, curl, an authenticated `gh` (for asset digests and the rebar3 Sigstore check), and Docker (for `linux.sh` and the autoscaler digests). It rewrites every transcript here. A changed transcript is either a new upstream release or a finding.
+This needs network, pixi 0.81.0, curl, an authenticated `gh` (for asset digests and the rebar3 Sigstore check), and Docker (for `linux.sh` and the autoscaler digests). It rewrites every transcript here. A changed transcript is either a new upstream release or a finding. `run-all.sh` stops at the first script that fails. `search.sh` is meant to fail (`DIFFERS`) once conda-forge publishes a newer version of a pinned package. That failure means the pins in 0003 need a deliberate move. It does not mean the script is broken.
 
 ## Scripts
 

@@ -30,9 +30,13 @@ docker run --rm --platform linux/amd64 \
     # curl for rebar3/fetch.sh; the image ships none. Not part of the pixi env.
     apt-get update -qq >/dev/null && apt-get install -y -qq --no-install-recommends curl ca-certificates >/dev/null
     mkdir -p /work && cp /lock/pixi.toml /lock/pixi.lock /work/ && cd /work
-    cmp /evidence/pixi.toml.proposed pixi.toml && echo "pixi.toml is pixi.toml.proposed"
-    pixi install --locked --all 2>&1 | tail -1
-    pixi lock --check --offline --dry-run 2>&1 | tail -1
+    cmp /evidence/pixi.toml.proposed pixi.toml || { echo "pixi.toml differs from pixi.toml.proposed" >&2; exit 1; }
+    echo "pixi.toml is pixi.toml.proposed"
+    # Logs, not pipes: a pipe into tail would hide a failure from set -e.
+    pixi install --locked --all > install.log 2>&1 || { cat install.log; exit 1; }
+    tail -1 install.log
+    pixi lock --check --offline --dry-run > check.log 2>&1 || { cat check.log; exit 1; }
+    tail -1 check.log
     for env in default runtime; do
       printf "%s: " "$env"; pixi list -e "$env" | awk "\$1==\"erlang\"||\$1==\"openssl\"{printf \"%s %s %s  \", \$1, \$2, \$3}"; echo
     done
@@ -41,7 +45,10 @@ docker run --rm --platform linux/amd64 \
       ERL_FLAGS="+JMsingle true"; export ERL_FLAGS; echo "ERL_FLAGS=$ERL_FLAGS (emulation only)"
     fi
     erl() { "/work/.pixi/envs/$1/bin/erl" -noshell -eval "io:put_chars(erlang:system_info(otp_release)), io:nl(), halt()."; }
-    echo "otp_release default: $(erl default), runtime: $(erl runtime)"
+    want=$(pixi list -e runtime | awk "\$1==\"erlang\"{split(\$2, v, \".\"); print v[1]}")
+    d=$(erl default); r=$(erl runtime)
+    echo "otp_release default: $d, runtime: $r, pixi.lock erlang major: $want"
+    [ -n "$want" ] && [ "$d" = "$want" ] && [ "$r" = "$want" ] || { echo "OTP majors disagree" >&2; exit 1; }
     echo "runtime environment installed size (what the runtime image copies): $(du -sh .pixi/envs/runtime | cut -f1); of which lib/erlang $(du -sh .pixi/envs/runtime/lib/erlang | cut -f1), lib/perl5 $(du -sh .pixi/envs/runtime/lib/perl5 | cut -f1)"
     echo; echo "== Verify 1, TLS, default environment"
     sh /evidence/tls/run.sh /work/.pixi/envs/default /tmp/tls-default

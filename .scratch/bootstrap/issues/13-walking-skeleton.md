@@ -28,6 +28,6 @@ Either way the library sits behind a `metrics` module. Metric names follow contr
   - a ServiceAccount
   - a minimal Role
   - a Deployment with `replicas: 1`, strategy `Recreate`, liveness and readiness probes, and a restrictive securityContext
-- [ ] kubeconform validates the rendered base.
+- [ ] kubeconform validates the rendered base, if 01 kept it; otherwise the record names the replacement check.
 - [ ] `just` recipes cover cluster up, deploy and smoke, using the per-worktree naming from 10. The smoke test hits all three endpoints in the cluster.
-- [ ] A CI smoke job runs on kind. It is not required until it has been stable for a stated period.
+- [ ] A CI smoke job runs on kind. It is not a dependency of the aggregate `check` job (05) and is not a required status check until it has been stable for a stated period.

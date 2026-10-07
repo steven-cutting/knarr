@@ -17,9 +17,9 @@
 - [ ] The Justfile has setup, develop, format and check groups, and `just --list` shows them.
 - [ ] `just check` is read-only and runs the lock check, `gleam format --check`, `gleam build --warnings-as-errors`, `gleam test`, the TOML check and lint (typos, markdownlint, shellcheck and the others 01 settled), all through the snapshot runner from 02. A recipe that modifies any tracked or untracked-unignored file fails the gate.
 - [ ] `manifest.toml` drift fails the gate rather than being rewritten, as 01 decided.
-- [ ] There are two prek configs, read-only and fix. Every remote hook is pinned to a full commit SHA with a version comment. `just fix` is the only recipe that modifies files.
+- [ ] There are two prek configs, read-only and fix. Every remote hook is pinned to a full commit SHA with a version comment. Every recipe inside `just check` is read-only. Outside the gate, only `just fix`, `just initialize` (03, 07) and the snapshot review and accept recipes (08) write files, and only `just fix` and the snapshot accept recipe may touch tracked files.
 - [ ] The dotfiles are in place: editorconfig, gitattributes and gitignore. The gitignore covers build output, the pixi environment, the tool directory and `ai_tmp/`. The ticket decides whether `.scratch/` is tracked.
 - [ ] `just initialize` is the one first-run command and the only step that needs network. The docs say plainly that an agent needs an explicit network grant for that first run. After it, `just check` passes offline.
-- [ ] Hook installation refuses to run from a linked worktree and runs only from the primary checkout.
+- [ ] Hook installation runs only from the primary checkout. In a linked worktree `just initialize` skips the hook step with a printed notice and still completes the rest (pixi environment, tool directory), so a worktree reaches a green `just check` without hooks (11).
 - [ ] One branch-name convention (for example `ticket/NN-slug`) is fixed and stated where lanes will read it.
 - [ ] An Apache-2.0 LICENSE is committed.

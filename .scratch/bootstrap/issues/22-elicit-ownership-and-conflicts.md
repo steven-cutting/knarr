@@ -19,6 +19,6 @@ Other writers include user-set values, the lablabs and zepellin controllers, and
 **Status:** needs-human
 
 - [ ] The `elicit` skill is run with the maintainer in a live session.
-- [ ] Every open point above is settled and recorded before any clause is written. What the chosen write mode needs from the client (patch content types, preconditions) is recorded for the S1 client (14).
+- [ ] Every open point above is settled and recorded before any clause is written. What the chosen write mode needs from the client (patch content types, preconditions) is recorded in the hand-back. S1 (14) will normally have landed with a plain merge patch by then, so the client module's spec-then-build follow-up drafted by 14 is amended to carry these requirements.
 - [ ] The clauses cover the marker, the write mode, conflict detection, the Event and the back-off. `check-specs` and `analyse-specs` report nothing.
 - [ ] The hand-back gives the `plan-spec` obligation count and drafts the spec-then-build follow-up ticket.

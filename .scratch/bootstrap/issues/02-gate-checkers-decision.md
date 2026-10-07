@@ -10,7 +10,7 @@
 
 **What to build:** A decision record with one row per checker: copy it (vendored with provenance), rewrite it (and in what language and runtime), or drop it (and what replaces it, if anything). The read-only gate keeps its main guarantee: no gate recipe may modify the worktree.
 
-**Non-goals:** Wiring the checkers into the gate. That is done by the lane that owns each one: the runner in 03, docs in 06, Allium in 07, agents in 09.
+**Non-goals:** Wiring the checkers into the gate. That is done by the lane that owns each one: the runner and the ripsecrets wrapper in 03, docs in 06, Allium in 07, agents in 09.
 
 **Blocked by:** 01
 
@@ -23,4 +23,4 @@
 - [ ] The runtime for kept or rewritten checkers (for example Python from the pixi environment) is owned by the manifest decided in 01, not by a second installer.
 - [ ] The agents checker's required phrases come from project configuration. `runes` and other game-only wording are gone.
 - [ ] The snapshot guarantee is kept as is or replaced by an equivalent, and the record says which.
-- [ ] A decision record is written. Follow-ups for 03, 06, 07 and 09 name which checker each lane brings in.
+- [ ] A decision record is written. Follow-ups for 03 (runner and ripsecrets), 06, 07 and 09 name which checker each lane brings in.

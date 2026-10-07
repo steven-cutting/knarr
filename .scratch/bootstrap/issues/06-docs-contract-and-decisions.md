@@ -20,7 +20,7 @@
   - effects live behind sans-IO boundaries
   - the tool-manager decision (01)
   - the gate-checker decision (02)
-  - a project-managed Allium binary
+  - a project-managed Allium binary (carried from libpawdoku; 07 implements it in parallel and amends this record if its findings differ)
   - Apache-2.0
 - [ ] Each carried record names where it was adapted from, when it was.
 - [ ] `just check` is green and the worktree is clean.

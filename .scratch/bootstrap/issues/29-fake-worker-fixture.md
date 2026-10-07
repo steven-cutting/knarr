@@ -14,6 +14,6 @@
 
 - [ ] The status endpoint matches the clauses from 18 exactly, and tests trace each clause.
 - [ ] A control endpoint sets cost, accepting or draining, response latency, and failure modes (timeout, 5xx, 404, invalid payload) per pod at runtime.
-- [ ] On SIGTERM it drains gracefully within a configurable time and records whether it was busy when killed, so a test run can count busy kills.
+- [ ] On SIGTERM it drains gracefully within a configurable time and records whether it was busy when killed somewhere that outlives the pod (for example a line the harness scrapes before deletion completes, or a push to a collector endpoint), so a test run can count busy kills after the pods are gone. The ticket names the sink.
 - [ ] The image is built the same way as knarr's (13): non-root, small, and loadable into the cluster from 10.
 - [ ] A kind smoke test deploys several replicas, sets mixed states through the control endpoint, and reads them back from the status endpoint.

@@ -14,4 +14,23 @@ ok   recheck_of gives the latest recheck time, in epoch seconds
 ok   recheck_of reads the first of them from a log cut after it
 ok   recheck_of gives nothing when no node was found unremovable
 ok   klog_epoch reads a klog prefix with this year
-16 passed, 0 failed
+ok   exists: an object the apiserver shows is 0
+ok   exists: an object the apiserver says is gone is 1
+ok   exists: a refused connection is 2, not gone
+ok   exists: a Forbidden answer is 2, not gone
+ok   wait_gone: returns 0 once the object is gone
+ok   wait_gone: times out while the object exists
+ok   wait_gone: times out on a refused connection
+ok   wait_gone: times out on a Forbidden answer
+ok   wait_pod_gone: times out on a refused connection
+ok   wait_node_gone: times out on a Forbidden answer
+ok   has_taint: 0 when the node has the key
+ok   has_taint: 1 when the node has other keys only
+ok   has_taint: 1 when the node has no taints
+ok   has_taint: 2 on a refused connection, not "no taint"
+ok   refute_taint: passes when the node lacks the taint
+ok   refute_taint: fails when the node has the taint
+ok   refute_taint: fails on a refused connection
+ok   refute_taint: fails on a Forbidden answer
+ok   refute_taint: names a deleted node as removed, not as an API error
+35 passed, 0 failed

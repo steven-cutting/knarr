@@ -12,7 +12,8 @@
 #                            the setup trap's way round (README): the pod lands
 #                            on a new ng-a node, and kwokctl's own node is the
 #                            place it can move to. Prints the node name
-#   wait_* and log helpers   below
+#   exists, refute_taint,    below; an apiserver error is never read as "gone"
+#   wait_* and log helpers   or "no taint" (stubbed in lib_test.sh)
 #   since_of <node>          CA log on stdin: the latest "is unneeded since"
 #                            for <node>, as epoch seconds (pure; lib_test.sh)
 #   timer_verdict <since0> <since1> <removal> <unneeded>
@@ -197,24 +198,50 @@ place_on_new_node() { # app, annotations, [emptydir]; prints the node
   printf '%s\n' "$node"
 }
 
-# The waits poll at 0.5 s; the timeouts are in seconds.
-has_taint() { kubectl get node "$1" -o jsonpath='{.spec.taints[*].key}' 2> /dev/null | tr ' ' '\n' | grep -qx "$2"; }
+# The waits poll at 0.5 s; the timeouts are in seconds. A failed request is
+# never read as the outcome under test: exists and has_taint return 2 for it,
+# --ignore-not-found makes NotFound the only way to read "gone", and
+# --request-timeout bounds a hung call. Callers take the status with
+# `rc=0; f ... || rc=$?`, so set -e does not stop on 2; the helpers keep their
+# own status in other names, so they never leave a value in a caller's rc.
+# exists <kind> <name>: 0 if the apiserver shows the object, 1 if it says it
+# is gone, 2 if the request failed.
+exists() {
+  obj=$(kubectl get "$1" "$2" --ignore-not-found -o name --request-timeout=5s 2> /dev/null) || return 2
+  [ -n "$obj" ]
+}
+# has_taint <node> <key>: 0 if the node has the taint, 1 if not, 2 if the
+# request failed, which includes a deleted node.
+has_taint() {
+  taints=$(kubectl get node "$1" -o jsonpath='{.spec.taints[*].key}' --request-timeout=5s 2> /dev/null) || return 2
+  printf '%s\n' "$taints" | tr ' ' '\n' | grep -qx "$2"
+}
+# refute_taint <node> <key>: fail if the node has the taint, was removed, or
+# its taints cannot be read. A failed read fails the run rather than being
+# retried, since a skipped sample would weaken a "never tainted" claim.
+refute_taint() {
+  rt=0; has_taint "$1" "$2" || rt=$?
+  [ "$rt" -ne 0 ] || fail "$1 got $2"
+  [ "$rt" -ne 1 ] || return 0
+  rt=0; exists node "$1" || rt=$?
+  [ "$rt" -ne 1 ] || fail "$1 was removed"
+  fail "could not read $1's taints"
+}
 wait_taint() { # node, key, timeout
   i=0; until has_taint "$1" "$2"; do
     kubectl get node "$1" > /dev/null 2>&1 || return 1
     i=$((i + 1)); [ "$i" -lt $(($3 * 2)) ] || return 1; sleep 0.5
   done
 }
-wait_node_gone() { # node, timeout
-  i=0; while kubectl get node "$1" > /dev/null 2>&1; do
-    i=$((i + 1)); [ "$i" -lt $(($2 * 2)) ] || return 1; sleep 0.5
+wait_gone() { # kind, name, timeout: 0 once the apiserver says it is gone
+  i=0; while :; do
+    wg=0; exists "$1" "$2" || wg=$?
+    [ "$wg" -ne 1 ] || return 0
+    i=$((i + 1)); [ "$i" -lt $(($3 * 2)) ] || return 1; sleep 0.5
   done
 }
-wait_pod_gone() { # pod, timeout
-  i=0; while kubectl get pod "$1" > /dev/null 2>&1; do
-    i=$((i + 1)); [ "$i" -lt $(($2 * 2)) ] || return 1; sleep 0.5
-  done
-}
+wait_node_gone() { wait_gone node "$1" "$2"; } # node, timeout
+wait_pod_gone() { wait_gone pod "$1" "$2"; }   # pod, timeout
 wait_log() { # extended regex, timeout
   i=0; until ca_log | grep -qE -- "$1"; do
     i=$((i + 1)); [ "$i" -lt $(($2 * 2)) ] || return 1; sleep 0.5

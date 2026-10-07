@@ -35,6 +35,14 @@ evictions() {
   kubectl get --raw /metrics | perl -ne 'if (/^apiserver_request_total\{.*code="'"$1"'".*subresource="eviction"/ && /(\S+)$/) { $s += $1 } END { print $s + 0, "\n" }'
 }
 node_state() { kubectl get node "$1" -o custom-columns='NODE:.metadata.name,UNSCHEDULABLE:.spec.unschedulable,TAINTS:.spec.taints[*].key'; }
+# cleared <node>: true only when the node is read without error and has
+# neither the deletion taint nor the cordon. A failed read is not cleared.
+cleared() {
+  cl=0; has_taint "$1" ToBeDeletedByClusterAutoscaler || cl=$?
+  [ "$cl" -eq 1 ] || return 1
+  cordon=$(kubectl get node "$1" -o jsonpath='{.spec.unschedulable}' --request-timeout=5s 2> /dev/null) || return 1
+  [ -z "$cordon" ]
+}
 
 echo; echo '== cluster'
 ca_cluster_up
@@ -72,7 +80,9 @@ i=0; until [ -n "$(kubectl get events -A --field-selector "involvedObject.name=$
   i=$((i + 1)); [ "$i" -lt 40 ] || fail 'no ScaleDownFailed event'; sleep 0.5
 done
 kubectl get events -A --field-selector "involvedObject.name=$node,reason=ScaleDownFailed" -o custom-columns='TYPE:.type,REASON:.reason,OBJECT:.involvedObject.name,MESSAGE:.message' | cut -c1-220
-i=0; while has_taint "$node" ToBeDeletedByClusterAutoscaler || [ -n "$(kubectl get node "$node" -o jsonpath='{.spec.unschedulable}')" ]; do
+i=0; until cleared "$node"; do
+  rc=0; exists node "$node" || rc=$?
+  [ "$rc" -ne 1 ] || fail "$node was removed"
   i=$((i + 1)); [ "$i" -lt 40 ] || fail 'taint or cordon not removed'; sleep 0.5
 done
 # One more recheck period: the node stays, now blocked in simulation.

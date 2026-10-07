@@ -47,7 +47,7 @@ wait_log "Node $node cannot be removed: pod with local storage present: $pod" 30
 show_log "Node $node cannot be removed" 1
 t0=$(first_log_epoch "Node $node cannot be removed")
 i=0; while [ "$(perl -e 'print int($ARGV[1] - $ARGV[0])' "$t0" "$(ca_now)")" -lt 80 ]; do
-  ! has_taint "$node" ToBeDeletedByClusterAutoscaler || fail "$node tainted for deletion"
+  refute_taint "$node" ToBeDeletedByClusterAutoscaler
   i=$((i + 1)); [ "$i" -lt 200 ] || fail 'CA log stopped advancing'; sleep 0.5
 done
 kubectl get node "$node" > /dev/null 2>&1 || fail "$node was removed"

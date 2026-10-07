@@ -54,7 +54,7 @@ show_log "Node $node cannot be removed" 1
 t0=$(first_log_epoch "Node $node cannot be removed")
 i=0; while [ "$(perl -e 'print int($ARGV[1] - $ARGV[0])' "$t0" "$(ca_now)")" -lt 160 ]; do
   for k in DeletionCandidateOfClusterAutoscaler ToBeDeletedByClusterAutoscaler; do
-    ! has_taint "$node" "$k" || fail "$node got $k"
+    refute_taint "$node" "$k"
   done
   i=$((i + 1)); [ "$i" -lt 400 ] || fail 'CA log stopped advancing'; sleep 0.5
 done

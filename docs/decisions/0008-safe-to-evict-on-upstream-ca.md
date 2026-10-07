@@ -56,24 +56,24 @@ This section is public-source research as of 2026-10-07, not script evidence.
 
 Each script exits non-zero on an unexpected result. The [README](../../.scratch/bootstrap/evidence/15/README.md) gives the command that reruns them all, which ends by checking that the run left no container behind.
 
-**Helpers ([lib_test.txt](../../.scratch/bootstrap/evidence/15/lib_test.txt)).** Sixteen tests cover the pure helpers the verdicts rest on, on log lines copied from a CA 1.35.2 run: `since_of`, `recheck_of`, `timer_verdict` (kept, reset and four unclear cases) and `klog_epoch`.
+**Helpers ([lib_test.txt](../../.scratch/bootstrap/evidence/15/lib_test.txt)).** Sixteen tests cover the pure helpers the verdicts rest on, on log lines copied from a CA 1.35.2 run: `since_of`, `recheck_of`, `timer_verdict` (kept, reset and four unclear cases) and `klog_epoch`. Nineteen more drive the API helpers through a stub `kubectl` and show that a refused or Forbidden request is never read as a deleted pod or node, or as a missing taint: `exists`, `wait_gone`, `has_taint` and `refute_taint`.
 
 **Source ([source.txt](../../.scratch/bootstrap/evidence/15/source.txt)).** Every cited file is fetched at the tag with its sha256, and every cited excerpt is found on its cited lines.
 
 **Experiments.** [exp1](../../.scratch/bootstrap/evidence/15/exp1-false-blocks.txt), [exp2](../../.scratch/bootstrap/evidence/15/exp2-recheck.txt), [exp3](../../.scratch/bootstrap/evidence/15/exp3-timer.txt) and [exp4](../../.scratch/bootstrap/evidence/15/exp4-local-storage.txt) each start a fresh CA per leg and fail if CA kept a node for a reason other than the one under test. Times come from CA's own log, on one clock. Leg C, the row the threshold advice rests on, from exp3 L28-L41:
 
 ```text
-  20:21:15.006006 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-07 20:21:30.004654874 +0000 UTC m=+51.033954463
-  flip false -> absent seen by the loop at since0 +25.2 s; CA's recheck time is since0 +35.2 s
+  23:49:55.477176 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-07 23:50:10.476280605 +0000 UTC m=+50.791452696
+  flip false -> absent seen by the loop at since0 +25.1 s; CA's recheck time is since0 +35.1 s
   every loop from the flip back to the return:
-  20:21:20.035410 Starting main loop
-  20:21:20.036070 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
-  20:21:25.046684 Starting main loop
-  20:21:25.048346 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
-  20:21:30.066657 Starting main loop
-  20:21:30.067756 ng-a-89wlr is unneeded since 2026-10-07 20:21:30.066631576 +0000 UTC m=+51.095931166 duration 0s
-  ng-a-89wlr unneeded again: since1 20:21:30.067 (since0 +35.2 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
-  removal 20:22:10.287: since0 +75.4 s, since1 +40.2 s (unneeded time 40 s)
+  23:50:00.491176 Starting main loop
+  23:50:00.491862 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  23:50:05.511657 Starting main loop
+  23:50:05.512157 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  23:50:10.528623 Starting main loop
+  23:50:10.529569 ng-a-9z2k6 is unneeded since 2026-10-07 23:50:10.528609488 +0000 UTC m=+50.843781620 duration 0s
+  ng-a-9z2k6 unneeded again: since1 23:50:10.529 (since0 +35.1 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
+  removal 23:50:50.838: since0 +75.4 s, since1 +40.3 s (unneeded time 40 s)
   removal is +35.4 s later than since0 + 40 s
 ok   leg C: timer reset
 ok   leg C: the node stayed out after the loops that saw the annotation gone, and came back on the first loop at CA's recheck time (block + 15 s)

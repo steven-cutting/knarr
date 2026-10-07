@@ -1,4 +1,4 @@
-date: 2026-10-07T19:56Z
+date: 2026-10-07T23:38Z
 
 == cluster
 server: v1.35.5
@@ -8,19 +8,19 @@ kwok provider ConfigMaps: nodegroup ng-a, 0..3 nodes, 2 CPU / 4Gi (as in 10)
 
 == control: no annotation
 CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
-pod exp1-control-c688b7b5d-jwbwj is on new node ng-a-859ps; node-000000 is uncordoned
-  19:56:59.273441 ng-a-859ps is unneeded since 2026-10-07 19:56:59.272062878 +0000 UTC m=+15.830301375 duration 0s
-  19:57:39.411628 Successfully added ToBeDeletedByClusterAutoscaler on node ng-a-859ps
-  19:57:39.411810 Scale-down: removing node ng-a-859ps, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp1-control-c688b7b5d-jwbwj
-ok   control: unneeded since 2026-10-07 19:56:59.272, tainted for deletion 40.1 s later; exp1-control-c688b7b5d-jwbwj evicted, ng-a-859ps deleted
+pod exp1-control-c688b7b5d-22hkh is on new node ng-a-xql5p; node-000000 is uncordoned
+  23:39:05.044507 ng-a-xql5p is unneeded since 2026-10-07 23:39:05.043253354 +0000 UTC m=+15.808136694 duration 0s
+  23:39:45.189354 Successfully added ToBeDeletedByClusterAutoscaler on node ng-a-xql5p
+  23:39:45.189666 Scale-down: removing node ng-a-xql5p, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp1-control-c688b7b5d-22hkh
+ok   control: unneeded since 2026-10-07 23:39:05.043, tainted for deletion 40.1 s later; exp1-control-c688b7b5d-22hkh evicted, ng-a-xql5p deleted
 
 == case: safe-to-evict "false"
 CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
-pod exp1-false-b8dd7768b-2pbq8 is on new node ng-a-x7v4w, annotated false
-  19:58:00.838958 Node ng-a-x7v4w cannot be removed: pod annotated as not safe to evict present: exp1-false-b8dd7768b-2pbq8
-CA log over 160 s: 11 "cannot be removed" lines, 0 "is unneeded since" lines, 0 "removing node" lines for ng-a-x7v4w
+pod exp1-false-b8dd7768b-snx2n is on new node ng-a-2nk6m, annotated false
+  23:40:06.656397 Node ng-a-2nk6m cannot be removed: pod annotated as not safe to evict present: exp1-false-b8dd7768b-snx2n
+CA log over 160 s: 11 "cannot be removed" lines, 0 "is unneeded since" lines, 0 "removing node" lines for ng-a-2nk6m
 NODE         UNSCHEDULABLE   TAINTS
-ng-a-x7v4w   <none>          kwok-provider
-ok   case: ng-a-x7v4w kept for 160 s (4 x the unneeded time), never a deletion candidate, exp1-false-b8dd7768b-2pbq8 not evicted
+ng-a-2nk6m   <none>          kwok-provider
+ok   case: ng-a-2nk6m kept for 160 s (4 x the unneeded time), never a deletion candidate, exp1-false-b8dd7768b-snx2n not evicted
 
 verdict: safe-to-evict "false" keeps CA from removing an otherwise removable node; with no annotation the same node is removed after the unneeded time

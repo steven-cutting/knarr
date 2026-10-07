@@ -1,30 +1,31 @@
 # Knarr: Project Overview
 
-> **Status:** Draft. This document sets a high-level direction for later work and for drafting tickets. It is not a specification. Anything marked **OPEN** or **UNDECIDED** has not been decided and will be settled in a ticket. **Recommended** means a proposed default, not a decision.
+> **Status:** Draft, scoped to the MVP. This document sets a high-level direction for later work and for drafting tickets. It is not a specification. Anything marked **OPEN** has not been decided and will be settled in a ticket. **Recommended** means a proposed default, not a decision. Post-MVP options, alternatives and research notes live in [DEFERRED.md](DEFERRED.md).
 
 ## 1. Summary
 
-Knarr is a Kubernetes controller written in [Gleam](https://gleam.run/) that runs on the BEAM (Erlang target). Whether it becomes a full operator is **OPEN** (§9.1). It is for autoscaled worker fleets that run a mix of very quick tasks and long-running jobs. Knarr polls an HTTP status endpoint on each worker pod and uses the result to set `controller.kubernetes.io/pod-deletion-cost` on that pod. When a Deployment scales down, Kubernetes then prefers to remove idle or cheap pods over busy ones, as long as the pods are otherwise equal (scheduled, Running and Ready; see §6). This is a **best-effort bias**, not a guarantee. Knarr is meant to be generic: any worker that implements a small HTTP contract can take part.
+Knarr is a Kubernetes controller written in [Gleam](https://gleam.run/) that runs on the BEAM (Erlang target). It is for autoscaled worker fleets that run a mix of very quick tasks and long-running jobs. Knarr polls an HTTP status endpoint on each worker pod and uses the result to set `controller.kubernetes.io/pod-deletion-cost` on that pod. When a Deployment scales down, Kubernetes then prefers to remove idle or cheap pods over busy ones, as long as the pods are otherwise equal (scheduled, Running and Ready; see §6). This is a **best-effort bias**, not a guarantee. Knarr is meant to be generic: any worker that implements a small HTTP contract can take part.
 
-### v1 at a glance
+### MVP at a glance
 
 | Item | Status | Where |
 |---|---|---|
+| Target platform: GKE Standard; MVP bar is running a real production workload | Decided | §6 |
 | Runtime: Gleam on the BEAM (Erlang target) | Decided | §8 |
 | Workload kind: Deployments only | Decided | §3 |
 | Primary mechanism: `pod-deletion-cost` on live Pod objects | Decided | §6 |
 | Guarantee level: best-effort bias only; graceful drain is the safety net | Decided | §3, §5 |
 | Worker contract: pull (Knarr polls each pod over HTTP) | Decided | §5 |
 | v1 payload: worker-supplied cost and accepting/drain state, nothing else | Decided | §5 |
-| `safe-to-evict`: secondary, and only relevant where Cluster Autoscaler is used. Whether it ships in v1 or v1.x is set in a ticket | Decided (secondary) / Open (scope) | §6, §9.9 |
-| Karpenter: not a v1 target | Decided | §3 |
+| `safe-to-evict`: in MVP, opt-in per workload; policy in §9.9 | Decided | §6, §9.9 |
+| Karpenter: not a target | Decided | §3 |
 | Prerequisite: Kubernetes 1.22 or later with the `PodDeletionCost` gate enabled (the default) | Fact | §6 |
-| Scaling ownership | **UNDECIDED** (recommended: option (a)) | §7, §9.3 |
-| Configuration surface / controller vs operator | **OPEN** | §9.1 |
-| Gleam dependency stance and k8s client | **OPEN** (recommended: option (A)) | §8, §9.2 |
-| Pod discovery | Recommended: periodic LIST; watch later | §4 |
-| HA model | **OPEN** (recommended: single replica) | §9.19 |
-| Install scope (cluster-wide vs per namespace) | **OPEN** | §9.18 |
+| Scaling ownership: option (a), annotations only; (b) is a planned quick follow | Decided | §7, §9.3 |
+| Configuration: labels and annotations on Deployments (a controller, not an operator) | Decided | §9.1 |
+| k8s client: option (A), pure Gleam plus Erlang FFI | Decided | §8, §9.2 |
+| Pod discovery: periodic LIST | Decided | §4 |
+| HA model: single replica, no leader election | Decided | §8, §9.19 |
+| Install scope: one namespace (Role) | Decided | §9.18 |
 
 ## 2. Problem
 
@@ -37,7 +38,7 @@ Worker fleets often handle two kinds of work in the same pods:
 
 Autoscalers such as HPA and KEDA (ScaledObject) decide **how many** replicas to run. They do not decide **which** pod is removed. The ReplicaSet controller picks the victim, and by default it knows nothing about in-flight work. Two related problems follow:
 
-- **Backlog-only metrics hide in-flight work.** A queue-length metric can drop to zero while pods are still busy with long jobs, so the autoscaler scales in on busy workers (see kedacore/keda #2901, #6719). This is a "how many" problem. Whether Knarr addresses it depends on the scaling-ownership decision (§7). Under option (a), the recommended v1 path, it does not.
+- **Backlog-only metrics hide in-flight work.** A queue-length metric can drop to zero while pods are still busy with long jobs, so the autoscaler scales in on busy workers (see kedacore/keda #2901, #6719). This is a "how many" problem. The MVP uses option (a) (§7), which does not address it. The planned option (b) follow-up does ([DEFERRED.md §1](DEFERRED.md#1-scaling-option-b-quick-follow)).
 - **KEDA's own guidance for long work on Deployments** is SIGTERM handling, `terminationGracePeriodSeconds` and `preStop` hooks, or switching to ScaledJob. None of these affects which pod is chosen.
 
 ### Several paths can kill a pod
@@ -45,10 +46,10 @@ Autoscalers such as HPA and KEDA (ScaledObject) decide **how many** replicas to 
 | Path | Triggered by | Honors `pod-deletion-cost` | Honors PDBs | Honors `safe-to-evict` |
 |---|---|---|---|---|
 | **A. ReplicaSet scale-down** | HPA, KEDA, `kubectl scale`, Deployment rollouts | Yes, within one ReplicaSet | No (direct delete) | No |
-| **B. Node removal through the Eviction API** | Cluster Autoscaler, Karpenter, `kubectl drain`, node upgrades | No (Karpenter may read it for consolidation scoring, see §3) | Yes (Eviction API) | Cluster Autoscaler only (GKE has its own behavior); not Karpenter or `kubectl drain` |
+| **B. Node removal through the Eviction API** | Cluster Autoscaler, Karpenter, `kubectl drain`, node upgrades | No (Karpenter may read it for consolidation scoring, see [DEFERRED.md §7](DEFERRED.md#7-karpenter)) | Yes (Eviction API) | Cluster Autoscaler only (GKE has its own behavior); not Karpenter or `kubectl drain` |
 | **C. Other** | Direct pod delete, scheduler preemption, kubelet node-pressure eviction, spot or instance reclaim, node removal outside CA | No | Direct delete: no. Others: not verified here | No |
 
-Knarr's primary mechanism covers **Path A**. In v1, `safe-to-evict` is the only per-pod lever Knarr may use on Path B, and it only works where Cluster Autoscaler removes nodes. Busy-label PDBs and `karpenter.sh/do-not-disrupt` are future options (§9.17). On Path C, only the worker's own graceful drain protects work, and only where a grace period is given at all.
+Knarr's primary mechanism covers **Path A**. In the MVP, `safe-to-evict` is the only per-pod lever Knarr uses on Path B, and it only works where Cluster Autoscaler removes nodes. Busy-label PDBs and `karpenter.sh/do-not-disrupt` are future options (§9.17). On Path C, only the worker's own graceful drain protects work, and only where a grace period is given at all.
 
 ### What Kubernetes gives us, and its limits
 
@@ -66,17 +67,16 @@ Knarr's primary mechanism covers **Path A**. In v1, `safe-to-evict` is the only 
 - Bias Deployment scale-down toward idle or cheap pods by setting `pod-deletion-cost` on live Pod objects.
 - Define a small, generic, pull-based **worker contract** (an HTTP status endpoint).
 - Keep API-server load low: patch only on meaningful change, quantize costs, and rate-limit writes.
-- Work alongside existing autoscalers (KEDA, HPA). The exact split of responsibility is **UNDECIDED** (§7).
+- Work alongside existing autoscalers (KEDA, HPA), which own the replica count (option (a), §7).
+- **Opt-in per workload:** manage `cluster-autoscaler.kubernetes.io/safe-to-evict`, which only matters where Cluster Autoscaler is used, including its cleanup, expiry and staleness handling (§6, §9.9, §9.12).
 - Document the limits plainly, along with the graceful-drain practices workers still need.
-
-**Secondary (v1 candidate, scope set in a ticket):** Knarr may also manage `cluster-autoscaler.kubernetes.io/safe-to-evict`, which only matters where Cluster Autoscaler is used (§6, §9.9).
 
 ### Non-goals (v1)
 
 - **A hard guarantee that busy pods are never killed.** If every pod is busy, or costs are stale, a busy pod can still be removed. The real safety net is `terminationGracePeriodSeconds` plus graceful drain in the worker. Users who need a hard guarantee should look at pod-per-job designs (KEDA ScaledJob) or at workload APIs that let you name the victim (for example OpenKruise CloneSet `podsToDelete`).
-- **Deciding how many replicas run** (under the recommended option (a)). v1 influences which pod is removed, not how many. Scale-in on busy workers caused by backlog-only metrics is outside v1. Option (b) could help with a suitable aggregate metric (§7). HPA scale-down tuning only delays it.
+- **Deciding how many replicas run** (option (a)). The MVP influences which pod is removed, not how many. Scale-in on busy workers caused by backlog-only metrics is outside the MVP. The planned option (b) follow-up could help with a suitable aggregate metric (§7). HPA scale-down tuning only delays it.
 - **StatefulSets, Jobs and DaemonSets.** Their controllers ignore `pod-deletion-cost` (StatefulSet removes pods by descending ordinal). Knarr should refuse or warn when pointed at them.
-- **Karpenter.** Not a v1 target. `karpenter.sh/do-not-disrupt` is a possible future addition. Karpenter already reads `pod-deletion-cost` when scoring consolidation, so Knarr's values can affect Karpenter clusters indirectly. kubernetes-sigs/karpenter #2894 (merged 2026-10-01; the first release containing it is unverified) adds a `PodDeletionCostManagement` gate. With the gate off (the default), Karpenter reads its new `karpenter.sh/disruption-cost` and falls back to `pod-deletion-cost`. With the gate on, Karpenter **writes** `pod-deletion-cost` itself, which would conflict with Knarr (§9.10).
+- **Karpenter.** Not a target; details in [DEFERRED.md §7](DEFERRED.md#7-karpenter).
 - **Steering which ReplicaSet loses pods during a rollout.** The API does not allow this.
 - **Managing PodDisruptionBudgets.** Possible later work, for example a label-selected PDB on busy pods.
 - **Replacing the workload API.** Knarr works with plain Deployments.
@@ -104,10 +104,10 @@ flowchart LR
     end
     W --> API[(kube-apiserver)]
     API --> RS[ReplicaSet controller<br/>ranks victims on scale-down]
-    O["Replica owner: HPA/KEDA or Knarr<br/>(UNDECIDED, §7)"] -- sets replicas --> API
+    O["Replica owner: HPA / KEDA"] -- sets replicas --> API
 ```
 
-1. **Discover.** Find the worker pods of configured Deployments. How targets are configured is OPEN (§9.1). Recommended for v1: a periodic LIST scoped by namespace and selector, on its own cadence and slower than polling. A watch is a later optimization. With a hand-written client, streaming and 410-Gone handling are the hardest part.
+1. **Discover.** Find the worker pods of Deployments opted in through labels and annotations, in Knarr's one namespace (§9.1, §9.18). Use a periodic LIST scoped by namespace and selector, on its own cadence and slower than polling. Watch deferred ([DEFERRED.md §6](DEFERRED.md#6-watch-based-discovery)).
 2. **Poll.** Send an HTTP GET to each pod's status endpoint (§5). Keep the per-poll timeout shorter than the interval, jitter the schedule, never overlap two polls of the same pod, and bound concurrency.
 3. **Map.** Treat the worker-supplied cost as untrusted input. Clamp it, combine it with the accepting state, and quantize it into a small number of cost bands. From these, derive the pod's full **desired annotation state**: the cost band, the opt-in `safe-to-evict` value, and Knarr's ownership marker.
 4. **Patch only on meaningful change.** Compare the desired state with the last successfully applied state. That covers band changes, first annotation, startup repair, cleanup and `safe-to-evict` flips. Every annotation write goes through one rate-limited patcher, with a per-pod minimum interval and a global QPS budget. Changes that are throttled stay pending and are not dropped.
@@ -207,7 +207,7 @@ Knarr only biases which pod is chosen. Workers must still:
 7. Higher restart count first
 8. Newer first
 
-Steps 6 and 8 compare ages in logarithmic buckets, not exact timestamps, and break ties by pod UID. A UID tie-break can therefore decide the order before restart count does. Knarr only controls step 4, so this detail does not change its design.
+Knarr only controls step 4. Tie-break details for the other steps are in [DEFERRED.md §9](DEFERRED.md#9-background-notes).
 
 **Official caveats** ([ReplicaSet docs](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost), verbatim):
 
@@ -235,36 +235,28 @@ The KEP recommends updating the cost "only before scale down" and keeping update
 
 Choose deliberately, and reserve bands for Knarr's own states (for example unknown).
 
-### `cluster-autoscaler.kubernetes.io/safe-to-evict` (secondary)
+### `cluster-autoscaler.kubernetes.io/safe-to-evict` (opt-in, MVP)
 
 Whether this matters **depends on cluster configuration**: it only has an effect where Cluster Autoscaler (CA) removes nodes. It does not affect Karpenter (which uses `karpenter.sh/do-not-disrupt`), `kubectl drain`, or ReplicaSet scale-down.
 
-- `"false"` stops CA from removing the pod's node. `"true"` overrides CA's default blockers for kube-system pods, pods without a controller, and pods with local storage. It does not override scheduling constraints, and the Eviction API still enforces PDBs when the eviction is carried out. Knarr would only manage `"false"` or remove the annotation (plus `"true"` if §9.9 calls for it). CA also recognizes other values: recent CA adds `"on-completion"` (autoscaler PR #9355, merged 2026-04; first release unverified). That value suits pods that finish on their own, not long-lived Deployment workers. Check CA semantics against the CA version the cluster runs.
+- `"false"` stops CA from removing the pod's node. `"true"` overrides CA's default blockers for kube-system pods, pods without a controller, and pods with local storage. It does not override scheduling constraints, and the Eviction API still enforces PDBs when the eviction is carried out. Knarr only manages `"false"` or removes the annotation (plus `"true"` if §9.9 calls for it). CA also recognizes other values (see [DEFERRED.md §8](DEFERRED.md#8-other-future-targets)). Check CA semantics against the CA version the cluster runs.
 - **Unverified (spike S2):** whether CA re-checks pod annotations just before evicting. If it does, a flip to `"false"` that reaches CA's informer in time can save the node. A pod that picks up work just after a poll is unprotected until the next poll and patch. This is best-effort.
-- **Recommended (not decided, §9.9):** off by default and enabled per workload. Set `"false"` while the cost is above a threshold and remove the annotation when it drops below. For Deployment pods without local storage, removing it is enough. Pods with `emptyDir` or `hostPath` volumes may need `"true"` (or `safe-to-evict-local-volumes`) to be evictable when idle.
+- **Decided:** off by default and enabled per workload. **Recommended (§9.9):** set `"false"` while the cost is above a threshold and remove the annotation when it drops below. For Deployment pods without local storage, removing it is enough. Pods with `emptyDir` or `hostPath` volumes may need `"true"` (or `safe-to-evict-local-volumes`) to be evictable when idle.
 - **Risk: nodes may never scale down.** If `"false"` markers are spread across all nodes, CA never sees a node as unneeded, and CA does not cordon nodes because of such pods (kubernetes/autoscaler #3183). Mitigation: mark only high-cost pods, not every busy pod.
 - **Unverified:** whether flipping a pod from busy to idle resets CA's per-node "unneeded" timer (default 10 min). See spike S2.
-- **GKE:** for Autopilot-mode workloads, `"false"` enables [extended-duration Pods](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/extended-duration-pods). These are protected from scale-down and auto-upgrade eviction for up to 7 days, with placement and limit rules of their own (see the link). The effect of changing the annotation at runtime there is undocumented, so treat GKE Autopilot as unverified for v1.
+- **GKE:** the MVP targets GKE Standard, so spike S2 must run against GKE's managed Cluster Autoscaler. Other GKE modes are in [DEFERRED.md §8](DEFERRED.md#8-other-future-targets).
 
-## 7. Scaling ownership: **UNDECIDED**
+## 7. Scaling ownership: (a) for MVP
 
-Who sets the replica count? The primary mechanism works under every option, because HPA, KEDA, `kubectl scale` and Knarr all end up at the ReplicaSet's victim ranking. The options differ in **when Knarr can know a scale-down is coming**, and so in how much API write load it generates.
+HPA or KEDA (ScaledObject) sets the replica count; Knarr only writes annotations. The primary mechanism works under any scaler, because HPA, KEDA and `kubectl scale` all end up at the ReplicaSet's victim ranking. Consequences:
 
-| | (a) Annotations only | (b) Feed KEDA; KEDA owns replicas | (c) Knarr owns replicas |
-|---|---|---|---|
-| Who sets replicas | HPA / KEDA | KEDA (HPA), using Knarr's metric | Knarr (`/scale` subresource) |
-| Knarr adds | Cost annotations | Annotations plus a per-workload aggregate (for example busy count or headroom) | Annotations plus scaling logic |
-| "Annotate before scale-down" (KEP pattern) | **Not possible.** Costs must stay fresh all the time, so banding and debounce are essential. | Partly. Knarr can refresh costs when its own metric implies scale-in, but HPA still controls timing. | **Yes.** Annotate, then scale (Windmill's pattern). Fewest writes. |
-| Fixes "backlog hides in-flight work" | No | Can, with a suitable aggregate metric and scaling policy. The v1 `cost` is an arbitrary estimate, not an in-flight count, so the aggregation is a ticket question (§9.3) | Can, with the same caveat |
-| Complexity | Lowest. Works with any scaler. | Moderate. Transport choices: **(b1)** KEDA Metrics API (HTTP/JSON); **(b2)** External Scaler (gRPC; no native Gleam library found, so likely Erlang FFI such as `grpcbox`); **(b3)** Prometheus gauges | High. Reimplements stabilization, rate policies, scale-to-zero and fallback. Must never run alongside an HPA or ScaledObject on the same Deployment. |
-| Config surface | Labels or annotations may be enough | Needs per-workload settings; leans toward a CRD | Needs per-workload settings; leans toward a CRD |
+- **No "annotate before scale-down".** Knarr cannot know when a scale-down is coming, so costs must stay fresh all the time. Banding and debounce (§6) are essential.
+- **Scale-from-zero:** at zero replicas Knarr has no pods to poll, so wake-up needs an external demand signal: a KEDA trigger.
+- **Tuning:** users tune scale-down through `ScaledObject.spec.advanced.horizontalPodAutoscalerConfig.behavior`, for example the stabilization window or a limit of one pod per period. KEDA's `cooldownPeriod` only applies to scaling to zero.
 
-Notes:
+Ship a documented guide for pairing Knarr with a KEDA ScaledObject.
 
-- **Scale-from-zero:** at zero replicas Knarr has no pods to poll, so wake-up needs an external demand signal. That is a KEDA trigger under (a) and (b), or Knarr's own demand source under (c).
-- **Under (a)**, users tune scale-down through `ScaledObject.spec.advanced.horizontalPodAutoscalerConfig.behavior`, for example the stabilization window or a limit of one pod per period. KEDA's `cooldownPeriod` only applies to scaling to zero.
-
-**Recommended path (not a decision):** start with **(a)** for v1, with a documented guide for pairing Knarr with a KEDA ScaledObject. Design the internal per-workload aggregate so that **(b1)** is a cheap next step. Defer (b2) until the dependency stance is decided. Treat (c) as out of scope unless (a) and (b) prove inadequate. **The decision belongs in §9.3.**
+(b) is a planned quick follow; see [DEFERRED.md §1](DEFERRED.md#1-scaling-option-b-quick-follow). The full (a)/(b)/(c) comparison is there too.
 
 ## 8. Architecture sketch (BEAM / OTP)
 
@@ -272,28 +264,25 @@ This is concept level only. Module boundaries and process layout will be refined
 
 ```
 knarr_sup (one_for_one)
-├── config          : loads target workloads and settings (source OPEN, §9.1)
-├── k8s_client      : in-cluster auth, list/get/patch (transport OPEN, §9.2)
-├── pod_discovery   : periodic LIST of target pods (watch later)
+├── config          : target workloads and settings from labels/annotations, one namespace (§9.1)
+├── k8s_client      : in-cluster auth, list/get/patch; pure Gleam + Erlang FFI (§9.2)
+├── pod_discovery   : periodic LIST of target pods (watch deferred)
 ├── poller_pool     : bounded-concurrency HTTP polling of pod status endpoints
 ├── reconciler      : clamp → band → hysteresis → decide patch
 ├── patcher         : rate-limited merge-patch writer (per-pod interval + global QPS)
-├── leader_election : recommended: defer for v1 (single replica, §9.19)
 └── health_metrics  : liveness/readiness for Knarr itself; metrics export
 ```
 
 - **Supervision (recommended):** `gleam_otp` (static and factory supervisors, actors). Its docs say it does not cover all of OTP, so fall back to raw Erlang OTP where needed.
-- **Kubernetes client boundary:** keep it behind a small Gleam module so the transport choice stays reversible. No mature Gleam-native Kubernetes client was found. Knarr needs little from the API: get, list and patch on pods; get and list on Deployments and ReplicaSets; later, Leases.
-- **If option (A) from §9.2 is chosen**, in-cluster TLS is the hard part. The cluster CA is not in the OS trust store, so a small Erlang FFI step is likely needed. Do not rely on `httpc` defaults. `gleam_httpc` passes no ssl options when verification is on, so it inherits `httpc`'s defaults, and those only became verifying in OTP 26 (Inets 9.0). Pass explicit ssl options instead: `verify_peer`, the service-account `ca.crt` as `cacertfile`, and a hostname check. Require OTP 26 or later. Whether hostname verification against the IP in `KUBERNETES_SERVICE_HOST` works is unverified (spike S1).
+- **Kubernetes client boundary:** keep it behind a small Gleam module so the client choice stays reversible ([DEFERRED.md §3](DEFERRED.md#3-kubernetes-client-alternatives)). No mature Gleam-native Kubernetes client was found. Knarr needs little from the API: get, list and patch on pods; get and list on Deployments and ReplicaSets.
+- **In-cluster TLS** is the hard part of option (A). The cluster CA is not in the OS trust store, so a small Erlang FFI step is likely needed. Do not rely on `httpc` defaults. `gleam_httpc` passes no ssl options when verification is on, so it inherits `httpc`'s defaults, and those only became verifying in OTP 26 (Inets 9.0). Pass explicit ssl options instead: `verify_peer`, the service-account `ca.crt` as `cacertfile`, and a hostname check. Require OTP 26 or later. Whether hostname verification against the IP in `KUBERNETES_SERVICE_HOST` works is unverified; spike S1 validates it.
 - **Tokens:** projected service-account tokens rotate on disk. Re-read the token periodically and never cache it for the life of the process.
-- **Leader election (recommended: defer):** under option (A), a Lease-based elector would likely be hand-written, since no Gleam leader-election library was found. This interacts with ownership detection. If Knarr spots third-party writers by comparing against "the value Knarr last wrote", that record must belong to Knarr as one logical writer (stored in a marker annotation, not per replica). Otherwise two replicas will treat each other as foreign writers and the values will flap. A shared identity alone does not stop two replicas from applying stale decisions. That needs leader election or conditional writes (§9.10, §9.19). A Recreate strategy also leaves a short gap with no updates during upgrades.
+- **Single replica, `Recreate` strategy:** no leader election. `Recreate` avoids two replicas writing at once, but leaves a short gap with no updates during upgrades. HA notes are in [DEFERRED.md §4](DEFERRED.md#4-ha-and-leader-election).
 - **Restart safety and staleness:** derive state from the current poll, the current annotations, and a Knarr marker annotation (for example `knarr.io/...` holding the last-written value and a timestamp). Do not rely on in-memory counters. On startup, reconcile every pod that carries the marker. **Open tension:** writes are sparse, so after a restart a last-written timestamp cannot tell "the same band reported for hours" from "hours of failed polls". Freshness semantics and conservative restart behavior go in §9.12. Document uninstall and manual recovery, for example `kubectl annotate pod <p> cluster-autoscaler.kubernetes.io/safe-to-evict-`.
-- **Minimum RBAC (inferred from the standard RBAC model, to be confirmed):**
+- **Minimum RBAC (one namespaced Role; inferred from the standard RBAC model, to be confirmed):**
   - core `pods`: get, list, patch (watch later, if watch-based discovery is adopted)
   - `apps` `deployments`, `replicasets`: get, list (watch later)
   - core or `events.k8s.io` `events`: create, patch (if Events are emitted)
-  - `apps` `deployments/scale`: get, patch/update (only under option (c))
-  - `coordination.k8s.io` `leases`: get, create, update (only with leader election)
 
 ### Failure modes (proposed v1 defaults, all to be confirmed in tickets)
 
@@ -305,7 +294,7 @@ knarr_sup (one_for_one)
 | Pod just started | Leave unannotated until a valid poll | Pending/NotReady pods are deleted first anyway | §9.6 |
 | Knarr down or crashlooping | No updates | Annotations go stale; `safe-to-evict: "false"` can pin nodes | §9.12 |
 | Knarr restart | Reconcile marked pods from cluster state | Goal: no flapping; depends on freshness semantics | §9.12 |
-| Two replicas running (split-brain) | Must share one logical writer identity | Extra load; values may flap if not | §9.19, §9.10 |
+| Upgrade (`Recreate`) | Old Pod stops before the new one starts | Short gap with no updates | §9.12 |
 | API throttling (APF / 429) | Back off and respect the budget | Costs lag | §9.8 |
 | Patch rejected (400/403, admission webhook) | Log, Event, metric; no rapid retries | The previous annotations stay, so the old bias and any `safe-to-evict: "false"` persist | §9.14, §9.12 |
 | Many pods (poll fan-out) | Bounded concurrency, jitter, no overlapping polls | Costs refresh more slowly | §9.8 |
@@ -316,17 +305,16 @@ knarr_sup (one_for_one)
 
 ## 9. Open questions (candidate tickets)
 
-**Decision order:** 2 → 3 → 1 (and 18); 5 → 6; 10 → 19. Spikes S1–S3 come first.
+**Decision order:** S1, S2 first; 5 → 6; 10 before 12.
 
 **Spikes (do first):**
 
-- **S1:** pure-Gleam in-cluster list and patch on kind, on OTP 26 or later with explicit ssl options. Pass requires verified TLS (including IP-SAN verification against `KUBERNETES_SERVICE_HOST`), a negative test showing that a wrong CA is rejected, and working token reload. The result decides §9.2.
-- **S2:** how CA behaves when `safe-to-evict` flips, including whether flips reset the per-node unneeded timer. The result decides §9.9.
-- **S3 (only if option (B) stays live):** check whether `gleam export erlang-shipment` bundles Elixir's runtime apps, and whether the OTP apps of Elixir dependencies start. The result decides §9.2.
+- **S1:** pure-Gleam in-cluster list and patch on kind, on OTP 26 or later with explicit ssl options. Pass requires verified TLS (including IP-SAN verification against `KUBERNETES_SERVICE_HOST`), a negative test showing that a wrong CA is rejected, and working token reload. The result validates §9.2.
+- **S2:** how CA behaves when `safe-to-evict` flips, on GKE Standard's managed Cluster Autoscaler, including whether flips reset the per-node unneeded timer. The result decides §9.9.
 
-1. **Configuration surface / controller vs operator.** Options: (i) labels and annotations on Deployments; (ii) a CRD, which in practice makes Knarr an operator; (iii) a ConfigMap or flags. Depends on 3 and 18.
-2. **Gleam dependency stance and k8s client.** Options: (A) pure Gleam plus a thin Erlang FFI over `httpc`/`ssl`/`public_key` and a hand-written, minimal typed layer; (B) wrap the Elixir `k8s` library through untyped externals, which needs the Elixir toolchain and runtime; (C) existing Erlang clients, which are stale or immature. Recommended: (A), given the small API surface. Depends on S1 (and S3).
-3. **Scaling ownership:** (a), (b) or (c), plus the transport if (b) is chosen. Recommended: (a). See §7. Depends on 2 for (b2). If (b) or (c) is chosen, define the aggregate signal built from the two-field contract, how it behaves with unknown data, and how it interacts with KEDA activation, which can scale to zero independently of the scaling metric.
+1. **Decided:** a controller configured through labels and annotations on Deployments (see §4, [DEFERRED.md §5](DEFERRED.md#5-install-scope-and-configuration-alternatives)). **Open:** the label/annotation schema.
+2. **Decided:** k8s client option (A), pure Gleam plus Erlang FFI, until complexity pushes us elsewhere (see §8, [DEFERRED.md §3](DEFERRED.md#3-kubernetes-client-alternatives)).
+3. **Decided:** scaling ownership option (a), annotations only (see §7). (b) is a planned quick follow ([DEFERRED.md §1](DEFERRED.md#1-scaling-option-b-quick-follow)).
 4. **Worker contract details**, split in two:
    - **4a. Endpoint shape:** path, port, schema, field types, versioning, timeouts.
    - **4b. Discovery, auth and network:** how Knarr finds the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies and service meshes.
@@ -334,17 +322,17 @@ knarr_sup (one_for_one)
 6. **Unknown/unreachable policy:** how long to keep the last value (in polls and in time), the neutral value, and how to detect an absent contract. Depends on 5.
 7. **Readiness interaction:** how to document it, and whether Knarr warns on "high cost while NotReady".
 8. **Poll interval, concurrency and write budget:** numeric defaults and a v1 scale target (pods, Deployments, interval), LIST cadence, limits per Deployment and per cluster, and the expected API write rate.
-9. **`safe-to-evict` policy:** v1 or v1.x; the threshold; removing the annotation vs writing `"true"` (matters for local-storage pods); how to avoid pinning nodes. Depends on S2.
+9. **`safe-to-evict` policy:** the threshold; removing the annotation vs writing `"true"` (matters for local-storage pods); how to avoid pinning nodes. Depends on S2.
 10. **Ownership and conflicts with other writers:** design of the marker annotation; the write mode (unconditional merge patch, `resourceVersion` precondition, or JSON Patch `test`); and emitting an Event and backing off when someone else changes the value. Other writers include user-set values, the lablabs and zepellin controllers, and Karpenter with `PodDeletionCostManagement` enabled.
 11. **Feature-gate prerequisite.** Options: (i) document only; (ii) a startup self-test; (iii) a periodic check.
 12. **Cleanup, staleness and freshness.** Options: (i) never clean up; (ii) clean up when a pod or workload leaves scope; (iii) also clean up on graceful shutdown. Also covers: separate expiry for deletion cost and for `safe-to-evict`; what the marker timestamp means; conservative behavior on restart when freshness is unknown; startup reconciliation of marked pods; annotations left after a crash; and an uninstall procedure.
 13. **Rollouts:** guidance on `maxUnavailable` / `maxSurge` plus graceful drain. Cost biases victims within an old ReplicaSet but cannot stop that ReplicaSet from scaling to zero.
 14. **Observability:** metrics (poll results, band distribution, patch rate, errors), Events and logs.
-15. **Deployment packaging:** Helm and/or kustomize, and RBAC manifests. Depends on 18 and 19.
+15. **Deployment packaging:** kustomize and/or Helm, plus a namespaced Role.
 16. **Testing strategy:** unit tests for mapping and banding, end-to-end tests on kind with a fake worker image, and an envtest equivalent or substitute. Also sets the thresholds for the §3 success criteria.
-17. **Future targets:** `karpenter.sh/do-not-disrupt`, an opt-in PDB driven by a busy label, and other workload kinds.
-18. **Install scope.** Options: (i) cluster-wide with a namespace selector (ClusterRole); (ii) a list of watched namespaces; (iii) one install per namespace (Role). This drives RBAC, packaging and the poll budget.
-19. **HA model.** Options: (i) a single replica (recommended for v1); (ii) Lease-based leader election. Depends on 10.
+17. **Future targets:** see [DEFERRED.md](DEFERRED.md) (§7 Karpenter, §8 other future targets).
+18. **Decided:** one install per namespace, with a Role (see §8, [DEFERRED.md §5](DEFERRED.md#5-install-scope-and-configuration-alternatives)).
+19. **Decided:** a single replica, no leader election (see §8, [DEFERRED.md §4](DEFERRED.md#4-ha-and-leader-election)).
 
 ## 10. Glossary and references
 
@@ -363,7 +351,6 @@ knarr_sup (one_for_one)
 - [`controller_utils.go` (`ActivePodsWithRanks.Less`)](https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/controller_utils.go)
 - [Kubernetes: Pod termination](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination) and [Disruptions / PDBs](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/)
 - [Cluster Autoscaler FAQ](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md)
-- [KEDA: Scaling Deployments](https://keda.sh/docs/2.20/concepts/scaling-deployments/), [External scalers](https://keda.sh/docs/2.20/concepts/external-scalers/), [ScaledJob](https://keda.sh/docs/2.17/concepts/scaling-jobs/)
-- [Karpenter: Disruption](https://karpenter.sh/docs/concepts/disruption/), [kubernetes-sigs/karpenter #2894](https://github.com/kubernetes-sigs/karpenter/pull/2894)
+- [KEDA: Scaling Deployments](https://keda.sh/docs/2.20/concepts/scaling-deployments/), [ScaledJob](https://keda.sh/docs/2.17/concepts/scaling-jobs/)
 - [Gleam](https://gleam.run/), [Gleam externals / FFI](https://gleam.run/documentation/externals/), [gleam_otp](https://gleam-otp.hexdocs.pm/)
-- Prior art: [Windmill pod-deletion-cost on scale-in](https://www.windmill.dev/changelog/k8s-scale-in-pod-deletion-cost), [zepellin/pod-deletion-cost-controller](https://github.com/zepellin/pod-deletion-cost-controller), [lablabs/pod-deletion-cost-controller](https://github.com/lablabs/pod-deletion-cost-controller)
+- Prior art: [zepellin/pod-deletion-cost-controller](https://github.com/zepellin/pod-deletion-cost-controller), [lablabs/pod-deletion-cost-controller](https://github.com/lablabs/pod-deletion-cost-controller)

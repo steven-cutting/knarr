@@ -45,6 +45,21 @@ Moving a pin is a manual edit, never a recipe:
 - **A tools.txt download:** replace both platforms' lines with the new URL and sha256, and rerun `just initialize`.
 - **A Gleam dependency:** edit `gleam.toml`, run `gleam deps download` (or `gleam deps update`), read the `manifest.toml` diff, and commit both. The gate fails while the two disagree.
 
+## Specifications
+
+Allium modules live in [docs/specs/](docs/specs/knarr.allium), configured by
+`[allium] specs` in `checks.toml`. The root module is a skeleton; later tickets
+add behaviour clauses. `just initialize` installs Allium 3.6.1 from the
+checksum pins in `tools.txt`.
+
+- `just check-specs` fails on every diagnostic, including informational ones.
+- `just analyse-specs` fails on every finding or diagnostic.
+- `just plan-spec docs/specs/knarr.allium` prints the module's test plan and obligation count.
+
+Both checks run inside `just check`. They read the JSON reports because
+Allium's exit status alone does not establish that a spec is clean. Planning
+is a development command and is not part of the gate.
+
 ## Branches and worktrees
 
 Each ticket is worked on its own branch, in its own git worktree. The branch name is the ticket's file name without `.md`: a two-digit ticket number, a hyphen and the ticket's slug. For example, the ticket `.scratch/bootstrap/issues/03-foundation.md` is worked on the branch `03-foundation`.

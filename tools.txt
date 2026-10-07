@@ -20,3 +20,6 @@ ripsecrets 0.1.11 linux-64 https://github.com/sirwart/ripsecrets/releases/downlo
 ripsecrets 0.1.11 osx-arm64 https://github.com/sirwart/ripsecrets/releases/download/v0.1.11/ripsecrets-0.1.11-aarch64-apple-darwin.tar.gz b2c822742e8cbf355ba0cb4cc690c3cd8fdc9ec1916c8148f27bd9098cb7aee4 ripsecrets
 editorconfig-checker 4.0.2 linux-64 https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v4.0.2/editorconfig-checker-linux-amd64.tar.gz 44efaef3ed14c6ab52eb87481d78e5e5c204796dccf26e2f4598a61ba17f8003 editorconfig-checker
 editorconfig-checker 4.0.2 osx-arm64 https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v4.0.2/editorconfig-checker-darwin-all.tar.gz ff59f57717d95fc62b8e372c8051dbbb766f7d660942409a85d027b0feb2422c editorconfig-checker
+
+allium 3.6.1 linux-64 https://github.com/juxt/allium-tools/releases/download/v3.6.1/allium-x86_64-unknown-linux-gnu.tar.gz e00c99ae234b10207719257a70e7c2dcad73060864468cd293fb7ad40524e970 allium
+allium 3.6.1 osx-arm64 https://github.com/juxt/allium-tools/releases/download/v3.6.1/allium-aarch64-apple-darwin.tar.gz ecfae02fcf8e60475a014944183158ccde4104f6f0223e1bf91f98519fcb19eb allium

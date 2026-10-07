@@ -1,10 +1,31 @@
 # Knarr: Project Overview
 
 > **Status:** Draft, scoped to the MVP. This document sets a high-level direction for later work and for drafting tickets. It is not a specification. Anything marked **OPEN** has not been decided and will be settled in a ticket. **Recommended** means a proposed default, not a decision. Post-MVP options, alternatives and research notes live in [DEFERRED.md](DEFERRED.md).
+>
+> **Diagrams** only restate what the text says. A thick blue border marks what Knarr controls, a dashed orange border marks OPEN or unverified items, and a red border marks a risk or trap. A visual explainer for the densest parts (victim ranking, cost bands and sign convention, kill paths) is in [overview-explainer.html](overview-explainer.html). GitHub shows that file as source, so open it locally in a browser.
 
 ## 1. Summary
 
 Knarr is a Kubernetes controller written in [Gleam](https://gleam.run/) that runs on the BEAM (Erlang target). It is for autoscaled worker fleets that run a mix of very quick tasks and long-running jobs. Knarr polls an HTTP status endpoint on each worker pod and uses the result to set `controller.kubernetes.io/pod-deletion-cost` on that pod. When a Deployment scales down, Kubernetes then prefers to remove idle or cheap pods over busy ones, as long as the pods are otherwise equal (scheduled, Running and Ready; see §6). This is a **best-effort bias**, not a guarantee. Knarr is meant to be generic: any worker that implements a small HTTP contract can take part.
+
+```mermaid
+flowchart LR
+    K[Knarr]:::knarr
+    W["Worker pods<br/>HTTP status endpoint"]
+    API[(kube-apiserver)]
+    subgraph CH ["Replica chain, each step via the apiserver"]
+      KEDA[KEDA ScaledObject] -- "drives" --> HPA
+      HPA -- "sets replicas" --> DEP[Deployment controller]
+      DEP -- "sets replicas" --> RSC["ReplicaSet controller<br/>reads cost, ranks victims"]
+    end
+    K -- "HTTP GET status" --> W
+    K -- "LIST pods, Deployments<br/>PATCH pod annotations" --> API
+    CH -- "reads pods, deletes victim" --> API
+    CA["Cluster Autoscaler<br/>reads safe-to-evict, opt-in"] -- "evicts pods on node removal" --> API
+    KL[kubelet] -- "watches its pods" --> API
+    KL -- "preStop, SIGTERM" --> W
+    classDef knarr stroke:#2f80ed,stroke-width:3px
+```
 
 ### MVP at a glance
 
@@ -48,6 +69,25 @@ Autoscalers such as HPA and KEDA (ScaledObject) decide **how many** replicas to 
 | **A. ReplicaSet scale-down** | HPA, KEDA, `kubectl scale`, Deployment rollouts | Yes, within one ReplicaSet | No (direct delete) | No |
 | **B. Node removal through the Eviction API** | Cluster Autoscaler, Karpenter, `kubectl drain`, node upgrades | No (Karpenter may read it for consolidation scoring, see [DEFERRED.md §7](DEFERRED.md#7-karpenter)) | Yes (Eviction API) | Cluster Autoscaler only (GKE has its own behavior); not Karpenter or `kubectl drain` |
 | **C. Other** | Direct pod delete, scheduler preemption, kubelet node-pressure eviction, spot or instance reclaim, node removal outside CA | No | Direct delete: no. Others: not verified here | No |
+
+```mermaid
+flowchart LR
+    PA["Path A: ReplicaSet scale-down<br/>HPA, KEDA, kubectl scale, rollouts<br/>Gaps: PDB, safe-to-evict"]
+    PB["Path B: node removal via Eviction API<br/>Cluster Autoscaler, Karpenter,<br/>kubectl drain, node upgrades<br/>Gap: pod-deletion-cost"]
+    PC["Path C: other<br/>direct delete, preemption, node-pressure,<br/>spot reclaim, node removal outside CA<br/>Gaps: pod-deletion-cost, safe-to-evict"]
+    COST["pod-deletion-cost<br/>Knarr primary"]:::knarr
+    STE["safe-to-evict<br/>Knarr, opt-in"]:::knarr
+    PDB[PodDisruptionBudgets]
+    DR["Graceful drain<br/>worker-owned"]
+    PA -- "honored, within one RS" --> COST
+    PB -- "Cluster Autoscaler only" --> STE
+    PB -- "honored, Eviction API" --> PDB
+    PC -. "direct delete: no<br/>others: not verified" .-> PDB
+    PA -- "terminationGracePeriodSeconds" --> DR
+    PB -- "grace period, CA caps it<br/>at 600 s by default" --> DR
+    PC -- "only where a grace<br/>period is given" --> DR
+    classDef knarr stroke:#2f80ed,stroke-width:3px
+```
 
 Knarr's primary mechanism covers **Path A**. In the MVP, `safe-to-evict` is the only per-pod lever Knarr uses on Path B, and it only works where Cluster Autoscaler removes nodes. Busy-label PDBs and `karpenter.sh/do-not-disrupt` are future options (§9.17). On Path C, only the worker's own graceful drain protects work, and only where a grace period is given at all.
 
@@ -115,6 +155,38 @@ flowchart LR
 
 Knarr annotates **live Pod objects**, never the Deployment's pod template. Changing the template would trigger a rollout. Changing annotations on a running pod does not restart it.
 
+### End-to-end scale-down
+
+Knarr's loop runs on its own schedule. A scale-down reads whatever annotations the ReplicaSet controller's cache holds at that moment.
+
+```mermaid
+sequenceDiagram
+    participant K as Knarr
+    participant W as Worker pod
+    participant API as kube-apiserver
+    participant S as KEDA / HPA
+    participant D as Deployment ctrl
+    participant RS as ReplicaSet ctrl
+    participant KL as kubelet
+    loop Independently, every poll interval
+        K->>W: GET status
+        W-->>K: cost, accepting
+        K->>API: PATCH annotations (band change, within budget)
+    end
+    Note over K,API: No "annotate before scale-down". Knarr cannot see one coming (§7)
+    S->>API: lower Deployment replicas
+    API-->>D: Deployment changed
+    D->>API: lower ReplicaSet replicas
+    API-->>RS: ReplicaSet changed
+    Note over RS: Ranks pods within this ReplicaSet<br/>from its informer cache. A patch made<br/>just before may not be seen yet (§6)
+    RS->>API: delete lowest-ranked pod
+    Note over API: deletionTimestamp set.<br/>Knarr stops patching this pod (§4)
+    API-->>KL: pod is terminating
+    KL->>W: preStop hook, then SIGTERM
+    W->>W: stop taking work, report accepting false, finish in-flight work
+    Note over KL,W: Must finish within terminationGracePeriodSeconds
+```
+
 ## 5. Worker contract v1 (DRAFT)
 
 ### Model
@@ -171,6 +243,40 @@ The intent is to keep any fallback bounded and **never treat missing data as "bu
 - **Stale state outlives failures.** Stopping writes does not undo earlier ones. A high cost or `safe-to-evict: "false"` stays on the pod until Knarr removes it, so each Knarr-owned annotation needs an expiry and a cleanup attempt (§9.6, §9.12). If the API rejects the cleanup, the stale state persists. Raise an Event and a metric.
 - With that cleanup working, an unreachable pod alone does not block scale-down for long.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Live
+    state Live {
+        [*] --> Unannotated
+        Unannotated --> Banded : valid poll
+        Unannotated --> ContractAbsent : 404 or refused, M polls in a row
+        Banded --> TransientFailure : timeout, 5xx, bad payload
+        TransientFailure --> Banded : valid poll
+        TransientFailure --> Neutral : bounded polls and time exceeded
+        Neutral --> Banded : valid poll
+        ContractAbsent --> Cleanup : Event + metric
+        Cleanup --> Unmanaged : Knarr-owned annotations removed
+        Cleanup --> StaleState : patch rejected
+        note right of TransientFailure
+            Keeps the last-known value.
+            Thresholds OPEN §9.6
+        end note
+        note right of Neutral
+            Neutral value depends on
+            the sign convention, OPEN §9.5
+        end note
+        note right of StaleState
+            Old annotations stay on the pod.
+            Event + metric, no rapid retries
+        end note
+    }
+    Live --> Terminating : deletionTimestamp set
+    note right of Terminating
+        No patches. Knarr may keep polling
+    end note
+    Terminating --> [*]
+```
+
 ### Workers still own graceful shutdown
 
 Knarr only biases which pod is chosen. Workers must still:
@@ -207,6 +313,30 @@ Knarr only biases which pod is chosen. Workers must still:
 7. Higher restart count first
 8. Newer first
 
+```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 360, "rankSpacing": 30}}}%%
+flowchart TD
+    START["Two pods, same ReplicaSet.<br/>The first step that differs<br/>picks the victim"]
+    S1["1. Unassigned before assigned"]
+    S2["2. Pending, then Unknown, then Running"]
+    S3["3. Not-ready before ready<br/>readiness trap, §5<br/>not in the user-facing docs"]:::warn
+    S4["4. Lower pod-deletion-cost before higher<br/>Knarr's only lever"]:::knarr
+    S5["5. More related active pods<br/>on the same node first"]
+    S6["6. Ready more recently first"]
+    S7["7. Higher restart count first"]
+    S8["8. Newer first"]
+    START --> S1
+    S1 -- "tie" --> S2
+    S2 -- "tie" --> S3
+    S3 -- "tie" --> S4
+    S4 -- "tie" --> S5
+    S5 -- "tie" --> S6
+    S6 -- "tie" --> S7
+    S7 -- "tie" --> S8
+    classDef knarr stroke:#2f80ed,stroke-width:3px
+    classDef warn stroke:#d64545,stroke-width:3px
+```
+
 Knarr only controls step 4. Tie-break details for the other steps are in [DEFERRED.md §9](DEFERRED.md#9-background-notes).
 
 **Official caveats** ([ReplicaSet docs](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost), verbatim):
@@ -227,6 +357,23 @@ The KEP recommends updating the cost "only before scale down" and keeping update
 - Patch only `metadata.annotations`. An unconditional merge patch is idempotent, but it can overwrite a value another writer set after Knarr read the pod. Lost-update detection needs a conditional write, either a `resourceVersion` precondition or a JSON Patch `test` op. The choice is OPEN (§9.10).
 - Every pod patch is an etcd write and a MODIFIED watch event for every watcher of that pod. Those watchers are the cluster-wide pod informers (controller-manager, scheduler, CA, KEDA and others) plus the kubelet on the pod's node. Cluster operators can throttle Knarr with API Priority and Fairness.
 
+```mermaid
+flowchart LR
+    C["Worker cost<br/>untrusted"] --> CL["Clamp, combine<br/>with accepting"]
+    ACC[accepting] --> CL
+    CL --> B["Quantize to band<br/>e.g. zero / low / high"]
+    B --> H["Hysteresis<br/>at band edges"]
+    H --> DS["Desired state<br/>band, safe-to-evict, marker"]
+    DS --> Q{"Desired ≠<br/>last applied?"}
+    Q -- "no" --> NW[No write]
+    Q -- "yes" --> RL{"Per-pod interval<br/>and global QPS OK?"}
+    RL -- "yes" --> P[PATCH pod annotations]:::knarr
+    RL -- "no" --> PEND["Pending, retried<br/>next interval"]
+    SC["Sign convention, band edges,<br/>how accepting combines<br/>OPEN §9.5"]:::open -.-> B
+    classDef knarr stroke:#2f80ed,stroke-width:3px
+    classDef open stroke:#d97706,stroke-width:2px,stroke-dasharray:5 5
+```
+
 **Sign convention (OPEN, §9.5).** Unannotated pods count as `0`. Cost is compared whenever the earlier ranking steps tie, for example between two Ready pods or between two NotReady pods. The convention therefore decides how Knarr's bands compare with the implicit `0`. It is tied to the neutral fallback value (§9.6) and to what removing an annotation means (§9.12). Ready pods that Knarr has not annotated yet are the main example:
 
 - If idle = `0`, those pods tie with idle pods.
@@ -245,6 +392,22 @@ Whether this matters **depends on cluster configuration**: it only has an effect
 - **Risk: nodes may never scale down.** If `"false"` markers are spread across all nodes, CA never sees a node as unneeded, and CA does not cordon nodes because of such pods (kubernetes/autoscaler #3183). Mitigation: mark only high-cost pods, not every busy pod.
 - **Unverified:** whether flipping a pod from busy to idle resets CA's per-node "unneeded" timer (default 10 min). See spike S2.
 - **GKE:** the MVP targets GKE Standard, so spike S2 must run against GKE's managed Cluster Autoscaler. Other GKE modes are in [DEFERRED.md §8](DEFERRED.md#8-other-future-targets).
+
+```mermaid
+flowchart TD
+    O{"Opted in?"} -- "no, the default" --> NONE[Knarr does not write it]
+    O -- "yes" --> T{"Cost above<br/>threshold?"}:::open
+    T -- "yes" --> F["Set #quot;false#quot;<br/>CA will not remove this node"]:::knarr
+    T -- "no" --> L{"emptyDir or<br/>hostPath?"}
+    L -- "no" --> RM[Remove the annotation]:::knarr
+    L -- "yes" --> TR["Remove, or set #quot;true#quot;<br/>OPEN §9.9"]:::open
+    F -.-> U1["Unverified, spike S2:<br/>does CA re-check annotations<br/>just before evicting?"]:::open
+    F -.-> RISK["Risk: #quot;false#quot; on every node<br/>means CA never scales down.<br/>Mark only high-cost pods"]:::warn
+    RM -.-> U2["Unverified, spike S2:<br/>does a flip reset CA's<br/>per-node unneeded timer?"]:::open
+    classDef knarr stroke:#2f80ed,stroke-width:3px
+    classDef open stroke:#d97706,stroke-width:2px,stroke-dasharray:5 5
+    classDef warn stroke:#d64545,stroke-width:3px
+```
 
 ## 7. Scaling ownership: (a) for MVP
 
@@ -271,6 +434,29 @@ knarr_sup (one_for_one)
 ├── reconciler      : clamp → band → hysteresis → decide patch
 ├── patcher         : rate-limited merge-patch writer (per-pod interval + global QPS)
 └── health_metrics  : liveness/readiness for Knarr itself; metrics export
+```
+
+```mermaid
+flowchart TB
+    subgraph SUP ["knarr_sup, one_for_one"]
+      CFG[config]
+      PD[pod_discovery]
+      PP[poller_pool]
+      RC[reconciler]
+      PT[patcher]
+      KC[k8s_client]
+      HM[health_metrics]
+    end
+    CFG -- "target workloads" --> PD
+    PD -- "target pods" --> PP
+    PP -- "poll results" --> RC
+    RC -- "desired annotations" --> PT
+    CFG -- "GET, LIST Deployments" --> KC
+    PD -- "LIST pods" --> KC
+    PT -- "PATCH, rate-limited" --> KC
+    KC -- "HTTPS, verified TLS,<br/>SA token" --> API[(kube-apiserver)]
+    PP -- "HTTP GET status" --> PODS[Worker pod IPs]
+    HM -- "metrics, liveness/readiness" --> OUT[Metrics scrape, probes]
 ```
 
 - **Supervision (recommended):** `gleam_otp` (static and factory supervisors, actors). Its docs say it does not cover all of OTP, so fall back to raw Erlang OTP where needed.
@@ -306,6 +492,17 @@ knarr_sup (one_for_one)
 ## 9. Open questions (candidate tickets)
 
 **Decision order:** S1, S2 first; 5 → 6; 10 before 12.
+
+```mermaid
+flowchart LR
+    S1[Spike S1]:::open -- "validates" --> D2["9.2 k8s client<br/>decided"]
+    S2[Spike S2]:::open -- "decides" --> D9["9.9 safe-to-evict policy"]:::open
+    D5["9.5 cost mapping"]:::open -- "before" --> D6["9.6 unknown/unreachable policy"]:::open
+    D10["9.10 ownership, conflicts"]:::open -- "before" --> D12["9.12 cleanup, staleness"]:::open
+    D5 -. "sign convention: what<br/>removing an annotation means" .- D12
+    D16["9.16 testing strategy"]:::open -- "sets thresholds" --> SC["§3 success criteria"]
+    classDef open stroke:#d97706,stroke-width:2px,stroke-dasharray:5 5
+```
 
 **Spikes (do first):**
 

@@ -36,7 +36,7 @@ Each box above is met on branch `03-foundation`:
 - **pixi:** `pixi.toml` is 0003's manifest block byte for byte, plus 0004's three Python pins after `shellcheck`. `pixi.lock` is solved for both platforms, with the same linux-64 erlang build 0003 recorded. `just lock-check` is `pixi lock --check --offline --dry-run`, and the [evidence](../evidence/03/README.md) shows it failing on drift without rewriting the lock.
 - **Justfile groups:** `just --list` shows setup, develop, format and check.
 - **The gate:** `just check` runs `lock-check`, `manifest-check`, `format-check`, `build` (with `--warnings-as-errors`), `test`, `test-checkers`, `toml-check` and `lint` through the copied snapshot runner, which appends `check-clean`. `lint` runs typos, markdownlint, lychee (offline), shellcheck, editorconfig-checker, ruff, actionlint, ripsecrets and prek's builtin checks. `test-checkers` holds the snapshot-contract tests, including a writing recipe that fails the gate.
-- **manifest.toml:** `manifest-check` runs before every gleam recipe and fails on drift, and `build` and `test` end with `git diff --exit-code manifest.toml`.
+- **manifest.toml:** `manifest-check` runs before every gleam recipe and fails on drift. `build`, `test` and `initialize` also hash `manifest.toml` before and after gleam runs, and fail if it changed.
 - **Hook configs:** `.pre-commit-config.yaml` is read-only and `.pre-commit-fix.yaml` repairs. Every hook is `repo: local` or `repo: builtin`, so no remote hook exists. `test_hook_configs.py` fails any future remote hook whose `rev` is not a full SHA with a version comment, and any read-only entry with a fixing flag. Only `fix` and `initialize` write files, and only `fix` edits tracked ones.
 - **Dotfiles:** `.editorconfig`, `.gitattributes`, `.gitignore`. `.scratch/` stays tracked, which the gitignore and README say.
 - **First run:** on a fresh clone the one command is `just initialize`, or `sh scripts/initialize.sh` without a `just`, since the script sets its own `PATH` and runs `pixi install --locked` itself. The README states that it is the only networked step and that an agent needs an explicit network grant for it. The evidence shows `just check` passing with network denied.
@@ -55,6 +55,11 @@ These depart from the ticket or the decisions:
 - **Evidence is excluded from the layout hooks.** gleam-format and editorconfig-checker skip `.scratch/bootstrap/evidence/`, and the fix config never touches it, because transcripts are recorded output. typos, markdownlint, shellcheck and ripsecrets still read it.
 - **taplo's column width is 100**, so it leaves 0003's `pixi.toml` exactly as written. taplo skips gleam's `manifest.toml`.
 
+- **The backstop hashes `manifest.toml` instead of running `git diff --exit-code`.** 0003 named `git diff --exit-code manifest.toml`. But that compares with the index, so it also failed a legitimate, still-uncommitted `gleam deps update`. A before-and-after hash catches only a rewrite by gleam.
+- **`lint` skips the gleam-format and taplo hooks**, because `format-check` and `toml-check` run the same checks as their own gate recipes. The hooks still run at commit time.
+- **`pixi.lock` stays diffable.** libpawdoku marked it `-diff`, which would hide the lock diff the README tells reviewers to read.
+- **An uninitialized checkout is refused, not run with system tools.** `scripts/with-env.sh` and the `check` recipe exit 2 with "run just initialize" when the pixi environment is missing.
+
 Found while gathering the evidence:
 
 - A `[feature.*]` table that no environment uses is not drift. `pixi lock --check` passes it, because the lock still satisfies every environment. A drift test has to move a pin that an environment installs.
@@ -66,6 +71,12 @@ Not verified:
 - Nothing ran on linux-64. 05's first CI run is the first native linux-64 gate.
 - The first-run time (8 s) used warm pixi and Gleam caches. 11 records a cold one.
 - Hooks were installed only in a throwaway clone. The maintainer's primary checkout was not touched.
+- Nothing checks that the installed environment matches `pixi.lock`. After a pull that moves a pin, recipes run the old binaries until `just initialize` is rerun. A fresh CI environment does not have this problem. 05 or 27 may add a check, for example comparing the lock with `pixi list`.
+
+Code review findings declined:
+
+- **`manifest-check` runs three times per gate**, once as its own recipe and once as a dependency of `build` and of `test`. That repeat is kept: the check is cheap, and it guards `just build` and `just test` run on their own.
+- **`check-clean` repeats the runner's last comparison.** That is kept, because 0004 keeps upstream's runner and its `check-clean` step as they are.
 
 ### For other lanes
 

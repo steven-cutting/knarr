@@ -27,8 +27,10 @@ sh scripts/install-tools.sh tools.txt .tools/bin
 # Gleam's hex packages into build/, so later builds run offline. The pre-check
 # first: `gleam deps download` would silently rewrite a drifted manifest.toml.
 python3 scripts/checks/manifest_check.py
+before=$(cksum < manifest.toml)
 gleam deps download
-git diff --exit-code manifest.toml
+[ "$(cksum < manifest.toml)" = "$before" ] ||
+  { printf '%s\n' 'gleam deps download rewrote manifest.toml; read the diff' >&2; exit 1; }
 
 sh scripts/install-hooks.sh
 

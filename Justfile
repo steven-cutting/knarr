@@ -30,20 +30,21 @@ initialize:
 
 # ---------------------------------------------------------------- develop ---
 
-# Warnings are errors here and in the gate alike.
+# Warnings are errors here and in the gate alike. Each gleam recipe compares
+# manifest.toml before and after, the backstop for a rewrite manifest-check
+# cannot predict (Decision 0003); the snapshot runner also catches it in the
+# gate.
 [group('develop')]
 [group('check')]
 [doc('Build with warnings as errors (refuses a drifted manifest.toml)')]
 build: manifest-check
-    gleam build --warnings-as-errors
-    git diff --exit-code manifest.toml
+    before=$(cksum < manifest.toml); gleam build --warnings-as-errors; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 [group('develop')]
 [group('check')]
 [doc('Run the Gleam tests (refuses a drifted manifest.toml)')]
 test: manifest-check
-    gleam test
-    git diff --exit-code manifest.toml
+    before=$(cksum < manifest.toml); gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # The gate checkers' own tests (scripts/checks/tests/).
 [group('develop')]
@@ -92,11 +93,12 @@ toml-check:
 
 # Every read-only hook over every file: typos, markdownlint, shellcheck,
 # editorconfig-checker, ruff, lychee (offline), actionlint, ripsecrets, and
-# prek's builtin checks.
+# prek's builtin checks. The gleam-format and taplo hooks are skipped here
+# because format-check and toml-check run them as their own gate recipes.
 [group('check')]
 [doc('Run every read-only hook over every file')]
 lint:
-    prek run --all-files
+    SKIP=gleam-format,taplo prek run --all-files
 
 # The runner calls this last, with the baseline it snapshotted.
 [group('check')]
@@ -111,4 +113,5 @@ check-clean baseline="":
 [group('check')]
 [doc('The complete read-only gate')]
 check:
+    test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
     python3 scripts/checks/run_project_check.py run lock-check manifest-check format-check build test test-checkers toml-check lint

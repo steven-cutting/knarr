@@ -1,6 +1,7 @@
 * text=auto eol=lf
 
 # Generated lockfiles: pixi.lock is solved by pixi, manifest.toml by gleam.
-# Neither is merged by hand; regenerate and commit instead.
-pixi.lock merge=binary linguist-language=YAML linguist-generated=true -diff
+# Neither is merged by hand; regenerate and commit instead. Both stay
+# diffable, because a pin move is reviewed by reading the lock diff.
+pixi.lock merge=binary linguist-language=YAML linguist-generated=true
 manifest.toml linguist-generated=true

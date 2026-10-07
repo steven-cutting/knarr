@@ -6,9 +6,9 @@ the old binaries through PATH, and the gate could pass without the pinned
 compiler, OTP or lint rules. This compares, without running pixi:
 
 - the packages pixi.lock pins for the default environment, on the platform pixi
-  installed it for, with the package records in that environment's conda-meta/;
+    installed it for, with the package records in that environment's conda-meta/;
 - each of that platform's tools.txt lines with the pin install-tools.sh recorded
-  beside the binary in .tools/bin/.pins/.
+    beside the binary in .tools/bin/.pins/.
 
 No YAML parser is pinned, so pixi.lock is read line by line. The reader knows
 lock version 7 and `- conda:` entries only, and refuses anything else rather

@@ -21,7 +21,9 @@ from conftest import CHECKS, REPOSITORY
 CHECK = CHECKS / "env_check.py"
 
 # The shape pixi 0.81 writes: list items at their key's own indent, and the
-# default environment between two others.
+# default environment between two others. YAML indents by 2, so the
+# indent check is off for the fixture.
+# editorconfig-checker-disable
 PIXI_LOCK = """\
 version: 7
 platforms:
@@ -58,6 +60,7 @@ packages:
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/gleam-1.19.0-h1_0.conda
   sha256: 00
 """
+# editorconfig-checker-enable
 
 INSTALLED = ("gleam-1.19.0-h1_0", "tzdata-2026a-h0_0")
 

@@ -43,9 +43,11 @@ repos:
         language: system
         types: [python]
 
+      # --no-globs, so the fixer touches only what prek passes and the exclude
+      # above keeps it out of the evidence.
       - id: markdownlint-fix
         name: markdownlint --fix
-        entry: sh scripts/with-env.sh markdownlint-cli2 --fix
+        entry: sh scripts/with-env.sh markdownlint-cli2 --no-globs --fix
         language: system
         types: [markdown]
 

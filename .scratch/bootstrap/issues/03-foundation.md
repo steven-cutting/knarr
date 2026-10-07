@@ -39,7 +39,7 @@ Each box above is met on branch `03-foundation`:
 - **manifest.toml:** `manifest-check` runs before every gleam recipe and fails on drift, and `build` and `test` end with `git diff --exit-code manifest.toml`.
 - **Hook configs:** `.pre-commit-config.yaml` is read-only and `.pre-commit-fix.yaml` repairs. Every hook is `repo: local` or `repo: builtin`, so no remote hook exists. `test_hook_configs.py` fails any future remote hook whose `rev` is not a full SHA with a version comment, and any read-only entry with a fixing flag. Only `fix` and `initialize` write files, and only `fix` edits tracked ones.
 - **Dotfiles:** `.editorconfig`, `.gitattributes`, `.gitignore`. `.scratch/` stays tracked, which the gitignore and README say.
-- **First run:** the README states that `just initialize` is the only networked step and that an agent needs an explicit network grant for it. The evidence shows `just check` passing with network denied.
+- **First run:** on a fresh clone the one command is `just initialize`, or `sh scripts/initialize.sh` without a `just`, since the script sets its own `PATH` and runs `pixi install --locked` itself. The README states that it is the only networked step and that an agent needs an explicit network grant for it. The evidence shows `just check` passing with network denied.
 - **Hooks from the primary checkout only:** `scripts/install-hooks.sh` compares the git directory with the common directory.
 - **Branch convention:** `NN-slug`, stated in the root README and the bootstrap README.
 - **LICENSE:** the Apache-2.0 text from apache.org, byte-identical to libpawdoku's.
@@ -58,7 +58,7 @@ These depart from the ticket or the decisions:
 Found while gathering the evidence:
 
 - A `[feature.*]` table that no environment uses is not drift. `pixi lock --check` passes it, because the lock still satisfies every environment. A drift test has to move a pin that an environment installs.
-- markdownlint-cli2 merges the config's `globs` with the files a hook passes, so each hook run lints the whole repository (about 40 files). It is fast enough today.
+- markdownlint-cli2 merges the config's `globs` with the files it is given, so without `--no-globs` a hook would lint, and the fix hook would rewrite, the whole repository, whatever prek excludes. Both hooks pass `--no-globs`.
 - `gleam deps download` writes nothing tracked when the manifest agrees, so `initialize` can end with `git diff --exit-code manifest.toml`.
 
 Not verified:

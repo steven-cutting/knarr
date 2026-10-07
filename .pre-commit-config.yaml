@@ -53,9 +53,12 @@ repos:
         language: system
         types: [text]
 
+      # --no-globs: lint only the files prek passes. The config's `globs` are
+      # for running markdownlint-cli2 by hand, and merging them in would lint
+      # the whole repository on every call.
       - id: markdownlint
         name: markdownlint
-        entry: sh scripts/with-env.sh markdownlint-cli2
+        entry: sh scripts/with-env.sh markdownlint-cli2 --no-globs
         language: system
         types: [markdown]
 

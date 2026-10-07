@@ -10,13 +10,13 @@ Evidence for [ticket 03](../../issues/03-foundation.md). Gathered on 2026-10-07 
 sh .scratch/bootstrap/evidence/03/fresh-clone.sh <repository> <branch> "$(mktemp -d)"
 ```
 
-This needs network for the first run inside the clone, and pixi 0.81.0, git and curl. The offline run uses `sandbox-exec` on macOS and `unshare -rn` on Linux.
+This needs network for the first run inside the clone, and pixi 0.81.0, git and curl. It uses a `just` on the host's `PATH` if there is one, and `sh scripts/initialize.sh` otherwise. The offline run uses `sandbox-exec` on macOS and `unshare -rn` on Linux.
 
 ## What it shows
 
 In a fresh clone of the branch, which is a primary checkout:
 
-- `pixi install --locked` and `just initialize` complete, install the pre-commit hook, and leave the worktree clean. The first-run time it prints is with warm pixi and Gleam caches on this machine, so it is not a cold-machine time. 11 times a cold one.
+- `just initialize` alone, run with the host's own `just` before any pixi environment exists, completes. It installs the pre-commit hook and leaves the worktree clean. The first-run time it prints is with warm pixi and Gleam caches on this machine, so it is not a cold-machine time. 11 times a cold one.
 - With outbound network denied, `curl https://github.com` fails and `just check` passes, including the Gleam build and tests from the package cache. The worktree is unchanged afterwards.
 - With `PATH=/usr/bin:/bin`, as git runs hooks, a commit runs every hook through `scripts/with-env.sh`. markdownlint-cli2, a `#!/usr/bin/env node` script, runs, and an unformatted Gleam file is refused.
 - Moving the `shellcheck` pin in `pixi.toml` fails `just lock-check` (exit 1) and leaves `pixi.lock` byte for byte unchanged.

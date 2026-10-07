@@ -8,14 +8,13 @@ See [docs/OVERVIEW.md](docs/OVERVIEW.md) for the project overview, goals, worker
 
 You need [pixi](https://pixi.sh) 0.81.0 or later, git, curl and a POSIX shell. pixi installs everything else from `pixi.lock`: Gleam, Erlang/OTP, `just`, Python and every gate tool ([Decision 0003](docs/decisions/0003-tool-manager.md)).
 
-From a fresh clone, run these two commands once:
+From a fresh clone, run one command:
 
 ```sh
-pixi install --locked
-.pixi/envs/default/bin/just initialize
+just initialize
 ```
 
-The first installs the locked environment, which provides `just`. A `just` you installed some other way works too, if it is 1.27 or later. `just initialize` is the one first-run command:
+Any recent `just` works; 1.51 and the pinned 1.58 are known to. Without one, run `sh scripts/initialize.sh`, which is exactly what the recipe runs. Afterwards the pinned `just` is at `.pixi/envs/default/bin/just`. `just initialize` is the one first-run command:
 
 - It installs the pixi environment, exactly as `pixi.lock` pins it.
 - It downloads the tools conda-forge lacks into `.tools/bin`, refusing any whose sha256 differs from `tools.txt`.
@@ -29,7 +28,7 @@ It never formats, stages, commits or pushes, and it is safe to rerun.
 Then run the gate:
 
 ```sh
-.pixi/envs/default/bin/just check
+just check
 ```
 
 `just --list` shows every recipe in four groups: setup, develop, format and check.

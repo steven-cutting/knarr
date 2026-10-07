@@ -34,10 +34,15 @@ printf 'date: %s\nhost: %s\npixi: %s\ncommit: %s (%s)\n\n' "$(date -u +%Y-%m-%dT
   fail 'the clone is not a primary checkout'
 echo 'ok   a fresh clone is a primary checkout'
 
-echo; echo '== first run (network): pixi install --locked, then just initialize'
+echo; echo '== first run (network): one command, just initialize'
+[ ! -e .pixi ] || fail 'the clone already has a pixi environment'
+# The just on the host's PATH, as a contributor would have; without one, the
+# script the recipe runs.
+if command -v just > /dev/null; then first="just initialize ($(just --version))"; set -- just initialize
+else first='sh scripts/initialize.sh (no just on PATH)'; set -- sh scripts/initialize.sh; fi
 start=$(now)
-pixi install --locked > "$work/install.log" 2>&1 || { cat "$work/install.log"; fail 'pixi install --locked'; }
-.pixi/envs/default/bin/just initialize > "$work/initialize.log" 2>&1 || { cat "$work/initialize.log"; fail 'just initialize'; }
+"$@" > "$work/initialize.log" 2>&1 || { cat "$work/initialize.log"; fail "$first"; }
+printf 'ok   %s, the only command run before the gate\n' "$first"
 printf 'ok   first run took %ss (pixi and gleam caches may be warm on this machine)\n' "$(($(now) - start))"
 sed 's/^/     /' "$work/initialize.log"
 [ -f .git/hooks/pre-commit ] || fail 'the primary checkout has no pre-commit hook'

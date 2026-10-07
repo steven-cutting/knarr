@@ -1,11 +1,15 @@
 #!/bin/sh
 # `just initialize`: the one first-run command, and the only step that needs
-# network. It writes only ignored paths (.pixi/, .tools/, build/) and, in the
+# network. On a fresh clone with no `just` installed, run it as
+# `sh scripts/initialize.sh`; it sets its own PATH, so it needs only pixi. It writes only ignored paths (.pixi/, .tools/, build/) and, in the
 # primary checkout, .git/hooks. It never formats, stages, commits or pushes.
 # Rerunning it is safe; with everything already present it needs no network.
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
 cd "$root"
+PATH="$root/.pixi/envs/default/bin:$root/.pixi/envs/cluster/bin:$root/.tools/bin:$PATH"
+PYTHONDONTWRITEBYTECODE=1
+export PATH PYTHONDONTWRITEBYTECODE
 git rev-parse --is-inside-work-tree > /dev/null
 
 command -v pixi > /dev/null ||

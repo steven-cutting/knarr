@@ -31,7 +31,7 @@ setup-envtest leaves its asset directory read-only, so remove a work root with `
 
 ## CA flags
 
-Every flag that differs from the upstream default, as `lib.sh` sets it. Each transcript prints the flags of each CA it starts. The defaults are cited in `source.txt` (`config/flags/flags.go`, `config/const.go`).
+Every flag that differs from the upstream default, as `lib.sh` sets it, with the scale-down delays set even where they match it. Each transcript prints the flags of each CA it starts. The defaults are cited in `source.txt` (`config/flags/flags.go`, `config/const.go`).
 
 | Flag | Value here | Upstream default |
 | --- | --- | --- |

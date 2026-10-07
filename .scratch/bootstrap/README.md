@@ -1,0 +1,106 @@
+# Bootstrap round: ticket order
+
+The tickets live in [issues/](issues/). Each arrow points from a blocker to the ticket it unblocks, exactly as the ticket's **Blocked by** line states. A dashed orange border marks a `needs-human` ticket (a live session with the maintainer) or an external dependency. A dotted grey border marks a ticket off the MVP critical path.
+
+```mermaid
+flowchart TD
+    T01["01 Tool manager decision"]
+    T02["02 Gate checkers decision"]
+    T03["03 Foundation"]
+    T04["04 GitHub repository"]
+    T05["05 CI"]
+    T06["06 Docs contract"]
+    T07["07 Allium gate"]
+    T08["08 Testing toolkit"]
+    T09["09 Agent contract"]
+    T10["10 Spike: local cluster"]
+    T11["11 Integration"]:::offpath
+    T12["12 Maintainer docs"]:::offpath
+    T13["13 Walking skeleton"]
+    T14["14 Spike S1: in-cluster client"]
+    T15["15 Spike S2a: CA on kwok"]
+    T16["16 Spike S2b: GKE managed CA"]:::human
+    GKE["GKE Standard access<br/>(external)"]:::human
+    T17["17 Allium objective map"]
+    T18["18 Elicit: worker contract"]:::human
+    T19["19 Elicit: configuration schema"]:::human
+    T20["20 Elicit: cost mapping"]:::human
+    T21["21 Elicit: unknown and unreachable"]:::human
+    T22["22 Elicit: ownership and conflicts"]:::human
+    T23["23 Elicit: cleanup, staleness, restart"]:::human
+    T24["24 Elicit: poll budget, feature gate"]:::human
+    T25["25 Elicit: safe-to-evict policy"]:::human
+    T26["26 Spike: coverage"]:::offpath
+    T27["27 Spike: dependency updates and audit"]:::offpath
+    T28["28 Spike: release and packaging"]
+    T29["29 Fake-worker fixture"]
+
+    T01 --> T02
+    T01 --> T03
+    T02 --> T03
+    T01 --> T10
+    T03 --> T04
+    T03 --> T05
+    T04 --> T05
+    T03 --> T06
+    T03 --> T07
+    T03 --> T08
+    T06 --> T08
+    T06 --> T09
+    T07 --> T09
+    T04 --> T11
+    T05 --> T11
+    T06 --> T11
+    T07 --> T11
+    T08 --> T11
+    T09 --> T11
+    T11 --> T12
+    T05 --> T13
+    T08 --> T13
+    T10 --> T13
+    T13 --> T14
+    T10 --> T15
+    T15 --> T16
+    GKE --> T16
+    T07 --> T17
+    T09 --> T17
+    T17 --> T18
+    T17 --> T19
+    T18 --> T20
+    T20 --> T21
+    T17 --> T22
+    T20 --> T23
+    T22 --> T23
+    T17 --> T24
+    T15 --> T25
+    T17 --> T25
+    T08 --> T26
+    T05 --> T27
+    T13 --> T27
+    T13 --> T28
+    T13 --> T29
+    T18 --> T29
+
+    classDef human stroke:#d97706,stroke-width:2px,stroke-dasharray:5 5
+    classDef offpath stroke:#9e9e9e,stroke-dasharray:2 2,color:#757575
+```
+
+## Execution waves
+
+A wave is the earliest point a ticket can start if every lane runs in parallel: one step after its latest blocker. `needs-human` tickets also wait for a maintainer session.
+
+| Wave | Tickets |
+|---|---|
+| 0 | [01](issues/01-tool-manager-decision.md) |
+| 1 | [02](issues/02-gate-checkers-decision.md), [10](issues/10-spike-local-cluster.md) |
+| 2 | [03](issues/03-foundation.md), [15](issues/15-spike-s2a-ca-on-kwok.md) |
+| 3 | [04](issues/04-github-repository.md), [06](issues/06-docs-contract-and-decisions.md), [07](issues/07-allium-gate.md), [16](issues/16-spike-s2b-gke-managed-ca.md) |
+| 4 | [05](issues/05-ci.md), [08](issues/08-testing-toolkit.md), [09](issues/09-agent-contract.md) |
+| 5 | [11](issues/11-integration.md), [13](issues/13-walking-skeleton.md), [17](issues/17-allium-objective-map.md), [26](issues/26-spike-coverage.md) |
+| 6 | [12](issues/12-maintainer-docs.md), [14](issues/14-spike-s1-in-cluster-client.md), [18](issues/18-elicit-worker-contract.md), [19](issues/19-elicit-configuration-schema.md), [22](issues/22-elicit-ownership-and-conflicts.md), [24](issues/24-elicit-poll-budget-feature-gate.md), [25](issues/25-elicit-safe-to-evict-policy.md), [27](issues/27-spike-dependency-updates-and-audit.md), [28](issues/28-spike-release-and-packaging.md) |
+| 7 | [20](issues/20-elicit-cost-mapping.md), [29](issues/29-fake-worker-fixture.md) |
+| 8 | [21](issues/21-elicit-unknown-unreachable-policy.md), [23](issues/23-elicit-cleanup-staleness-restart.md) |
+
+The longest chain is nine tickets: 01, 02, 03, 06 or 07, 09, 17, 18, 20, then 21 or 23.
+
+When a ticket's **Blocked by** line changes, update both the diagram and this table.

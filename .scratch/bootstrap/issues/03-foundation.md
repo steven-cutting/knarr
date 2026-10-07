@@ -35,7 +35,7 @@ Each box above is met on branch `03-foundation`:
 - **Gleam skeleton:** `src/knarr.gleam`, with one gleeunit test in `test/knarr_test.gleam`.
 - **pixi:** `pixi.toml` is 0003's manifest block byte for byte, plus 0004's three Python pins after `shellcheck`. `pixi.lock` is solved for both platforms, with the same linux-64 erlang build 0003 recorded. `just lock-check` is `pixi lock --check --offline --dry-run`, and the [evidence](../evidence/03/README.md) shows it failing on drift without rewriting the lock.
 - **Justfile groups:** `just --list` shows setup, develop, format and check.
-- **The gate:** `just check` runs `lock-check`, `manifest-check`, `format-check`, `build` (with `--warnings-as-errors`), `test`, `test-checkers`, `toml-check` and `lint` through the copied snapshot runner, which appends `check-clean`. `lint` runs typos, markdownlint, lychee (offline), shellcheck, editorconfig-checker, ruff, actionlint, ripsecrets and prek's builtin checks. `test-checkers` holds the snapshot-contract tests, including a writing recipe that fails the gate.
+- **The gate:** `just check` runs `lock-check`, `env-check`, `manifest-check`, `format-check`, `build` (with `--warnings-as-errors`), `test`, `test-checkers`, `toml-check` and `lint` through the copied snapshot runner, which appends `check-clean`. `lint` runs typos, markdownlint, lychee (offline), shellcheck, editorconfig-checker, ruff, actionlint, ripsecrets and prek's builtin checks. `test-checkers` holds the snapshot-contract tests, including a writing recipe that fails the gate.
 - **manifest.toml:** `manifest-check` runs before every gleam recipe and fails on drift. `build`, `test` and `initialize` also hash `manifest.toml` before and after gleam runs, and fail if it changed.
 - **Hook configs:** `.pre-commit-config.yaml` is read-only and `.pre-commit-fix.yaml` repairs. Every hook is `repo: local` or `repo: builtin`, so no remote hook exists. `test_hook_configs.py` fails any future remote hook whose `rev` is not a full SHA with a version comment, and any read-only entry with a fixing flag. Only `fix` and `initialize` write files, and only `fix` edits tracked ones.
 - **Dotfiles:** `.editorconfig`, `.gitattributes`, `.gitignore`. `.scratch/` stays tracked, which the gitignore and README say.
@@ -71,7 +71,11 @@ Not verified:
 - Nothing ran on linux-64. 05's first CI run is the first native linux-64 gate.
 - The first-run time (8 s) used warm pixi and Gleam caches. 11 records a cold one.
 - Hooks were installed only in a throwaway clone. The maintainer's primary checkout was not touched.
-- Nothing checks that the installed environment matches `pixi.lock`. After a pull that moves a pin, recipes run the old binaries until `just initialize` is rerun. A fresh CI environment does not have this problem. 05 or 27 may add a check, for example comparing the lock with `pixi list`.
+
+Adversarial review findings applied:
+
+- **The gate passed on a stale installation.** `lock-check` compares `pixi.lock` with `pixi.toml` only, so after a pull that moved a pin every recipe ran the old binaries and the gate could still pass. `env-check` (`scripts/checks/env_check.py`) now runs second in the gate. It compares the packages `pixi.lock` pins for the default environment, on the platform recorded in `conda-meta/pixi`, with the environment's `conda-meta/` records. It also compares each of that platform's `tools.txt` lines with the pin `install-tools.sh` recorded in `.tools/bin/.pins/`. On any difference it fails and says to rerun `just initialize`. It never runs pixi and never writes. No YAML parser is pinned, so it reads `pixi.lock` line by line, accepts only lock version 7 and `- conda:` entries, and refuses anything else with status 2.
+- **A checkout path with a space failed `test-checkers`.** The snapshot tests' generated Justfile named the interpreter and the runner by unquoted absolute paths, both inside the checkout. They are now shell-quoted, and a test runs the gate with the runner under a directory whose name has a space.
 
 Code review findings declined:
 
@@ -80,7 +84,7 @@ Code review findings declined:
 
 ### For other lanes
 
-- **05:** call `just check`, or the check-group recipes one per job. The setup is `pixi install --locked`, then `just initialize`. In CI's checkout, initialize also installs the pre-commit hook, which is harmless there. actionlint is already a hook, and it starts checking once `.github/workflows/` exists.
+- **05:** call `just check`, or the check-group recipes one per job. The setup is `pixi install --locked`, then `just initialize`. In CI's checkout, initialize also installs the pre-commit hook, which is harmless there. `env-check` reads `.pixi/envs/default/conda-meta/pixi` and `.tools/bin/.pins/`, which `pixi install` and `just initialize` write; a setup action that caches or relocates the environment must keep both. actionlint is already a hook, and it starts checking once `.github/workflows/` exists.
 - **06, 07, 09:** add your table to `checks.toml`, your checker to `scripts/checks/` with tests in `scripts/checks/tests/`, and your recipe name to the `check` recipe's list in the Justfile. `_project.table()` and `_project.predicates()` are tested and fail closed. lychee already runs offline as a hook. 06 may move it into its own recipe.
 - **07:** add the two allium lines to `tools.txt`. The installer matches the archive member by basename.
 - **08:** add the snapshot review and accept recipes outside the check group. Keep any snapshot output a test run may leave behind gitignored, or the gate trips.

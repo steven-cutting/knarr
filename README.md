@@ -21,7 +21,7 @@ Any recent `just` works; 1.51 and the pinned 1.58 are known to. Without one, run
 - It downloads Gleam's hex packages.
 - In the primary checkout, it installs the pre-commit hook.
 
-It never formats, stages, commits or pushes, and it is safe to rerun.
+It never formats, stages, commits or pushes, and it is safe to rerun. Rerun it after a pull that moves a pin in `pixi.lock` or `tools.txt`. Until you do, `just check` fails at `env-check` rather than running the old tools.
 
 **`just initialize` is the only step that needs network.** An agent needs an explicit network grant for that first run. After it, `just check` runs offline.
 
@@ -41,7 +41,7 @@ Only two recipes write files: `just initialize`, which writes ignored paths only
 
 Moving a pin is a manual edit, never a recipe:
 
-- **A conda package:** edit its `==` line in `pixi.toml`, run `pixi update <package>`, read the `pixi.lock` diff, and commit both files.
+- **A conda package:** edit its `==` line in `pixi.toml`, run `pixi update <package>`, read the `pixi.lock` diff, commit both files, and rerun `just initialize`.
 - **A tools.txt download:** replace both platforms' lines with the new URL and sha256, and rerun `just initialize`.
 - **A Gleam dependency:** edit `gleam.toml`, run `gleam deps download` (or `gleam deps update`), read the `manifest.toml` diff, and commit both. The gate fails while the two disagree.
 

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -18,7 +20,10 @@ from conftest import CHECKS, git
 
 RUNNER = CHECKS / "run_project_check.py"
 
-JUSTFILE = f"""\
+
+def justfile(runner: Path) -> str:
+    """A Justfile whose check-clean calls `runner`, quoted so a path may hold spaces."""
+    return f"""\
 set positional-arguments := true
 set shell := ["sh", "-eu", "-c"]
 
@@ -50,13 +55,13 @@ relinks:
     ln -sf other link
 
 check-clean baseline="":
-    {sys.executable} {RUNNER} clean "$1"
+    {shlex.quote(sys.executable)} {shlex.quote(str(runner))} clean "$1"
 """
 
 
 @pytest.fixture
 def gate(repository: Path) -> Path:
-    (repository / "Justfile").write_text(JUSTFILE)
+    (repository / "Justfile").write_text(justfile(RUNNER))
     (repository / ".gitignore").write_text("build/\n")
     (repository / "tracked.txt").write_text("tracked\n")
     (repository / "link").symlink_to("target")
@@ -82,6 +87,27 @@ def test_passing_recipes_pass_and_end_with_check_clean(gate: Path) -> None:
     assert result.stdout.count("==> just ok") == 2
     assert "==> just check-clean" in result.stdout
     assert "worktree is unchanged" in result.stdout
+
+
+def test_a_checkout_path_with_a_space_still_passes(gate: Path, tmp_path: Path) -> None:
+    # The runner lives in the checkout, so check-clean names it by an absolute
+    # path, which a checkout under "/work/My Project" would split.
+    spaced = tmp_path / "checkout with space"
+    spaced.mkdir()
+    for name in ("run_project_check.py", "_project.py"):
+        shutil.copy(CHECKS / name, spaced / name)
+    runner = spaced / "run_project_check.py"
+    (gate / "Justfile").write_text(justfile(runner))
+    git(gate, "commit", "-qam", "use the spaced runner")
+    result = subprocess.run(
+        [sys.executable, str(runner), "run", "ok"],
+        cwd=gate,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "matches the check baseline" in result.stdout
 
 
 def test_run_with_no_recipes_refuses(gate: Path) -> None:

@@ -73,6 +73,14 @@ fix:
 lock-check:
     pixi lock --check --offline --dry-run
 
+# lock-check reads pixi.lock and pixi.toml only. After a pull that moves a pin
+# the old binaries stay on PATH until `just initialize` reruns, so this fails
+# while the installed default environment or .tools/bin differs from the pins.
+[group('check')]
+[doc('Fail if the installed tools differ from pixi.lock or tools.txt')]
+env-check:
+    python3 scripts/checks/env_check.py
+
 # gleam rewrites a manifest.toml that disagrees with gleam.toml and exits 0, so
 # this compares the two first and fails instead (Decision 0003, Verify 5).
 [group('check')]
@@ -114,4 +122,4 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check manifest-check format-check build test test-checkers toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check format-check build test test-checkers toml-check lint

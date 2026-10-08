@@ -1,0 +1,24 @@
+-- allium: 3
+
+-- Module: worker_contract.
+-- Scope: what a worker pod exposes to knarr and what each field means. The
+-- endpoint shape (OVERVIEW §9.4a), how knarr discovers the endpoint on a pod,
+-- auth and NetworkPolicy compatibility (§9.4b), the meaning of the drain states
+-- (§5) and the readiness guidance (§9.7).
+-- Owner: ticket 18. Clauses land there; this skeleton holds only the open
+-- questions it settles.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "§9.4a Endpoint shape: what path and port does knarr poll, and how does a Deployment override them?"
+open question "§9.4a Payload schema: the type, range and units of cost, and the exact field names of cost and accepting (§5)."
+open question "§9.4a Versioning: how the contract is versioned, given that any version marker lives outside the two-field body (§5)."
+open question "§9.4a Timeouts: the per-poll timeout the contract promises workers, shorter than the poll interval (§4)."
+open question "§9.4b Discovery: how knarr finds the status endpoint on a pod (container port name, annotation, fixed default)."
+open question "§9.4b Auth: whether polling carries any authentication, given plain HTTP with no mTLS in the MVP (§5)."
+open question "§9.4b Network: what NetworkPolicy configuration a worker namespace needs so polling is not mistaken for an absent contract (§8 failure modes)."
+open question "§5 Drain states: whether accepting false with a high cost keeps the reported cost or applies a floor; the candidate handling column is settled with the banding module (§9.5)."
+open question "§9.7 Readiness: how the NotReady-deleted-first trade-off is documented for queue consumers and for Service-routed HTTP workers (§5)."
+open question "§9.7 Readiness: whether knarr warns when a pod reports a high cost while NotReady, and how (Event, metric, log)."

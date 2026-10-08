@@ -1,0 +1,21 @@
+-- allium: 3
+
+-- Module: budget.
+-- Scope: the poll schedule, the LIST cadence, bounded concurrency with jitter,
+-- no overlapping polls of one pod, the per-pod minimum patch interval, the
+-- global patch QPS budget, back-off on API throttling (APF, 429), the v1 scale
+-- target and the expected write rate (§4, §6, §8 failure modes, §9.8), and the
+-- PodDeletionCost feature-gate check (§6, §9.11).
+-- Owner: ticket 24.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "§9.8 Defaults: the numeric defaults for the poll interval, the per-poll timeout, the LIST cadence and the jitter."
+open question "§9.8 Scale target: the v1 target in pods, Deployments and interval that the defaults are sized for."
+open question "§9.8 Concurrency: the bound on concurrent polls, per Deployment and per cluster."
+open question "§9.8 Write budget: the per-pod minimum patch interval, the global patch QPS, and the write-budget threshold handed to §9.16 (§3)."
+open question "§9.8 Back-off: how knarr backs off on a 429 or APF throttling while keeping throttled changes pending (§8 failure modes)."
+open question "§9.8 Write rate: the documented expected API write rate at the scale target (§6)."
+open question "§9.11 Feature gate: document only, a startup self-test, or a periodic check of the PodDeletionCost gate, and what knarr does when the check fails (§8 failure modes)."

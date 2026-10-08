@@ -1,0 +1,17 @@
+-- allium: 3
+
+-- Module: observability.
+-- Scope: the catalogue of metrics, Events and log lines knarr emits (§8
+-- health_metrics, §9.14). The points at which they are emitted stay in the
+-- owning modules; this module names them.
+-- Owner: the elicitation follow-up ticket 30, after ticket 24 excludes metric
+-- names and Events in general from its scope.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "§9.14 Metrics: the names and labels of the metrics for poll results, band distribution, patch rate and errors."
+open question "§9.14 Events: the Event reasons and targets for an absent contract, a rejected patch, a conflict with another writer and a failed cleanup (§5, §8 failure modes)."
+open question "§9.14 Logs: the log fields and levels, and what is never logged (for example the service-account token, §9.2)."
+open question "§9.14 Probes: what knarr's own liveness and readiness probes report (§8)."

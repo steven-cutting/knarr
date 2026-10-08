@@ -18,5 +18,6 @@ These records explain accepted choices and the evidence or source material behin
 6. [0006: Apache-2.0](0006-apache-2-0.md).
 7. [0007: Local cluster and test tiers](0007-local-cluster.md), settled by ticket 10.
 8. [0008: safe-to-evict on upstream Cluster Autoscaler](0008-safe-to-evict-on-upstream-ca.md), settled by ticket 15.
+9. [0009: The Allium objective map](0009-allium-objective-map.md), settled by ticket 17.
 
 Read the [project direction](../project/README.md) for proposals and open questions. A later change to an accepted choice should amend or supersede its record explicitly, preserving enough context for a reader to understand why the choice changed.

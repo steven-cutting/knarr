@@ -13,14 +13,16 @@
     // the relevance signal agent runtimes read; nothing else is inline HTML.
     "MD033": { "allowed_elements": ["important"] },
     // A skill bridge is frontmatter and one sentence; the agents validator
-    // fixes that body, so a heading cannot be added. CLAUDE.md is one line.
-    "MD041": false
+    // fixes that body, so a heading cannot be added. Its frontmatter `name`
+    // counts as the title instead. CLAUDE.md, one line, is ignored below.
+    "MD041": { "front_matter_title": "^\\s*name\\s*:" }
   },
   // .scratch/ is named because ** does not descend into dot-directories.
   "globs": ["**/*.md", ".scratch/**/*.md"],
   // The vendored Allium skills are upstream bytes pinned by skills-lock.json
   // and never reformatted here.
   "ignores": [
+    "CLAUDE.md",
     ".pixi",
     ".tools",
     "build",

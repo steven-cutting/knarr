@@ -8,7 +8,7 @@ requires: []
 
 # Agent contract
 
-`just agents-check` runs the copied agents validator, `scripts/checks/validate_agents.py`, and `just check` includes it under the worktree snapshot guarantee. [`AGENTS.md`](../../AGENTS.md) is the single source of truth for how an agent works in this repository; everything else in the agent surface exists only so a particular tool can find it. The source of the validator and its permitted adaptations are recorded in [Decision 0004](../decisions/0004-gate-checkers.md). Its settings live in the `[agents]` table of `checks.toml`.
+`just agents-check` runs the copied agents validator, `scripts/checks/validate_agents.py`, and `just check` includes it under the worktree snapshot guarantee. [`AGENTS.md`](../../AGENTS.md) is the single source of truth for how an agent works in this repository; everything else in the agent surface exists only so a particular tool can find it. [Decision 0004](../decisions/0004-gate-checkers.md) records the validator's source and the move of its settings into the `[agents]` table of `checks.toml`; this page is the record of the vendored-skill and lock rules added on top.
 
 ## The surfaces
 
@@ -78,7 +78,7 @@ The validator lists managed files from Git, honouring only this repository's `.g
 
 - Every expected file must exist: `AGENTS.md`, each adapter, each `SKILL.md`, each bridge, and each lock-listed file.
 - No other file may exist in a managed directory unless `[agents] tolerated` lists it. Knarr tolerates nothing: no plugin is enabled, so there is no committed `.claude/settings.json`.
-- Managed files must be regular UTF-8 files, never symlinks.
+- Managed files must be regular files, never symlinks. House files, adapters and bridges must also be UTF-8 and free of unresolved template syntax; a vendored file is pinned by its hash alone and never decoded.
 
 Local assistant state stays out of the inventory by being listed in `.gitignore`, as `.claude/settings.local.json` is. The check reads Git rather than walking the filesystem, so an ignored file is invisible to it, while an untracked file a reviewer would receive still counts.
 

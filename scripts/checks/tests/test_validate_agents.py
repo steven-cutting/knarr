@@ -519,9 +519,31 @@ def test_lock_entry_without_a_file_is_refused(surface: Path) -> None:
     write_lock(surface, lock["skills"])  # type: ignore[arg-type]
     result = check(surface)
     assert result.returncode == 1
-    assert "listed in skills-lock.json but missing: .agents/skills/allium/references/gone.md" in (
-        result.stderr
+    assert "missing managed file: .agents/skills/allium/references/gone.md" in result.stderr
+    # One defect, one line: the lock check does not repeat the inventory.
+    assert result.stderr.count("references/gone.md") == 1
+
+
+def test_lock_mode_omits_a_tracked_file_deleted_from_the_worktree(surface: Path) -> None:
+    vendor(surface, "allium", VENDORED_FILES)
+    git(surface, "add", "-A")
+    (surface / ".agents/skills/allium/references/x.md").unlink()
+    result = check(surface, "lock", "allium")
+    assert result.returncode == 0, result.stderr
+    assert "references/x.md" not in result.stdout
+    write(surface, "skills-lock.json", result.stdout)
+    assert check(surface).returncode == 0
+
+
+def test_vendored_frontmatter_needs_only_name_and_description_to_parse(surface: Path) -> None:
+    skill = VENDORED_SKILL.replace(
+        '  - file_patterns: ["**/*.allium"]', "  - allium\ndescription_extra: >\n  folded text"
     )
+    vendor(surface, "allium", {**VENDORED_FILES, "SKILL.md": skill})
+    result = check(surface)
+    assert result.returncode == 0, result.stderr
+    write_skill(surface, frontmatter=HOUSE_FRONTMATTER + "\n  - bare item")
+    assert "invalid frontmatter line" in check(surface).stderr
 
 
 def test_lock_naming_an_absent_skill_is_refused(surface: Path) -> None:

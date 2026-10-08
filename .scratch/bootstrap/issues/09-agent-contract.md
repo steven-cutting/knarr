@@ -50,6 +50,10 @@ Implemented on 2026-10-07 on branch `09-agent-contract`.
 - `just docs-check` validates 19 pages and 20 canonical topics; `just lint` passes every hook, lychee included.
 - The bridges work: this session's skill list grew the fourteen project skills from `.claude/skills/` as soon as they were written.
 
+### Review follow-up
+
+`/code-review` (Claude Code, medium effort, scope `main...HEAD`) returned nine findings. Fixed: `lock` mode refused a tracked file deleted from the worktree, so a pin move that drops an upstream file could not regenerate the lock (it now lists only present files, as the inventory already did); the literal frontmatter parser was applied to vendored `SKILL.md` bytes that may not be edited, so an upstream list item without a colon would have wedged the gate (vendored files now need only their top-level `name:` and `description:` lines to parse); `AGENTS.md` named `just initialize` as the only network user when `just links-audit` and `gleam deps download` also reach it; a lock-listed file missing from disk was reported twice; `MD041` is now narrowed to accept a frontmatter `name:` as the title, with `CLAUDE.md` ignored, instead of being off repository-wide; the contract page claimed Decision 0004 recorded the lock adaptations (0004 now says so in one sentence and points here) and that vendored files are decoded as UTF-8 (they are pinned by hash alone). Kept as is, by Decision 0004's copy-per-checker policy: the frontmatter parser repeats `validate_docs.py`'s, now said in the docstring; the vendored-directory list appears in each linter's own exclusion so the hooks and by-hand runs agree.
+
 ### For 17
 
 - Elicitation runs through the vendored skills: `/elicit` to draft clauses, `/tend` to edit a module, `/weed` for drift, `/propagate` for tests, `/witness` to check a loop's convergence claim, `/allium` for the language. The spec block in `AGENTS.md` and the `spec-change` house skill say which recipe proves each phase: `just check-specs` (no diagnostic), `just analyse-specs` (no finding) and `just plan-spec docs/specs/<module>.allium` for the obligation count to hand back.

@@ -8,7 +8,9 @@ disappears, or a vendored file drifts from `skills-lock.json`.
 Copied from github.com/steven-cutting/biscuit_games_tooling at v0.3.0
 (6c5c07f6bec86e86b3930dfa41392e4b440e8c85),
 src/biscuit_games_tooling/validate_agents.py. Adapted on 2026-10-07 for
-checks.toml, vendored skills and skills-lock.json (Decision 0004).
+checks.toml, vendored skills and skills-lock.json (Decision 0004). The
+frontmatter parser and the duplicate-key JSON hook repeat validate_docs.py's on
+purpose: each checker is a standalone copy, with no shared module to drift.
 
 SPDX-License-Identifier: Apache-2.0
 """
@@ -268,18 +270,23 @@ def _versioned_paths(root: Path) -> set[Path]:
     return {Path(os.fsdecode(item)) for item in result.stdout.split(b"\0") if item}
 
 
+def _present_paths(root: Path) -> set[Path]:
+    # `--cached` still lists a tracked file that was deleted but not yet
+    # staged; what is gone from the worktree is missing, not present.
+    return {
+        relative
+        for relative in _versioned_paths(root)
+        if (root / relative).is_symlink() or (root / relative).exists()
+    }
+
+
 def _managed_files(root: Path, settings: Settings) -> set[Path]:
     top_level = {Path("AGENTS.md"), *settings.adapters}
     return {
         relative
-        for relative in _versioned_paths(root)
-        if (
-            relative in top_level
-            or any(directory in relative.parents for directory in settings.managed_directories)
-        )
-        # `--cached` still lists a tracked file that was deleted but not yet
-        # staged; what is gone from the worktree is missing, not present.
-        and ((root / relative).is_symlink() or (root / relative).exists())
+        for relative in _present_paths(root)
+        if relative in top_level
+        or any(directory in relative.parents for directory in settings.managed_directories)
     }
 
 
@@ -315,6 +322,33 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
             raise ValueError(message)
         fields[key] = value.strip()
     return fields, "\n".join(lines[end + 1 :])
+
+
+def _vendored_fields(text: str) -> dict[str, str]:
+    """The top-level `name` and `description` of upstream frontmatter.
+
+    Upstream blocks carry nested YAML the literal parser cannot read, and the
+    bytes may not be edited here, so only the two lines the bridges repeat are
+    required to parse; a repeated key is still an error.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0] != "---":
+        message = "missing opening frontmatter"
+        raise ValueError(message)
+    try:
+        end = lines.index("---", 1)
+    except ValueError as error:
+        message = "missing closing frontmatter"
+        raise ValueError(message) from error
+    fields: dict[str, str] = {}
+    for line in lines[1:end]:
+        key, separator, value = line.partition(":")
+        if separator and key in {"name", "description"}:
+            if key in fields:
+                message = f"duplicate frontmatter key: {key}"
+                raise ValueError(message)
+            fields[key] = value.strip()
+    return fields
 
 
 def _check_inventory(
@@ -385,9 +419,13 @@ def _check_lock(
             continue
         for relative, digest in files.items():
             path = CANONICAL_SKILLS / name / relative
-            if (root / path).is_symlink() or not (root / path).is_file():
-                errors.append(f"listed in {LOCK_FILE} but missing: {path}")
-            elif _digest(root / path) != digest:
+            # A listed file that is missing or a symlink is already the
+            # inventory's finding; only a regular file has a digest to compare.
+            if (
+                not (root / path).is_symlink()
+                and (root / path).is_file()
+                and _digest(root / path) != digest
+            ):
                 errors.append(f"sha256 differs from {LOCK_FILE}: {path}")
 
 
@@ -455,14 +493,15 @@ def _check_skills(
         if text is None:
             continue
         try:
-            fields, body = _parse_frontmatter(text)
+            if name in vendored:
+                fields = _vendored_fields(text)
+                _check_vendored_skill(name, fields, errors)
+            else:
+                fields, body = _parse_frontmatter(text)
+                _check_house_skill(name, fields, body, errors)
         except ValueError as error:
             errors.append(f"{canonical}: {error}")
             continue
-        if name in vendored:
-            _check_vendored_skill(name, fields, errors)
-        else:
-            _check_house_skill(name, fields, body, errors)
         _check_bridges(root, name, fields, settings, errors)
 
 
@@ -479,7 +518,7 @@ def _lock_text(root: Path, names: list[str]) -> str:
     skills = existing.get("skills") if isinstance(existing, dict) else None
     previous = skills if isinstance(skills, dict) else {}
 
-    versioned = sorted(_versioned_paths(root))
+    versioned = sorted(_present_paths(root))
     entries: dict[str, Any] = {}
     for name in names:
         directory = CANONICAL_SKILLS / name

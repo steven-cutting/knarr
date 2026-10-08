@@ -11,3 +11,40 @@ predicates = {}
 
 [allium]
 specs = "docs/specs"
+
+[agents]
+# Phrases AGENTS.md must contain, compared case-insensitively. Must not be
+# empty. Each names an invariant that is expensive to rediscover (ticket 09).
+required_guidance = [
+  "untrusted",
+  "just check",
+  "explicit authorization",
+  "ai_tmp/",
+  "sans-IO",
+  "FFI",
+  "supervised",
+  "annotations it owns",
+  "replica counts",
+  "worktree",
+  "docs/specs/",
+]
+# Committed files under a managed directory that are neither skills nor
+# adapters, permitted without being required. knarr commits none: there is no
+# .claude/settings.json because no plugin is enabled.
+tolerated = []
+
+# Each agent runtime that gets skill bridges, and the directory its bridges
+# live in. The bridge body's relative path to .agents/skills/ is derived from
+# this directory's depth, and the directory's first component is managed
+# whole. Copilot reads .agents/skills/ natively and gets no bridge directory.
+[agents.bridges]
+claude = ".claude/skills"
+
+# Byte-pinned adapter files: path = exact content.
+[agents.adapters]
+"CLAUDE.md" = "@AGENTS.md\n"
+".github/copilot-instructions.md" = """
+# GitHub Copilot repository adapter
+
+Read and follow `../AGENTS.md` as the canonical repository instruction file before proposing or editing code. This adapter adds no permissions and must not duplicate or weaken the canonical policy.
+"""

@@ -209,6 +209,20 @@
       "requires": []
     },
     {
+      "path": "reference/agent-contract.md",
+      "title": "Agent contract",
+      "kind": "reference",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "agent_contract"
+      ],
+      "requires": []
+    },
+    {
       "path": "reference/documentation-contract.md",
       "title": "Documentation contract",
       "kind": "reference",

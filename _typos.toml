@@ -3,7 +3,21 @@
 [files]
 # The environment and tool directories hold binaries, and the lockfile and
 # Gleam's build output carry hashes and generated names.
-extend-exclude = [".pixi/", ".tools/", "pixi.lock", "build/", "ai_tmp/"]
+# The vendored Allium skills are upstream bytes pinned by skills-lock.json.
+extend-exclude = [
+  ".pixi/",
+  ".tools/",
+  "pixi.lock",
+  "build/",
+  "ai_tmp/",
+  ".agents/skills/allium/",
+  ".agents/skills/distill/",
+  ".agents/skills/elicit/",
+  ".agents/skills/propagate/",
+  ".agents/skills/tend/",
+  ".agents/skills/weed/",
+  ".agents/skills/witness/",
+]
 
 [default]
 # Kubernetes ends a generated pod or node name with five characters from its
@@ -14,3 +28,5 @@ extend-ignore-re = ["-[bcdfghjklmnpqrstvwxz2456789]{5}\\b"]
 [default.extend-words]
 # AIMD: additive increase, multiplicative decrease (docs/DEFERRED.md).
 aimd = "aimd"
+# JUXT Ltd, the copyright holder of the vendored Allium skills.
+juxt = "juxt"

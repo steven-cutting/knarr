@@ -5,3 +5,13 @@
 # diffable, because a pin move is reviewed by reading the lock diff.
 pixi.lock merge=binary linguist-language=YAML linguist-generated=true
 manifest.toml linguist-generated=true
+
+# Upstream Allium skills, vendored byte for byte at the tag skills-lock.json
+# names (ticket 09). Never edited here; re-vendor and regenerate the lock.
+.agents/skills/allium/** linguist-vendored=true
+.agents/skills/distill/** linguist-vendored=true
+.agents/skills/elicit/** linguist-vendored=true
+.agents/skills/propagate/** linguist-vendored=true
+.agents/skills/tend/** linguist-vendored=true
+.agents/skills/weed/** linguist-vendored=true
+.agents/skills/witness/** linguist-vendored=true

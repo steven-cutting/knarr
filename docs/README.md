@@ -15,7 +15,7 @@ Knarr is a Kubernetes controller that biases scale-down toward idle or cheap wor
 - [Tutorials](tutorials/README.md): a first local check of the repository.
 - [How-to guides](how-to/README.md): add or change documentation.
 - [Explanation](explanation/README.md): understand the controller's purpose and boundaries.
-- [Reference](reference/documentation-contract.md): the documentation contract enforced by the gate.
+- [Reference](reference/documentation-contract.md): the documentation contract enforced by the gate, and the [agent contract](reference/agent-contract.md) for the agent guidance, skills and bridges it also enforces.
 - [Testing](reference/testing.md): the unit-test toolkit, the snapshot workflow, and the sans-IO pattern.
 - [Project](project/README.md): current direction and deferred work.
 - [Decisions](decisions/README.md): accepted architectural and tooling choices.

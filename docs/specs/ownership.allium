@@ -5,9 +5,10 @@
 -- Pod objects, in metadata.annotations only, never the Deployment's pod
 -- template and never a replica count (§4, §6, §7, §9.3). The marker annotation,
 -- the write mode, conflict detection with other writers, the Event and the
--- back-off (§8, §9.10), and the handling of a rejected patch (§8 failure modes).
--- Owner: ticket 22 for §9.10. The decided invariants are built by the round-2
--- spec-then-build ticket 32.
+-- back-off (§8, §9.10). The handling of a rejected patch is decided (§8
+-- failure modes).
+-- Owner: ticket 22 for §9.10. The decided invariants, including the rejected
+-- patch, are built by the round-2 spec-then-build ticket 32.
 
 ------------------------------------------------------------
 -- Open Questions
@@ -17,4 +18,3 @@ open question "§9.10 Marker: the design of knarr's marker annotation, including
 open question "§9.10 Write mode: an unconditional merge patch, a resourceVersion precondition or a JSON Patch test op, and what the client must support for it (§6)."
 open question "§9.10 Conflict detection: how knarr notices that a user, the lablabs or zepellin controllers, or Karpenter with PodDeletionCostManagement changed a value it owns."
 open question "§9.10 Conflict response: the Event knarr emits and how long it backs off so the other writer wins (§8 failure modes)."
-open question "§9.10 Rejected patch: how a 400, 403 or admission-webhook rejection is logged, reported as an Event and metric, and retried without rapid retries (§8 failure modes)."

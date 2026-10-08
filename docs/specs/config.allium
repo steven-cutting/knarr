@@ -5,7 +5,9 @@
 -- default, validation and the behaviour on an invalid value; refusal of
 -- unsupported workload kinds (§3 non-goals); and the target set that discovery
 -- derives from it inside knarr's one namespace (§4, §9.1, §9.18).
--- Owner: ticket 19. Override defaults come from 18, 20, 21, 23 and 24.
+-- Owner: ticket 19. Override defaults come from 18, 20, 21, 23 and 24. The
+-- decided discovery LIST and one install per namespace are built by the round-2
+-- spec-then-build ticket 31.
 
 ------------------------------------------------------------
 -- Open Questions

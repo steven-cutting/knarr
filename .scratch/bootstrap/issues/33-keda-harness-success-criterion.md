@@ -4,9 +4,9 @@
 
 **What to build:** A `just` recipe, outside the aggregate `check`, that runs a KEDA-scaled Deployment of the fake worker on the kind tier from [Decision 0007](../../../docs/decisions/0007-local-cluster.md), drives a mixed load through the control endpoint, scales in, counts busy kills from 29's sink, and compares the count with a baseline run without knarr against a threshold the maintainer sets.
 
-**Non-goals:** The GKE acceptance run (28 drafts it). Load beyond the v1 scale target from 24.
+**Non-goals:** The GKE acceptance run (28 drafts it). Load beyond the v1 scale target from 24. The budget clauses themselves: 24's spec-then-build follow-up builds them and adds itself to this ticket's **Blocked by**.
 
-**Blocked by:** 29, 31, 32
+**Blocked by:** 24, 29, 31, 32
 
 **From 17:** [Decision 0009](../../../docs/decisions/0009-allium-objective-map.md), map row for §9.16.
 

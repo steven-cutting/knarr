@@ -7,7 +7,8 @@
 -- pending, no patch is made once deletionTimestamp is set (§4), and a
 -- Deployment rollout gets no special handling (§8 failure modes, §9.13).
 -- Owner: ticket 21 for the unknown and unreachable policy (§9.6). The decided
--- loop safeguards are built by the round-2 spec-then-build ticket 31.
+-- loop safeguards, including the rollout rule, are built by the round-2
+-- spec-then-build ticket 31; the rollout guidance page is ticket 34.
 
 ------------------------------------------------------------
 -- Open Questions
@@ -18,4 +19,3 @@ open question "§9.6 Neutral: the value knarr writes once the bounded window has
 open question "§9.6 Absent contract: how many consecutive 404 or refused polls since the pod started mark the contract absent, and whether a NetworkPolicy block is distinguishable from it (§8 failure modes)."
 open question "§9.6 Unmanaged: what knarr does on an absent contract: remove the annotations it owns, emit a per-Deployment Event and metric, and whether it keeps polling."
 open question "§9.6 Just started: how long a pod stays unannotated before its first valid poll, and whether Pending or NotReady pods are polled at all (§5)."
-open question "§9.13 Rollouts: whether no special handling during a Deployment rollout needs any clause beyond the guidance on maxUnavailable and maxSurge (§8 failure modes)."

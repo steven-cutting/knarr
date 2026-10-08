@@ -14,9 +14,8 @@
 
 **Status:** ready-for-agent, round 2
 
-- [ ] Discovery is a periodic LIST scoped to knarr's namespace and the opt-in selector, on its own cadence and slower than polling, with one install per namespace (§4.1, §9.18).
-- [ ] The per-poll timeout is shorter than the poll interval (§4.2).
-- [ ] The desired annotation state is the cost band, the opt-in `safe-to-evict` value and the ownership marker, derived from a clamped cost combined with `accepting` (§4.3).
+- [ ] Discovery is a periodic LIST scoped to knarr's namespace and the opt-in selector, with one install per namespace (§4.1, §9.18). Its cadence is 24's.
+- [ ] The desired annotation state is the cost band, the opt-in `safe-to-evict` value and the ownership marker (§4.3). How the band is computed is 20's.
 - [ ] A patch is made only when the desired state differs from the last applied state, which covers a band change, the first annotation, startup repair, cleanup and a `safe-to-evict` flip (§4.4).
 - [ ] A throttled change stays pending and is not dropped (§4.4).
 - [ ] No patch is made once a pod has `deletionTimestamp` set; polling it may continue (§4.5).

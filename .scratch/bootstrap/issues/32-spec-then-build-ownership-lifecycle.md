@@ -6,7 +6,7 @@
 
 **Non-goals:** Any open question 22 or 23 owns. The `deletionTimestamp` safeguard, which 31 builds with the loop.
 
-**Blocked by:** 22, 23
+**Blocked by:** 22, 23, 30
 
 **From 17:** [Decision 0009](../../../docs/decisions/0009-allium-objective-map.md), map rows for §4, §6, §7, §8 and §9.
 

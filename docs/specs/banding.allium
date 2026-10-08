@@ -6,7 +6,8 @@
 -- the number of bands and their edges, hysteresis, reserved bands, how cost and
 -- accepting combine, and the canonical int32 format (§4 Map, §5 drain states,
 -- §6, §9.5).
--- Owner: ticket 20.
+-- Owner: ticket 20. The decided canonical int32 format is built by the round-2
+-- spec-then-build ticket 31.
 
 ------------------------------------------------------------
 -- Open Questions

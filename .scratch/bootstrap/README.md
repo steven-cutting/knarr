@@ -34,6 +34,7 @@ flowchart TD
     T27["27 Spike: dependency updates and audit"]:::offpath
     T28["28 Spike: release and packaging"]
     T29["29 Fake-worker fixture"]
+    T30["30 Bootstrap verification gaps"]:::offpath
 
     T01 --> T02
     T01 --> T03
@@ -55,6 +56,7 @@ flowchart TD
     T08 --> T11
     T09 --> T11
     T11 --> T12
+    T11 --> T30
     T05 --> T13
     T08 --> T13
     T10 --> T13
@@ -101,7 +103,7 @@ A wave is the earliest point a ticket can start if every lane runs in parallel: 
 | 3 | [04](issues/04-github-repository.md), [06](issues/06-docs-contract-and-decisions.md), [07](issues/07-allium-gate.md), [16](issues/16-spike-s2b-gke-managed-ca.md) |
 | 4 | [05](issues/05-ci.md), [08](issues/08-testing-toolkit.md), [09](issues/09-agent-contract.md) |
 | 5 | [11](issues/11-integration.md), [13](issues/13-walking-skeleton.md), [17](issues/17-allium-objective-map.md), [26](issues/26-spike-coverage.md) |
-| 6 | [12](issues/12-maintainer-docs.md), [14](issues/14-spike-s1-in-cluster-client.md), [18](issues/18-elicit-worker-contract.md), [19](issues/19-elicit-configuration-schema.md), [22](issues/22-elicit-ownership-and-conflicts.md), [24](issues/24-elicit-poll-budget-feature-gate.md), [25](issues/25-elicit-safe-to-evict-policy.md), [27](issues/27-spike-dependency-updates-and-audit.md), [28](issues/28-spike-release-and-packaging.md) |
+| 6 | [12](issues/12-maintainer-docs.md), [14](issues/14-spike-s1-in-cluster-client.md), [18](issues/18-elicit-worker-contract.md), [19](issues/19-elicit-configuration-schema.md), [22](issues/22-elicit-ownership-and-conflicts.md), [24](issues/24-elicit-poll-budget-feature-gate.md), [25](issues/25-elicit-safe-to-evict-policy.md), [27](issues/27-spike-dependency-updates-and-audit.md), [28](issues/28-spike-release-and-packaging.md), [30](issues/30-bootstrap-verification-gaps.md) |
 | 7 | [20](issues/20-elicit-cost-mapping.md), [29](issues/29-fake-worker-fixture.md) |
 | 8 | [21](issues/21-elicit-unknown-unreachable-policy.md), [23](issues/23-elicit-cleanup-staleness-restart.md) |
 

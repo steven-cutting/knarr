@@ -1,0 +1,56 @@
+# Ticket 11 integration verification: adversarial review
+
+I'm Opus 5.5 (`claude-opus-5-5`), read from my runtime context. I can't check the `--effort medium` setting from inside the session. I stayed read-only: Read, Glob and Grep only. I didn't run the Python launcher at the end of your message, any command, or `just check`.
+
+**Outcome:** I found no high-severity defects. The core claims hold up: SHA identity, network denial, shared hook safety, the cache limitation and the protection proposal. There are two medium findings about whether the change has actually been gate-checked and whether follow-up 30 can be found by the tickets that need it, and five low ones. `review-change` steps 2–6 don't apply because nothing under `src/`, `test/` or `docs/specs/` changed.
+
+## Medium
+
+1. **The green linked-worktree gate probably didn't lint the files this change adds.** All the new files are untracked (git status). `just lint` runs `prek run --all-files`, which follows pre-commit in using git's tracked files, so markdownlint, typos, lychee and ripsecrets most likely skipped them. That's an inference: I couldn't run prek. `docs-check` only covers `docs/`. So `ai_tmp/integration/linked-check-result.json` (exit 0) says nothing about these files.
+   - **Fix:** `git add` the change, then rerun `just check`. Commit only if it passes and `git status --short` is empty, as AGENTS.md requires.
+
+2. **Follow-up 30 can't be found by the tickets that depend on it.**
+   - `.scratch/bootstrap/README.md:36` and `:105` stop at 29, and `:110` says the board must be updated.
+   - `11-integration.md:35` tells 13 and 14 to coordinate TLS and rebar3 results with 30. But `13-walking-skeleton.md:14` and `14-spike-s1-in-cluster-client.md:9` aren't blocked by 11 or 30, so agents working those tickets won't read that note. Both depend on the deferred 01 probes (`13:20`, `14:15`).
+   - `30-bootstrap-verification-gaps.md:9` says "Blocked by: None" but also says 11 supplies the inventory.
+   - **Fix:** add a `T30` node, with `T11 --> T30` if you choose that, and a waves row. Add one line to 13 and 14 pointing to 30's native TLS/rebar3 item.
+
+## Low
+
+3. **Two different `just` versions are recorded.** `evidence/11/README.md:7` says just 1.58.0; `local-results.json:6` says 1.51.0. 1.51.0 is the host `just` (it matches 03's fresh-clone transcript); 1.58.0 is the version pinned inside pixi.
+   - **Fix:** in README:7, say host just 1.51.0 ran the commands and the environment pins 1.58.0.
+
+4. **Some stated checks have no recorded output**, in either `evidence/11/` or `ai_tmp/integration/`:
+   - README:16: `pixi info --json` confirmed the cache override, and the clone had no `.pixi`, `.tools` or `build` before initialization.
+   - README:20: `git status --porcelain` was empty after initialization.
+   - Ticket `11:25`: "The clone remained clean."
+
+   `check-clean` only compares against the gate's own baseline, so "clean after initialization" depends entirely on the status call that wasn't recorded.
+   - **Fix:** add those outputs to `local-results.json`, or reword them as observed but not retained.
+
+5. **The read-back plan for branch protection ignores 04's existing tool.** README:59 describes a hand-built field comparison. `04-github-repository.md:97-98` hands 11 `sh .scratch/bootstrap/evidence/04/state.sh check` as the read-only confirmation; it checks all 17 fields and has a tested projection.
+   - **Fix:** name `state.sh check` in README:59 as the required read-back, plus the rulesets read. I'm not recommending running the mutation without your approval.
+
+6. **Hook hashes only cover the linked `just initialize`, not the linked `just check`.** Checkbox `11:16` claims the check "runs green without installing hooks" (README:22).
+   - **Fix:** hash the hooks again after the linked gate and record that file. Separately, README:22 says the linked gate result is in the hand-back notes. It isn't yet, so it must be added in the final commit or that sentence is false.
+
+7. **One caveat is missing from the inventory.** `05-ci.md:46-47` and `06-docs-contract-and-decisions.md:44` say taplo failed under a macOS sandbox.
+   - **Fix:** add a row. `toml-check` passing under the `sandbox-exec` deny-network profile closes it for that profile only, not for the agent sandbox where it originally failed.
+
+## Checked and sound
+
+- **SHA identity:** `4f0eca5…` is the same in the clone's `refs/heads/11-integration`, `main.json`, `ci.json` `head_sha` and the checkout step in `ci.log`. The timestamps are in a consistent order.
+- **Network denial:** DNS (exit 6) and direct-IP (exit 7) probes both fail under the same profile, so it isn't just DNS being blocked. The README doesn't count a failure to launch as evidence.
+- **Cache claim:** the README, `local-results.json` and 30:15 all say the run is not fully cold, and 30 keeps 03's stronger claim.
+- **Shared hooks:** all 15 hashes are identical and the skip notice was printed. `hooks-before.json:13` shows a non-sample `pre-commit` already exists in the primary checkout, which 30:17 assumes.
+- **Inventory coverage:** every "not verified" item in 01–09, plus 0003:251 and 0004:246-249, maps to a row. 0003:241 belongs to 14's own work.
+- **Protection proposal:** the committed `protection.json` matches the raw API response. `POST …/required_status_checks/contexts` with `{"contexts":["check"]}` is the additive endpoint 04 chose and leaves `strict` alone. The `check` job (`ci.yml:32-41`) runs with `always()` and rejects skipped jobs.
+- **Scope:** no product, spec, pin or gate changes.
+
+## Limitations
+
+- I didn't run `just check`, so I'm not claiming any check passed.
+- The Read tool showed a colour code at `ci-excerpt.txt:22`, but grep couldn't find it. Confirm with `grep -c $'\e'` before relying on the "colour removed" claim.
+- `contexts` with no app binding means any status named `check` would satisfy the rule. That was 04's choice, noted here, not a defect.
+- I didn't check `core.hooksPath` in the primary checkout's config.
+- All GitHub observations are point-in-time.

@@ -1,0 +1,12 @@
+sh scripts/initialize.sh
+✔ The default environment has been installed.
+ok   rebar3 3.27.1 already installed
+ok   ripsecrets 0.1.11 already installed
+ok   editorconfig-checker 4.0.2 already installed
+ok   allium 3.6.1 already installed
+manifest.toml [requirements] matches gleam.toml
+This is a linked worktree: skipping hook installation.
+Hooks are shared by every worktree; run just initialize once from the primary checkout to install them.
+
+Ready. Next: just check (no network needed).
+Nothing has been staged, committed or pushed.

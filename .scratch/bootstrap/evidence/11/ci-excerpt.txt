@@ -1,0 +1,34 @@
+Repository gate	Set up job	2026-10-08T07:46:47.0252860Z ##[group]Operating System
+Repository gate	Set up job	2026-10-08T07:46:47.0253763Z Ubuntu
+Repository gate	Set up job	2026-10-08T07:46:47.0254404Z 24.04.5
+Repository gate	Set up job	2026-10-08T07:46:47.0256680Z Image: ubuntu-24.04
+Repository gate	Set up job	2026-10-08T07:46:47.0258356Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+Repository gate	Run ./.github/actions/setup	2026-10-08T07:46:49.3667736Z   pixi-version: v0.81.0
+Repository gate	Run ./.github/actions/setup	2026-10-08T07:46:56.9346527Z ok   rebar3 3.27.1 installed (sha256 matches the pin)
+Repository gate	Run ./.github/actions/setup	2026-10-08T07:46:57.2593094Z ok   ripsecrets 0.1.11 installed (sha256 matches the pin)
+Repository gate	Run ./.github/actions/setup	2026-10-08T07:46:57.6090180Z ok   editorconfig-checker 4.0.2 installed (sha256 matches the pin)
+Repository gate	Run ./.github/actions/setup	2026-10-08T07:46:57.9256316Z ok   allium 3.6.1 installed (sha256 matches the pin)
+Repository gate	Run just check	2026-10-08T07:46:58.3740415Z ==> just lock-check
+Repository gate	Run just check	2026-10-08T07:46:58.4385131Z ==> just env-check
+Repository gate	Run just check	2026-10-08T07:46:58.5584828Z ==> just manifest-check
+Repository gate	Run just check	2026-10-08T07:46:58.6782728Z ==> just docs-check
+Repository gate	Run just check	2026-10-08T07:46:59.4335905Z ==> just agents-check
+Repository gate	Run just check	2026-10-08T07:46:59.6230717Z ==> just check-specs
+Repository gate	Run just check	2026-10-08T07:46:59.8205442Z ==> just analyse-specs
+Repository gate	Run just check	2026-10-08T07:47:00.0339942Z ==> just format-check
+Repository gate	Run just check	2026-10-08T07:47:00.0815388Z ==> just lint-gleam
+Repository gate	Run just check	2026-10-08T07:47:04.5510119Z ==> just build
+Repository gate	Run just check	2026-10-08T07:47:05.0548845Z ==> just test
+Repository gate	Run just check	2026-10-08T07:47:05.9129235Z 13 passed, no failures
+Repository gate	Run just check	2026-10-08T07:47:05.9541704Z ==> just snapshots-check
+Repository gate	Run just check	2026-10-08T07:47:06.6511001Z ==> just test-checkers
+Repository gate	Run just check	2026-10-08T07:47:52.3186499Z ============================= 285 passed in 45.04s =============================
+Repository gate	Run just check	2026-10-08T07:47:52.4106312Z ==> just toml-check
+Repository gate	Run just check	2026-10-08T07:47:52.6891411Z ==> just lint
+Repository gate	Run just check	2026-10-08T07:47:56.4175289Z ==> just check-clean
+Repository gate	Run just check	2026-10-08T07:47:56.6221200Z All checks passed and the worktree is unchanged.
+check	Set up job	2026-10-08T07:48:01.9685061Z ##[group]Operating System
+check	Set up job	2026-10-08T07:48:01.9686334Z Ubuntu
+check	Set up job	2026-10-08T07:48:01.9687231Z 24.04.5
+check	Set up job	2026-10-08T07:48:01.9691092Z Image: ubuntu-24.04
+check	Set up job	2026-10-08T07:48:01.9694250Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md

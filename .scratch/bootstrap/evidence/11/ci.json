@@ -1,0 +1,33 @@
+{
+  "observed_at": "2026-10-08T08:05:20.763718+00:00",
+  "main_sha": "4f0eca5c342493c7830cf6be77791f2207956115",
+  "run": {
+    "id": 37745546445,
+    "head_sha": "4f0eca5c342493c7830cf6be77791f2207956115",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/steven-cutting/knarr/actions/runs/37745546445",
+    "created_at": "2026-10-08T07:46:42Z",
+    "updated_at": "2026-10-08T07:48:04Z"
+  },
+  "jobs": [
+    {
+      "name": "Repository gate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/steven-cutting/knarr/actions/runs/37745546445/job/113206038530",
+      "started_at": "2026-10-08T07:46:46Z",
+      "completed_at": "2026-10-08T07:47:58Z"
+    },
+    {
+      "name": "check",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/steven-cutting/knarr/actions/runs/37745546445/job/113206460033",
+      "started_at": "2026-10-08T07:48:01Z",
+      "completed_at": "2026-10-08T07:48:03Z"
+    }
+  ],
+  "audit_run_count": 0
+}

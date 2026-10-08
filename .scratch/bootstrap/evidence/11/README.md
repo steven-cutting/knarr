@@ -1,0 +1,103 @@
+# Ticket 11 evidence
+
+Gathered on 2026-10-08 for [integration](../../issues/11-integration.md), starting at `4f0eca5c342493c7830cf6be77791f2207956115`. GitHub's `main` and the clean `11-integration` worktree both named that commit. No controller, specification, tool pin or gate implementation changed.
+
+## Local verification
+
+[Machine-readable results](local-results.json) record commands, statuses and elapsed wall-clock seconds. The host was Darwin arm64 with pixi 0.81.0 and bootstrap just 1.51.0; the initialized environment pins just 1.58.0. Timings use Python's monotonic clock around each subprocess; initialization excludes cloning. Transcripts remove terminal colour and replace the checkout's absolute path with `<worktree>`; other output is retained.
+
+| Run | Seconds | Result | Evidence |
+| --- | --- | --- | --- |
+| Fresh clone, `just initialize` | 14.950 | Exit 0; primary-clone hook installed; clean | [Transcript](initialize.txt) |
+| Fresh clone, `just check` | 91.067 | Exit 0; 13 Gleam tests, 285 checker tests; clean | [Transcript](clone-check.txt) |
+| Same clone, `just check` with network denied | 69.711 | Exit 0; all checks passed; clean | [Transcript](clone-offline-check.txt) |
+| Linked worktree, `just initialize` | 0.238 | Exit 0; printed hook-skip notice | [Transcript](linked-initialize.txt) |
+| Linked worktree, `just check` | 93.423 | Exit 0; 13 Gleam tests, 285 checker tests; baseline unchanged | [Transcript](linked-check.txt) |
+
+The fresh clone was made with `git clone --no-hardlinks --single-branch --branch 11-integration . ai_tmp/integration/clone`. Before initialization, launcher assertions checked that it had no `.pixi`, `.tools` or `build` directory and that `ai_tmp/integration/caches/pixi` did not exist. Those assertions produced no retained standalone output. `PIXI_CACHE_DIR` pointed at that cache path; `PREK_HOME` pointed at `ai_tmp/integration/caches/prek`. No environment or downloaded tool was copied or linked from another checkout. Initialization verified the four downloaded tools' checksums and rebar3's Sigstore bundle. A later [`pixi info --json` read-back](observations.json) confirms the cache override, without pretending to re-establish historical emptiness.
+
+**This is not a fully cold machine measurement.** Gleam reused the existing macOS user cache, as its 28 packages in 0.07 seconds indicate. That shared cache was not moved or cleared. [Ticket 30](../../issues/30-bootstrap-verification-gaps.md) carries 03's stronger cold-cache timing claim. The measurements above establish the fresh-clone checklist item with that limitation stated.
+
+The offline invocation was `sandbox-exec -p '(version 1)(allow default)(deny network*)' just check`, using the same isolated cache environment as initialization. Both DNS-based and direct-IP curl probes failed inside the same profile; [their commands and output](offline-probes.txt) record exits 6 and 7. The successful gate proves the profile could launch processes; a failure to launch `sandbox-exec` was not counted as network-denial evidence. Launcher assertions observed empty `git status --porcelain --untracked-files=all` after each clone gate but did not retain those empty outputs separately. The [later status read-back](observations.json) retains the empty string and unchanged clone HEAD. There is no separate retained status output immediately after initialization; the first gate's unchanged baseline and subsequent empty status support the clean-initialization claim.
+
+The linked worktree's Git directory differs from its common directory, as [recorded](observations.json). All 15 files under the common `hooks` directory have identical SHA-256 values [before](hooks-before.json) and [after](hooks-after.json) initialization, and [after the linked gate](hooks-after-check.json). `core.hooksPath` is unset. The installer printed its linked-worktree skip notice. No hook was installed from this worktree. The linked-worktree gate preserved the in-progress evidence diff; that baseline assertion alone does not mean the changes were already committed. The final clean status is verified after committing.
+
+### Reproduction
+
+Use a new ignored scratch directory for each run; do not reuse the recorded clone or cache paths. With pixi and just already installed, clone the recorded commit locally, set `PIXI_CACHE_DIR` and `PREK_HOME` to fresh absolute scratch paths, and run the commands in the table from the appropriate checkout. Capture elapsed time, exit status and `git status --porcelain --untracked-files=all` after each command. Use the offline profile above on macOS; Linux needs a separately verified network namespace. Keep the user Gleam cache limitation unless the run uses a disposable account or machine with an empty cache.
+
+For linked-worktree verification, hash all files in `git rev-parse --path-format=absolute --git-common-dir`'s `hooks` directory before and after initialization and compare the complete inventories. Initialization needs network authorization even if an already-initialized worktree happens to reuse everything.
+
+## GitHub verification
+
+[Recorded API results](ci.json) associate current `main` with [CI run 37745546445](https://github.com/steven-cutting/knarr/actions/runs/37745546445). Both `Repository gate` and aggregate `check` completed successfully on the same SHA. The [log excerpt](ci-excerpt.txt) shows all gate recipes, 13 Gleam tests, 285 checker tests and the unchanged-worktree success message on Ubuntu 24.04. It also records installation of the pinned Linux binaries. It does not show the standalone TLS/rebar3 probes from ticket 01.
+
+The read-only calls were:
+
+```sh
+gh api repos/steven-cutting/knarr/branches/main
+gh api repos/steven-cutting/knarr/branches/main/protection
+gh api repos/steven-cutting/knarr/rulesets
+gh api 'repos/steven-cutting/knarr/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=5'
+gh api repos/steven-cutting/knarr/actions/runs/37745546445/jobs
+gh run view 37745546445 --repo steven-cutting/knarr --log
+gh api 'repos/steven-cutting/knarr/actions/workflows/audit.yml/runs?per_page=5'
+```
+
+The audit workflow had zero runs. No workflow was dispatched. All GitHub observations are point-in-time evidence, not a promise about later commits or settings.
+
+### Prepared branch-protection change
+
+[Protection before any change](protection.json) has `strict: false`, an empty required-check list, pull requests required with zero approvals, administrators exempt, and force pushes and deletions disabled. [The rulesets response](rulesets.json) is empty. Therefore the protection acceptance criterion is **not yet met**.
+
+The exact proposed mutation is:
+
+```sh
+gh api --method POST repos/steven-cutting/knarr/branches/main/protection/required_status_checks/contexts \
+  --input .scratch/bootstrap/evidence/11/required-check.json
+```
+
+[The payload](required-check.json) adds only `check`. This uses the narrow endpoint named by ticket 04 rather than replacing the full protection object. Before applying it, reread protection and require that the current contexts and checks are still empty; if settings changed, prepare a new request for review. After authorization and execution, run `sh .scratch/bootstrap/evidence/04/state.sh check`, reusing 04's tested projection and rulesets check, and retain the full protection response. Require exactly one `check` context and compare every other protection field against the fresh pre-change response. Preserve `strict: false`, the administrator exemption and all other settings. Record the mutation and read-back before checking off 11's criterion or updating 05's pending status. No mutation has been made by this audit.
+
+## Inventory of unverified claims
+
+The inventory covers hand-backs 01–09 and the evidence/decision caveats they reference. Existing evidence is cited where a later lane already closed an earlier claim; ordinary future feature work is distinguished from unverified bootstrap claims.
+
+| Source | Claim or limitation | Disposition |
+| --- | --- | --- |
+| 01 | Hook execution without the Justfile's PATH; bootstrap entry command | Closed by [03's hook and bootstrap evidence](../03/README.md); this run again initializes from host `just` alone. |
+| 01 | Entire gate offline after initialization | Closed by [the network-denied gate](clone-offline-check.txt), including all integrated lanes. |
+| 01 | First native Linux run confirms TLS and rebar3 probe results | **Follow-up 30.** Native CI executes the gate, not those probes. No TLS result is inferred from CI. |
+| 02 | No Linux binaries ran; copied Python checkers not run in knarr | Closed by [native CI](ci.json), its [gate excerpt](ci-excerpt.txt), and 285 passing checker tests. Historical claims about which scripts ran in 02 remain historical. |
+| 03 | Linux gate not run | Closed by current-main CI at the audited SHA. |
+| 03 | Cold initialization timing not measured | **Follow-up 30.** This run has an empty pixi cache but a reused Gleam cache. |
+| 03 | Maintainer's primary checkout hook not installed/exercised | **Follow-up 30.** Fresh-clone installation and linked-worktree non-installation are proven separately. |
+| 04 | Required `check` not added | **Pending authorization.** Exact request above; 05 remains the existing follow-up until the read-back succeeds. |
+| 04 | One unidentified checker failure, followed by five passing runs | **Follow-up 30.** Passing current gates does not identify the intermittent failure. |
+| 05 | Required-check authorization pending | Same prepared request; no protection change inferred from a green CI job. |
+| 05, 06 | Taplo fails under the restricted macOS agent sandbox | **Follow-up 30.** `toml-check` passed with local escalation and in the network-denying profile; that does not prove compatibility with the stricter agent sandbox. |
+| 06 | GitHub-hosted execution not claimed | Validator and shared setup closed by current-main CI. Hosted external-link audit has zero runs: **follow-up 30**. |
+| 07 | Only the macOS Allium download and real gate were observed | Linux installation, checksum check, `check-specs` and `analyse-specs` closed by current-main CI. The root still has zero behaviour clauses; no new obligation count is claimed. |
+| 08 | Nothing ran on Linux | Integrated build, tests, glinter and snapshot gate closed by current-main CI. This does not claim Linux execution of the separate mutation evidence script. |
+| 08 | Interactive review, reject and stale delete only dry-run | **Follow-up 30**, with real pending/orphan fixtures and byte-level assertions. |
+| 08 | `/version` example is hand-written; string fields and `+` suffix recalled from memory | **Follow-up 30**, feeding captured/provenanced evidence to 14. |
+| 09 | Copilot native discovery documented but unexercised | **Follow-up 30.** Codex's discovery in this session is not Copilot evidence. |
+| 09 | No Codex runtime directory or plugin added | Deliberate non-goal, not an execution claim. The current Codex session exposes the canonical project skills; no new provider adapter is needed for this audit. |
+
+[Follow-up 30](../../issues/30-bootstrap-verification-gaps.md) supplies independently checkable acceptance criteria for each remaining verification gap. Follow-ups already assigned to 10, 13–15, 17–29 remain with those feature/spike tickets; integration does not implement them. Requested code-review skills unavailable to earlier sessions are historical process limitations, not evidence of failed implementation; ticket 11 requests Claude Code's adversarial review separately.
+
+## Adversarial review
+
+Claude Code 2.1.294 was invoked with `--model opus --effort medium`, the CLI's latest-Opus alias, and only Read, Glob and Grep tools. The [review](review.txt) identifies itself as Opus 5.5 (`claude-opus-5-5`); [invocation/result metadata](review-metadata.json) records the effort argument and model usage. The reviewer did not execute tests or mutate files. Its runtime also accounted for auxiliary Fable usage; the reviewing model was Opus.
+
+No high-severity defect was reported. Dispositions of its two medium and five low findings:
+
+1. **Staging before validation:** the first linked gate was before new files were staged. `just lint` subsequently passed with every new evidence file staged; the final full gate runs on the committed tree. The earlier transcript remains labelled as an in-progress baseline.
+2. **Follow-up discovery:** 30 now appears in the bootstrap dependency graph and execution waves, blocked by 11, with direct coordination notes in 13 and 14. Those MVP tickets gain no new hard blocker.
+3. **Just versions:** distinguish bootstrap 1.51.0 from the environment's pinned 1.58.0.
+4. **Unretained observations:** explicitly identify launcher assertions without standalone output, and retain later cache/status read-backs without claiming they prove historical cache emptiness.
+5. **Protection read-back:** require 04's existing `state.sh check` as well as comparison of the complete protection response.
+6. **Hooks after the gate:** retain a third hash inventory and the unset `core.hooksPath` observation.
+7. **Taplo sandbox caveat:** add the limitation to the claim inventory and follow-up 30.
+
+The terminal-colour residue the reviewer mentioned was removed from the CI excerpt. Branch-protection execution remains pending authorization; neither the review nor a green gate authorizes it.

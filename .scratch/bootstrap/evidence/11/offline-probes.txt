@@ -1,0 +1,8 @@
+profile: (version 1)(allow default)(deny network*)
+command: sandbox-exec -p '<profile>' curl -fsS --max-time 10 https://github.com
+curl: (6) Could not resolve host: github.com
+exit: 6
+
+command: sandbox-exec -p '<profile>' curl --noproxy '*' -fsS --max-time 10 https://1.1.1.1
+curl: (7) Failed to connect to 1.1.1.1 port 443 after 2 ms: Couldn't connect to server
+exit: 7

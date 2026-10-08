@@ -13,6 +13,8 @@ Either way the library sits behind a `metrics` module. Metric names follow contr
 
 **Blocked by:** 05, 08, 10
 
+**From 11:** [30](30-bootstrap-verification-gaps.md) tracks native Linux TLS/rebar3 evidence that ordinary CI does not establish; coordinate that item before relying on 01's emulated results for the image and metrics-library choice.
+
 **MVP critical path:** yes. It is the base every MVP feature is built and deployed on.
 
 **Status:** ready-for-agent

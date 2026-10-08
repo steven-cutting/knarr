@@ -53,3 +53,17 @@ The [audit workflow](../../../.github/workflows/audit.yml) already runs `just li
 - 07 owns implementing and, if necessary, amending [Decision 0005](../../../docs/decisions/0005-project-managed-allium-cli.md). Allium files are not handbook pages and do not go in the docs manifest. Any accompanying Markdown page does.
 - 08 owns the testing reference page. Register it and link it from the documentation index or another reachable page; this ticket does not pre-write it.
 - 09 owns the agent contract and related guidance. Every new Markdown or HTML page under `docs/` needs a manifest entry and navigation link. The [documentation contract](../../../docs/reference/documentation-contract.md) defines the fields and allowed values.
+
+## Adversarial review follow-up
+
+Claude Code was invoked on 2026-10-07 with `--model claude-opus-5-5 --effort medium`, read-only tools, and commit `d58233a` as the review target. Its result reports Opus 5.5. The primary agent reproduced and addressed all five actionable findings:
+
+1. **Manifest field types:** reject empty titles, wrong scalar types, and lists containing empty or non-string values before membership and set operations. Malformed HTML metadata now produces diagnostics instead of passing or crashing.
+2. **Markdown structure:** render through the parser bundled with pinned markdownlint-cli2, then collect links, headings, and explicit anchors. Comments and examples cannot manufacture reachability; reference links, link text in headings, spaces, and parentheses work. The renderer uses the checkout's existing Node environment and never executes document content.
+3. **URL classification:** scheme-qualified and protocol-relative links no longer become local filesystem paths. The audit retains responsibility for remote URLs.
+4. **Contract accuracy:** decision 0004 and the reference page now name the actual HTML exemptions and parser adaptations.
+5. **Unreadable pages:** invalid UTF-8 and file-read failures produce named diagnostics, including linked Markdown outside the handbook.
+
+An additional reproduced false pass allowed an entirely empty handbook. The validator now requires `docs/README.md`. HTML fixtures use actual HTML, and outgoing HTML links have regression cases for missing targets, case mismatches, repository escapes, and missing Markdown fragments, including the `.htm` extension. The validator CLI suite now has 76 cases.
+
+The suggested private-upstream audit failure was not reproduced: `just links-audit` with both `GITHUB_TOKEN` and `GH_TOKEN` removed passed all 303 link checks. Action revisions and pixi configuration were checked against upstream metadata; no workflow change was warranted. Additional tests that merely inspect recipe or hook text were not added: the full `just check` run exercises the integrated validator and HTML-aware lychee hook.

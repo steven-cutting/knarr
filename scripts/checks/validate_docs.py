@@ -7,7 +7,8 @@ reachable from the index.
 Copied from github.com/steven-cutting/biscuit_games_tooling at v0.3.0
 (6c5c07f6bec86e86b3930dfa41392e4b440e8c85),
 src/biscuit_games_tooling/validate_docs.py. Adapted on 2026-10-07 for
-checks.toml and manifest-only HTML metadata (Decision 0004).
+checks.toml, manifest-only HTML metadata, strict field validation, rendered
+Markdown navigation, and file-read diagnostics (Decision 0004).
 
 SPDX-License-Identifier: Apache-2.0
 """
@@ -16,8 +17,10 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from collections import deque
+from contextlib import suppress
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -35,9 +38,8 @@ AUDIENCES = {"user", "contributor", "maintainer", "operator", "agent"}
 # still parsed and compared, so adding a predicate later is a one-line change
 # there rather than a reshaping of the manifest.
 MINIMUM_WORDS = 40
+URL_SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 
-LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
-HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 BAD_CONTENT = {
     "unresolved template syntax": re.compile(r"{" + r"{|{" + r"%|{" + r"#"),
     # The marker has to look like an annotation -- `TODO:`, `FIXME -`, or alone
@@ -48,28 +50,82 @@ BAD_CONTENT = {
 }
 
 
-class _HTMLLinks(HTMLParser):
-    """HTML navigation joins the same reachability graph as Markdown links.
+class _Document(HTMLParser):
+    """Navigation and headings from HTML, including rendered Markdown.
 
-    Lychee owns HTML fragment and resource validation. The manifest owns HTML
-    metadata, so rendered pages need no visible Markdown frontmatter.
+    The Markdown parser escapes code examples and leaves comments as comments,
+    so neither can manufacture a navigation edge or a heading anchor.
     """
 
     def __init__(self) -> None:
         super().__init__()
         self.targets: list[str] = []
+        self.anchors: set[str] = set()
+        self.headings: list[tuple[int, str]] = []
+        self.heading_tag: str | None = None
+        self.heading_text: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag == "a":
-            self.targets.extend(value for key, value in attrs if key == "href" and value)
+        for key, value in attrs:
+            if value is not None:
+                if key == "id" or (tag == "a" and key == "name"):
+                    self.anchors.add(value)
+                if tag == "a" and key == "href":
+                    self.targets.append(value)
+                if tag == "img" and key == "alt" and self.heading_tag:
+                    self.heading_text.append(value)
+        if re.fullmatch(r"h[1-6]", tag):
+            self.heading_tag = tag
+            self.heading_text = []
+
+    def handle_data(self, data: str) -> None:
+        if self.heading_tag:
+            self.heading_text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == self.heading_tag:
+            self.headings.append((int(tag[1]), "".join(self.heading_text).strip()))
+            self.heading_tag = None
 
 
-def _links(source: Path, text: str) -> list[str]:
-    if source.suffix.lower() in {".html", ".htm"}:
-        parser = _HTMLLinks()
-        parser.feed(text)
-        return parser.targets
-    return [raw.strip().split(maxsplit=1)[0].strip("<>") for raw in LINK.findall(text)]
+def _documents(texts: dict[Path, str], errors: list[str]) -> dict[Path, _Document]:
+    markdown = {}
+    for path, text in texts.items():
+        if path.suffix.lower() == ".md":
+            # Frontmatter is metadata, not rendered body content. Invalid
+            # frontmatter is diagnosed separately by _check_page.
+            body = text
+            with suppress(ValueError):
+                _, body = _parse_frontmatter(text)
+            markdown[str(path)] = body
+    rendered = {}
+    if markdown:
+        checker = Path(__file__).resolve()
+        tools = checker.parents[2] / ".pixi/envs/default/bin"
+        try:
+            result = subprocess.run(
+                [
+                    str(tools / "node"),
+                    str(checker.with_name("render_markdown.mjs")),
+                    str(tools / "markdownlint-cli2"),
+                ],
+                input=json.dumps(markdown),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            rendered = json.loads(result.stdout)
+        except (OSError, subprocess.CalledProcessError, ValueError) as error:
+            errors.append(f"Markdown parser unavailable; run just initialize: {error}")
+            return {}
+    documents = {}
+    for path, text in texts.items():
+        document = _Document()
+        document.feed(rendered.get(str(path), text))
+        if path.suffix.lower() == ".md":
+            document.anchors.update(_anchors(document.headings))
+        documents[path] = document
+    return documents
 
 
 def _parse_list(value: str) -> list[str]:
@@ -116,15 +172,15 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
 
 
 def _slug(heading: str) -> str:
-    heading = re.sub(r"`([^`]*)`", r"\1", heading.strip().lower())
+    heading = heading.strip().lower()
     heading = re.sub(r"[^\w\- ]", "", heading)
     return re.sub(r"\s+", "-", heading)
 
 
-def _anchors(text: str) -> set[str]:
+def _anchors(headings: list[tuple[int, str]]) -> set[str]:
     found: set[str] = set()
     counts: dict[str, int] = {}
-    for _marks, heading in HEADING.findall(text):
+    for _level, heading in headings:
         base = _slug(heading)
         seen = counts.get(base, 0)
         counts[base] = seen + 1
@@ -189,6 +245,22 @@ def _load_manifest(manifest: Path, errors: list[str]) -> list[dict[str, Any]]:
                 f"manifest.yml: page {index} must contain exactly {sorted(REQUIRED_FIELDS)}"
             )
             continue
+        invalid = False
+        for field in ("title", "kind"):
+            if not isinstance(page[field], str) or not page[field].strip():
+                errors.append(f"manifest.yml: {page['path']}: {field} must be a nonempty string")
+                invalid = True
+        for field in ("audience", "canonical_for", "requires"):
+            value = page[field]
+            if not isinstance(value, list) or any(
+                not isinstance(item, str) or not item.strip() for item in value
+            ):
+                errors.append(
+                    f"manifest.yml: {page['path']}: {field} must be a list of nonempty strings"
+                )
+                invalid = True
+        if invalid:
+            continue
         valid.append(page)
     return valid
 
@@ -223,7 +295,9 @@ def _check_entry(
         errors.append(f"manifest.yml: {relative} requires disabled predicates {sorted(disabled)}")
 
 
-def _check_page(relative: str, page: dict[str, Any], text: str, errors: list[str]) -> None:
+def _check_page(
+    relative: str, page: dict[str, Any], text: str, document: _Document, errors: list[str]
+) -> None:
     for label, pattern in BAD_CONTENT.items():
         if pattern.search(text):
             errors.append(f"docs/{relative}: contains {label}")
@@ -243,10 +317,10 @@ def _check_page(relative: str, page: dict[str, Any], text: str, errors: list[str
         if metadata[field] != page[field]
     )
 
-    heading = HEADING.search(body)
-    if heading is None or len(heading.group(1)) != 1:
+    heading = document.headings[0] if document.headings else None
+    if heading is None or heading[0] != 1:
         errors.append(f"docs/{relative}: the first heading must be level one")
-    elif heading.group(2).strip() != page["title"]:
+    elif heading[1] != page["title"]:
         errors.append(f"docs/{relative}: the level-one heading disagrees with the title")
 
     words = re.findall(r"\b[\w'-]+\b", re.sub(r"[#*`>|\-]", " ", body))
@@ -255,15 +329,16 @@ def _check_page(relative: str, page: dict[str, Any], text: str, errors: list[str
 
 
 def _check_links(
-    markdown: dict[Path, str], errors: list[str], project_root: Path
+    documents: dict[Path, _Document], errors: list[str], project_root: Path
 ) -> dict[Path, set[Path]]:
-    graph: dict[Path, set[Path]] = {path: set() for path in markdown}
+    graph: dict[Path, set[Path]] = {path: set() for path in documents}
+    cache = dict(documents)
     root, docs = project_root.resolve(), (project_root / "docs").resolve()
 
-    for source, text in markdown.items():
-        for raw in _links(source, text):
-            target = raw
-            if target.startswith(("http://", "https://", "mailto:")):
+    for source, document in documents.items():
+        for raw in document.targets:
+            target = raw.strip()
+            if URL_SCHEME.match(target) or target.startswith("//"):
                 continue
             path_text, separator, fragment = target.partition("#")
             resolved = source if not path_text else (source.parent / unquote(path_text)).resolve()
@@ -278,10 +353,15 @@ def _check_links(
                 errors.append(f"{name}: missing or case-mismatched link target: {raw}")
                 continue
             if separator and resolved.suffix.lower() == ".md":
-                body = markdown.get(resolved) or resolved.read_text(encoding="utf-8")
-                if unquote(fragment) not in _anchors(body):
+                if resolved not in cache:
+                    text = _read_page(resolved, root, errors)
+                    if text is None:
+                        continue
+                    cache.update(_documents({resolved: text}, errors))
+                target_document = cache.get(resolved)
+                if target_document and unquote(fragment) not in target_document.anchors:
                     errors.append(f"{name}: missing heading anchor in {raw}")
-            if resolved.is_relative_to(docs) and resolved in markdown:
+            if resolved.is_relative_to(docs) and resolved in graph:
                 graph[source].add(resolved)
     return graph
 
@@ -297,6 +377,14 @@ def _unreachable(graph: dict[Path, set[Path]], docs: Path) -> list[Path]:
         seen.add(current)
         queue.extend(graph.get(current, set()) - seen)
     return sorted(set(graph) - seen)
+
+
+def _read_page(path: Path, root: Path, errors: list[str]) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        errors.append(f"{path.relative_to(root)}: cannot read UTF-8 page: {error}")
+        return None
 
 
 def main() -> int:
@@ -315,7 +403,9 @@ def main() -> int:
         if path.is_symlink() or not path.is_file():
             errors.append(f"{path.relative_to(root)}: pages must be regular files")
             continue
-        markdown[resolved] = resolved.read_text(encoding="utf-8")
+        text = _read_page(resolved, root, errors)
+        if text is not None:
+            markdown[resolved] = text
 
     declared: dict[str, dict[str, Any]] = {}
     owners: dict[str, str] = {}
@@ -335,6 +425,8 @@ def main() -> int:
         _check_entry(page, owners, errors, predicates, enabled)
 
     present = {str(path.relative_to(docs.resolve())) for path in markdown}
+    if "README.md" not in present:
+        errors.append("docs/README.md: required navigation root is missing")
     errors.extend(
         f"docs/{name}: missing from manifest.yml" for name in sorted(present - set(declared))
     )
@@ -343,12 +435,14 @@ def main() -> int:
         for name in sorted(set(declared) - present)
     )
 
+    documents = _documents(markdown, errors)
     for relative, page in declared.items():
-        text = markdown.get((docs / relative).resolve())
-        if text is not None and Path(relative).suffix.lower() == ".md":
-            _check_page(relative, page, text, errors)
+        path = (docs / relative).resolve()
+        document = documents.get(path)
+        if document is not None and Path(relative).suffix.lower() == ".md":
+            _check_page(relative, page, markdown[path], document, errors)
 
-    graph = _check_links(markdown, errors, root)
+    graph = _check_links(documents, errors, root)
     errors.extend(
         f"{path.relative_to(root)}: not reachable from docs/README.md"
         for path in _unreachable(graph, docs)

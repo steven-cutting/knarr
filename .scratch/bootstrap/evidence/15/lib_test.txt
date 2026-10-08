@@ -1,0 +1,45 @@
+ok   since_of gives the latest since for the node, in epoch seconds
+ok   since_of ignores lines for other nodes
+ok   since_of gives nothing for a node that was never unneeded
+ok   since_of does not match a node whose name is a prefix of another
+ok   since_of reads an empty log as nothing
+ok   same since, removal 40.1 s later: kept
+ok   since moved by under 1 s, removal 45 s later: kept
+ok   since moved 30 s, removal 40.5 s after the new one: reset
+ok   removal before the unneeded time: unclear, exit 1
+ok   removal 10 s late: unclear, exit 1
+ok   since moved 5 s, within the margin: unclear, exit 1
+ok   since reset but removal on the old timer: unclear, exit 1
+ok   recheck_of gives the latest recheck time, in epoch seconds
+ok   recheck_of reads the first of them from a log cut after it
+ok   recheck_of gives nothing when no node was found unremovable
+ok   klog_epoch reads a klog prefix with this year
+ok   exists: an object the apiserver shows is 0
+ok   exists: an object the apiserver says is gone is 1
+ok   exists: a refused connection is 2, not gone
+ok   exists: a Forbidden answer is 2, not gone
+ok   wait_gone: returns 0 once the object is gone
+ok   wait_gone: times out while the object exists
+ok   wait_gone: times out on a refused connection
+ok   wait_gone: times out on a Forbidden answer
+ok   wait_pod_gone: times out on a refused connection
+ok   wait_node_gone: times out on a Forbidden answer
+ok   has_taint: 0 when the node has the key
+ok   has_taint: 1 when the node has other keys only
+ok   has_taint: 1 when the node has no taints
+ok   has_taint: 2 on a refused connection, not "no taint"
+ok   refute_taint: passes when the node lacks the taint
+ok   refute_taint: fails when the node has the taint
+ok   refute_taint: fails on a refused connection
+ok   refute_taint: fails on a Forbidden answer
+ok   refute_taint: names a deleted node as removed, not as an API error
+ok   evictions: sums every pods/eviction series with the code
+ok   evictions: counts only the code asked for
+ok   evictions: 0 for a code no eviction has returned yet
+ok   wait_evictions: returns 0 once the count is above the baseline
+ok   wait_evictions: times out while the count is at the baseline
+ok   evictions: nothing and 2 on a refused connection, not 0
+ok   evictions: nothing and 2 on a Forbidden answer, not 0
+ok   evictions: nothing and 2 for a /metrics with no request counter
+ok   wait_evictions: times out on a refused connection
+44 passed, 0 failed

@@ -1,0 +1,44 @@
+date: 2026-10-08T01:53Z
+
+== cluster
+server: v1.35.5
+NODE          CPU   MEMORY   TAINTS
+node-000000   32    256Gi    <none>
+kwok provider ConfigMaps: nodegroup ng-a, 0..3 nodes, 2 CPU / 4Gi (as in 10)
+
+== (a) a flip while the node is only unneeded: see exp3-timer.txt, leg C
+
+== (b) control: no flip, --node-delete-delay-after-taint=30s
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --max-pod-eviction-time=2m --node-delete-delay-after-taint=30s 
+pod exp2-control-74967c7897-gxtvl is on new node ng-a-lmgkx
+ng-a-lmgkx has ToBeDeletedByClusterAutoscaler
+  01:54:49.282633 Scale-down: removing node ng-a-lmgkx, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp2-control-74967c7897-gxtvl
+  01:54:49.282886 Scale-down: waiting 30s before trying to delete nodes
+  01:55:19.318581 All pods removed from ng-a-lmgkx
+ok   (b) control: after the 30 s delay exp2-control-74967c7897-gxtvl was evicted and ng-a-lmgkx deleted
+
+== (b) case: flip to "false" inside the 30 s taint delay
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --max-pod-eviction-time=2m --node-delete-delay-after-taint=30s 
+pod exp2-flip-7bb49f7459-g55cs is on new node ng-a-rrsl9
+ng-a-rrsl9 has ToBeDeletedByClusterAutoscaler; exp2-flip-7bb49f7459-g55cs annotated "false" at once
+  01:56:15.939116 Scale-down: removing node ng-a-rrsl9, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp2-flip-7bb49f7459-g55cs
+  01:56:15.939749 Scale-down: waiting 30s before trying to delete nodes
+  01:56:45.941556 Scale-down: couldn't delete node "ng-a-rrsl9" with drain, failed to get pods to move on node, status error: GetPodsToMove for "ng-a-rrsl9" returned error: pod annotated as not safe to evict present: exp
+TYPE      REASON            OBJECT       MESSAGE
+Warning   ScaleDownFailed   ng-a-rrsl9   failed to drain and delete node: GetPodsToMove for "ng-a-rrsl9" returned error: pod annotated as not safe to evict present: exp2-flip-7bb49f7459-g55cs
+NODE         UNSCHEDULABLE   TAINTS
+ng-a-rrsl9   <none>          kwok-provider
+ok   (b) case: CA re-checked after the taint delay, aborted, untainted and uncordoned ng-a-rrsl9; exp2-flip-7bb49f7459-g55cs not evicted
+
+== (c) flip during eviction retries: "true", PDB maxUnavailable 0, --max-pod-eviction-time=60s
+CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=60s 
+pod exp2-retry-69b7df459f-qz886 ("true") is on new node ng-a-xlxrk; PDB exp2-retry maxUnavailable 0
+ng-a-xlxrk has ToBeDeletedByClusterAutoscaler (a risky node is sorted last, not skipped)
+eviction refused 1 time(s) (429); exp2-retry-69b7df459f-qz886 flipped to "false" while CA retries
+eviction refused again after the flip (1 more 429); PDB deleted
+  01:57:42.714018 Scale-down: removing node ng-a-xlxrk, utilization: {0.05 0.03125 0 0 cpu 0.05}, pods to reschedule: exp2-retry-69b7df459f-qz886
+  01:58:07.766289 All pods removed from ng-a-xlxrk
+pods/eviction requests in (c): 2 refused (429), 1 accepted (201)
+ok   (c) exp2-retry-69b7df459f-qz886, annotated "false" during retries, was evicted once the PDB allowed it; ng-a-xlxrk deleted
+
+verdict: CA re-checks safe-to-evict once, after the taint delay and before the first eviction; once eviction starts it does not re-read the annotation

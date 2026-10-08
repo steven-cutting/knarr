@@ -95,7 +95,8 @@ References:
 
 - **Busy-label PDBs:** an opt-in PDB driven by a busy label. This would add Path B protection beyond `safe-to-evict`.
 - **Other workload kinds:** StatefulSets, Jobs and DaemonSets ignore `pod-deletion-cost`, so supporting them needs a different mechanism.
-- **CA `"on-completion"`:** recent CA adds `"on-completion"` as a `safe-to-evict` value (autoscaler PR #9355, merged 2026-04; first release unverified). That value suits pods that finish on their own, not long-lived Deployment workers.
+- **CA `"on-completion"`:** recent CA adds `"on-completion"` as a `safe-to-evict` value (autoscaler PR #9355, merged 2026-04; first in cluster-autoscaler 1.36.0, not in 1.35.2, per ticket 15's [`source.txt`](../.scratch/bootstrap/evidence/15/source.txt)). That value suits pods that finish on their own, not long-lived Deployment workers.
+- **Service meshes and mTLS:** Knarr polls over plain HTTP and presents no client certificate. Pods in a mesh that enforces mTLS (Istio `PeerAuthentication` in `STRICT` mode, Linkerd) reject or drop that traffic, and the failure looks like an absent contract (the [OVERVIEW §8 failure modes](OVERVIEW.md#failure-modes-proposed-v1-defaults-all-to-be-confirmed-in-tickets) table). Support would need Knarr to join the mesh, through a sidecar or ambient mode, or to speak mTLS itself. Deferred because the first target clusters run no in-cluster mTLS.
 - **GKE Autopilot:** for Autopilot-mode workloads, `"false"` enables [extended-duration Pods](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/extended-duration-pods). These are protected from scale-down and auto-upgrade eviction for up to 7 days, with placement and limit rules of their own (see the link). The effect of changing the annotation at runtime there is undocumented, so GKE Autopilot is unverified.
 
 ## 9. Background notes

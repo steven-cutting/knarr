@@ -8,3 +8,6 @@
 [docs]
 # No feature toggles yet. Only boolean true enables a declared predicate.
 predicates = {}
+
+[allium]
+specs = "docs/specs"

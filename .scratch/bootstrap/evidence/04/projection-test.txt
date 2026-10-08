@@ -1,0 +1,21 @@
+jq-1.7.1-apple
+ok   baseline: strict=false checks= admins=false pr=true approvals=0 dismiss_stale=false code_owners=false last_push=false force_pushes=false deletions=false restrictions=false linear=false conversations=false signatures=false lock=false block_creations=false fork_syncing=false
+
+ok   strict: strict=true
+ok   a required check: checks=check
+ok   enforce_admins: admins=true
+ok   no pull request required: pr=false approvals=null dismiss_stale=null code_owners=null last_push=null
+ok   one approval: approvals=1
+ok   dismiss_stale_reviews: dismiss_stale=true
+ok   require_code_owner_reviews: code_owners=true
+ok   require_last_push_approval: last_push=true
+ok   allow_force_pushes: force_pushes=true
+ok   allow_deletions: deletions=true
+ok   restrictions: restrictions=true
+ok   required_linear_history: linear=true
+ok   required_conversation_resolution: conversations=true
+ok   required_signatures: signatures=true
+ok   lock_branch: lock=true
+ok   block_creations: block_creations=true
+ok   allow_fork_syncing: fork_syncing=true
+ok   lock_branch missing: lock=null

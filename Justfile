@@ -120,6 +120,22 @@ toml-check:
 lint:
     SKIP=gleam-format,taplo prek run --all-files
 
+# Allium reports diagnostics independently of its exit status.
+[group('check')]
+[doc('Fail on any Allium diagnostic')]
+check-specs:
+    python3 scripts/checks/run_allium.py check
+
+[group('check')]
+[doc('Fail on any Allium analysis finding or diagnostic')]
+analyse-specs:
+    python3 scripts/checks/run_allium.py analyse
+
+[group('develop')]
+[doc('Print the test plan and obligation count for one Allium module')]
+plan-spec module:
+    python3 scripts/checks/run_allium.py plan "$1"
+
 # The runner calls this last, with the baseline it snapshotted.
 [group('check')]
 [doc('Fail if the worktree differs from the baseline (or, without one, is not clean)')]
@@ -134,4 +150,4 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check format-check build test test-checkers toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check check-specs analyse-specs format-check build test test-checkers toml-check lint

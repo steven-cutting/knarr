@@ -1,0 +1,28 @@
+date: 2026-10-08T00:02Z
+gh version 2.100.0 (2026-09-03)
+repository: steven-cutting/knarr
+
+== the repository
+ok   visibility: PUBLIC
+ok   default branch: main
+ok   homepage: (empty)
+ok   description: A Kubernetes controller in Gleam that biases Deployment scale-down away from busy worker pods.
+ok   detected licence: Apache-2.0
+
+== main on GitHub
+ok   main on GitHub is identical with 84668a5c9a0dfb38d91f66afb614bd240921c6b9
+info remote main: 84668a5c9a0dfb38d91f66afb614bd240921c6b9
+
+== hygiene: merge methods, delete-branch-on-merge, issues, wiki, projects
+ok   merge commit, squash, rebase: true true true
+ok   delete branch on merge, issues, wiki, projects: true true false false
+
+== security
+ok   private vulnerability reporting: true
+ok   secret scanning, push protection: enabled enabled
+ok   Dependabot alerts: enabled
+info Dependabot security updates: disabled
+
+== protection on main
+ok   protection: strict=false checks= admins=false pr=true approvals=0 dismiss_stale=false code_owners=false last_push=false force_pushes=false deletions=false restrictions=false linear=false conversations=false signatures=false lock=false block_creations=false fork_syncing=false
+ok   rulesets: 0

@@ -1,0 +1,37 @@
+name: Audit
+
+# Remote availability is independent of a commit. This workflow is separate
+# from the required gate; ticket 05 can share its setup with the CI jobs.
+on:
+  schedule:
+    # Mondays at 06:00 UTC.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  links:
+    name: External links
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          pixi-version: v0.81.0
+          locked: true
+          cache: true
+          cache-write: ${{ github.ref == 'refs/heads/main' }}
+          activate-environment: true
+      - run: just links-audit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

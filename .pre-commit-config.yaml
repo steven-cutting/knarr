@@ -66,7 +66,7 @@ repos:
         name: lychee (offline, local links only)
         entry: sh scripts/with-env.sh lychee --offline --no-progress --include-fragments
         language: system
-        types: [markdown]
+        types_or: [markdown, html]
 
       - id: shellcheck
         name: shellcheck

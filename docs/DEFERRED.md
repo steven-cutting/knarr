@@ -1,3 +1,11 @@
+---
+title: "Knarr: Deferred Options and Research"
+kind: "project"
+audience: ["contributor", "maintainer", "agent"]
+canonical_for: ["deferred_options"]
+requires: []
+---
+
 # Knarr: Deferred Options and Research
 
 > **Status:** Not in the MVP. This file holds options, alternatives and research notes that were cut from [OVERVIEW.md](OVERVIEW.md) when it was scoped to the MVP. Most of the text is moved verbatim. Section and item references such as §7 or §9.3 point to OVERVIEW.md; "old §…" names where moved text came from in the pre-MVP version of OVERVIEW.md (commit 284dca7).

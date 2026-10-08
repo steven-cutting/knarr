@@ -5,5 +5,9 @@
 # [allium] (07), [agents] (09). scripts/checks/_project.py reads them and
 # refuses a missing file or a missing table.
 
+[docs]
+# No feature toggles yet. Only boolean true enables a declared predicate.
+predicates = {}
+
 [allium]
 specs = "docs/specs"

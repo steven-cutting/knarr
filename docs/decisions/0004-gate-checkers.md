@@ -8,7 +8,7 @@ requires: []
 
 # Decision 0004: Gate checkers
 
-Adapted from libpawdoku's [Decision 0004: Hook runner and checkers](https://github.com/steven-cutting/libpawdoku/blob/51d8b55ac4f769a6a4d66abacb9642a7d4062127/docs/decisions/0004-hook-runner-and-checkers.md) at commit `51d8b55`. There the checkers came from the `biscuit-games-tooling` package, pinned as a git dependency. Here that pin is reversed: knarr copies what it keeps, and depends on no package.
+Adapted on 2026-10-07 from libpawdoku's [Decision 0004: Hook runner and checkers](https://github.com/steven-cutting/libpawdoku/blob/51d8b55ac4f769a6a4d66abacb9642a7d4062127/docs/decisions/0004-hook-runner-and-checkers.md) at commit `51d8b55`. There the checkers came from the `biscuit-games-tooling` package, pinned as a git dependency. Here that pin is reversed: knarr copies what it keeps, and depends on no package.
 
 ## Context
 
@@ -140,7 +140,7 @@ specs = "docs/specs/"
 
 How each checker changes to read it:
 
-- **validate_docs** reads `[docs] predicates` in place of `[tool.biscuit-games-tooling] predicates`, through `_project.predicates(root)`. That function is kept, rewritten to read `checks.toml`. It still returns the declared predicates and the subset that is enabled, and only the boolean `true` enables one. A quoted `"false"` must not count as enabled. Nothing else in validate_docs changes. Any exception the HTML explainer needs is 06's to add.
+- **validate_docs** reads `[docs] predicates` in place of `[tool.biscuit-games-tooling] predicates`, through `_project.predicates(root)`. That function is kept, rewritten to read `checks.toml`. It still returns the declared predicates and the subset that is enabled, and only the boolean `true` enables one. A quoted `"false"` must not count as enabled. Ticket 06 adds the HTML exception: `.html` and `.htm` pages use manifest-only metadata, join discovery and reachability through `<a href>` links, and leave HTML fragments and resources to lychee. Markdown frontmatter, heading, word-count, and content-marker rules do not apply to HTML. Adversarial review of 06 also led to strict manifest field types, file-read diagnostics, an explicit navigation-root requirement, and recognition of scheme-qualified and protocol-relative URLs. Markdown navigation and headings are parsed through `render_markdown.mjs`, using the `markdown-it` package and Node runtime already shipped in the pinned markdownlint-cli2 environment. This replaces raw-text regex extraction, which admitted links in comments and code while refusing valid reference links and anchors; it adds no package installer or independent version pin.
 - **validate_agents** reads four things from `[agents]`, each of which was a constant upstream:
   - `required_guidance` replaces `REQUIRED_GUIDANCE`
   - `adapters` replaces `ADAPTERS`
@@ -250,7 +250,7 @@ Not verified here:
 
 ## Consequences
 
-knarr ships Python: five checker files of about 1,000 lines before tests, all standard-library. Contributors need nothing new, because pixi provides python, pytest and ruff. The default environment is 100 MB larger on osx-arm64.
+knarr ships Python: the original five checker files were about 1,000 lines before tests, with standard-library imports only. The adapted docs checker also invokes a small JavaScript bridge to the parser bundled with the already-pinned markdownlint-cli2 tool; there is no separate npm installation. Contributors need nothing new, because pixi provides python, pytest and ruff. The default environment is 100 MB larger on osx-arm64.
 
 Upstream fixes no longer arrive as a moved pin. A fix in biscuit_games_tooling after `v0.3.0` reaches knarr only if someone copies it, and the header comment says what to compare against. In return, knarr can adapt its copies freely.
 

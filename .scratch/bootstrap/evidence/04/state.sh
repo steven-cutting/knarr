@@ -1,12 +1,14 @@
 #!/bin/sh
 # Ticket 04 evidence: read back every repository setting ticket 04 applied to
-# steven-cutting/knarr, and fail on any that differs. Read-only: every call is
-# a gh GET or a git read. Needs gh logged in with the repo scope.
+# steven-cutting/knarr, and every branch-protection field, applied or left at
+# its default, and fail on any that differs. Read-only: every call is a gh GET
+# or a git read. Needs gh logged in with the repo scope.
 # The required status checks are an argument, so 05 can rerun this after it
 # adds `check`: ticket 04 left the list empty.
 # Exits non-zero on any unexpected result, and on any gh or git error.
 # Usage: sh state.sh [comma-separated-required-checks] > state.txt 2>&1
 set -eu
+here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 repo=steven-cutting/knarr
 pushed=84668a5c9a0dfb38d91f66afb614bd240921c6b9 # the main ticket 04 pushed
 checks=$(printf '%s' "${1:-}" | tr ',' '\n' | sort | paste -s -d , -)
@@ -66,18 +68,9 @@ v=$(gh api "repos/$repo" --jq .security_and_analysis.dependabot_security_updates
 printf 'info Dependabot security updates: %s\n' "$v"
 
 echo; echo '== protection on main'
-echo 'fields: strict, required checks, administrators bound, pull request required,'
-echo '        approvals, force pushes, deletions, push restrictions'
-v=$(gh api "repos/$repo/branches/main/protection" --jq '[
-    .required_status_checks.strict,
-    ([.required_status_checks.checks[]?.context] | sort | join(",")),
-    .enforce_admins.enabled,
-    (.required_pull_request_reviews != null),
-    .required_pull_request_reviews.required_approving_review_count,
-    .allow_force_pushes.enabled,
-    .allow_deletions.enabled,
-    (.restrictions != null)
-  ] | map(tostring) | join(" ")') || fail 'reading protection failed'
-expect protection "$v" "false $checks false true 0 false false false"
+# protection.jq is the projection; projection-test.sh checks it offline.
+filter=$(cat "$here/protection.jq") || fail 'reading protection.jq failed'
+v=$(gh api "repos/$repo/branches/main/protection" --jq "$filter") || fail 'reading protection failed'
+expect protection "$v" "strict=false checks=$checks admins=false pr=true approvals=0 dismiss_stale=false code_owners=false last_push=false force_pushes=false deletions=false restrictions=false linear=false conversations=false signatures=false lock=false block_creations=false fork_syncing=false"
 v=$(gh api "repos/$repo/rulesets" --jq length) || fail 'reading rulesets failed'
 expect rulesets "$v" 0

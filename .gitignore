@@ -40,5 +40,11 @@ __pycache__/
 # goes here, never in a commit.
 ai_tmp/
 
-# Assistant state written on first use.
+# Assistant state written on first use, and Claude Code's runtime state.
+# agents-check reads only this file, so these must be listed here.
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
+.claude/routines/.state/
+.claude/worktrees/
+.claude/checkpoints/

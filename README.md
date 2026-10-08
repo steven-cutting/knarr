@@ -43,7 +43,9 @@ Only two recipes write files: `just initialize`, which writes ignored paths only
 every push to `main`, using the same locked environment and `just initialize`
 as contributors. Its aggregate `check` fails if any gate job fails, is cancelled,
 or is skipped. Configure `check` as the only required status check on `main`.
-When adding a gate job, add it to the aggregate's `needs` list.
+Add only required gate jobs to the aggregate's `needs` list. The initial kind
+and kwok jobs stay outside it; the kind smoke job must demonstrate stability
+for a stated period before becoming required (tickets 10 and 13).
 
 The separate [audit](.github/workflows/audit.yml) runs `just links-audit` on
 Mondays at 06:00 UTC and on manual dispatch. Remote link availability stays

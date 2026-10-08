@@ -4,6 +4,8 @@ A Kubernetes controller, written in Gleam on the BEAM, that biases Deployment sc
 
 See [docs/OVERVIEW.md](docs/OVERVIEW.md) for the project overview, goals, worker contract draft and open questions.
 
+AI agents start at [AGENTS.md](AGENTS.md), the one contract for working here; `CLAUDE.md` and the Copilot instructions only point to it.
+
 ## Getting started
 
 You need [pixi](https://pixi.sh) 0.81.0 or later, git, curl and a POSIX shell. pixi installs everything else from `pixi.lock`: Gleam, Erlang/OTP, `just`, Python and every gate tool ([Decision 0003](docs/decisions/0003-tool-manager.md)).

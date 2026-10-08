@@ -8,7 +8,8 @@ exclude: >-
     ai_tmp/|
     pixi\.lock$|
     manifest\.toml$|
-    \.scratch/bootstrap/evidence/
+    \.scratch/bootstrap/evidence/|
+    \.agents/skills/(allium|distill|elicit|propagate|tend|weed|witness)/
   )
 repos:
   - repo: builtin

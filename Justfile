@@ -93,6 +93,14 @@ manifest-check:
 docs-check:
     python3 scripts/checks/validate_docs.py
 
+# The agent surface: AGENTS.md's required phrases, the byte-pinned adapters,
+# the house skills with a bridge per runtime, and the vendored skills against
+# skills-lock.json (Decision 0004, ticket 09).
+[group('check')]
+[doc('Validate AGENTS.md, its adapters, the skills, their bridges and skills-lock.json')]
+agents-check:
+    python3 scripts/checks/validate_agents.py
+
 # Online checks stay outside the read-only, offline gate. Include hidden
 # bootstrap docs, while excluding Git internals and generated directories.
 [group('audit')]
@@ -150,4 +158,4 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check check-specs analyse-specs format-check build test test-checkers toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check agents-check check-specs analyse-specs format-check build test test-checkers toml-check lint

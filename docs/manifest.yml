@@ -237,6 +237,22 @@
       "requires": []
     },
     {
+      "path": "reference/testing.md",
+      "title": "Testing",
+      "kind": "reference",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "testing_toolkit",
+        "snapshot_workflow",
+        "sans_io_pattern"
+      ],
+      "requires": []
+    },
+    {
       "path": "tutorials/README.md",
       "title": "Tutorials: first repository check",
       "kind": "tutorial",

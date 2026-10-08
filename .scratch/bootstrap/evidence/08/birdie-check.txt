@@ -1,0 +1,92 @@
+date: 2026-10-08T07:35Z
+host: Darwin arm64
+commit: 17b500b (08-testing-toolkit)
+
+== setup: the clone borrows this checkout's tools
+ok   .pixi and .tools symlinked, build/packages copied; the worktree is clean
+ok   curl https://github.com fails inside the sandbox every just command runs in
+
+== baseline: just check passes
+     ==> just lint-gleam
+     ==> just test
+     ==> just snapshots-check
+     All checks passed and the worktree is unchanged.
+ok   just check passed offline; the worktree is unchanged
+
+== a changed snapshot: one character of the accepted file
+ok   just check exit 1, stopped at just test, naming the snapshot:
+     ==> just lock-check
+     ==> just env-check
+     ==> just manifest-check
+     ==> just docs-check
+     ==> just agents-check
+     ==> just check-specs
+     ==> just analyse-specs
+     ==> just format-check
+     ==> just lint-gleam
+     ==> just build
+     ==> just test
+       title: version request sent by fetch_version
+      2     - accept: application/jsom
+          2 + accept: application/json
+     12 passed, 1 failures
+ok   git status --untracked-files=all shows only the deliberate edit:  M test/birdie_snapshots/version_request_sent_by_fetch_version.accepted
+ok   git status --ignored shows the .new as ignored: !! test/birdie_snapshots/version_request_sent_by_fetch_version.new
+ok   just snapshots-check exit 1, naming the pending .new:
+     test/birdie_snapshots/version_request_sent_by_fetch_version.new
+     pending snapshots: review them with just snapshots-review
+ok   just snapshots-accept restored the committed file: git diff is empty and no .new remains
+     Accepting one new snapshot.
+     🐦‍⬛ Done!
+
+== a new snapshot: the accepted file deleted
+ok   just check exit 1, stopped at just test, naming the snapshot:
+     ==> just lock-check
+     ==> just env-check
+     ==> just manifest-check
+     ==> just docs-check
+     ==> just agents-check
+     ==> just check-specs
+     ==> just analyse-specs
+     ==> just format-check
+     ==> just lint-gleam
+     ==> just build
+     ==> just test
+     ── new snapshot ────────────────────────────────────────────────────────────────
+       title: version request sent by fetch_version
+     12 passed, 1 failures
+ok   Git sees only the deletion ( D test/birdie_snapshots/version_request_sent_by_fetch_version.accepted); the .new is ignored
+ok   just snapshots-check exit 1, naming the pending .new
+ok   just snapshots-accept restored the committed file: git diff is empty and no .new remains
+
+== an old .new is never accepted: the test fails before it snaps
+ok   just test removed the old .new; just snapshots-accept accepted nothing and the accepted file is unchanged
+      info: fails before it snaps
+     No new snapshots to accept.
+
+== a stale snapshot: an accepted file no test refers to
+ok   just test passes with the orphan present
+     13 passed, no failures
+ok   just snapshots-check exit 1, naming it:
+     Checking stale snapshots...
+     error: stale snapshot found
+     I found the following stale snapshots:
+       - orphan
+     Hint: run `gleam run -m birdie stale delete` to delete them
+ok   just snapshots-stale (exit 1) lists it
+
+== the referenced list is per worktree
+ok   just test wrote build/birdie/knarr_referenced.txt, inside this clone:
+     version_request_sent_by_fetch_version.accepted
+ok   neither this checkout's build/birdie list nor the one in the system TMPDIR changed
+
+== glinter passes a file it cannot parse; the wrapper fails it
+ok   gleam run -m glinter exit 0 on a file it cannot parse:
+     Error: Failed to parse <work>/broken.gleam
+     No issues found.
+ok   sh scripts/checks/run_glinter.sh exit 1 on the same file:
+     No issues found.
+     Error: Failed to parse <work>/broken.gleam
+     glinter skipped input it could not read or parse (above); failing instead of passing
+
+birdie-check.sh: all cases passed

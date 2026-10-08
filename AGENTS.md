@@ -31,6 +31,7 @@ These hold everywhere. Breaking one is a defect, not a trade-off.
 - Find the clause in `docs/specs/` first. A behaviour no clause states is a `spec-change`, not a judgement call in code.
 - Keep effects behind the sans-IO boundary: pure builders and decoders, with the sending function injected. FFI only in a named `*_ffi.erl` module; every new process under a supervisor.
 - Write the test first and watch it fail. Then `just format-check`, `just build` and `just test`, then `just check` before handing back. The `gleam-change` skill is the full procedure.
+- A changed snapshot is a question: accept it with `just snapshots-accept`, read `git diff test/birdie_snapshots/`, and give the reason in the pull request. [The testing reference](docs/reference/testing.md) has the workflow.
 </important>
 
 <important if="you are writing or changing an Allium specification under docs/specs/">
@@ -53,7 +54,7 @@ Every page is registered once in `docs/manifest.yml`, repeats its metadata in fr
 
 <important if="a gate recipe fails, or you are about to hand work back">
 
-- Rerun the one recipe `just check` named and read only the first failure. Fix it at the root with the `fix-quality` skill. `just fix` is the only recipe that rewrites tracked files; a check recipe that changed the worktree is a defect in that recipe.
+- Rerun the one recipe `just check` named and read only the first failure. Fix it at the root with the `fix-quality` skill. Only `just fix` and the snapshot recipes (`just snapshots-review`, `just snapshots-accept` and `just birdie`) rewrite tracked files; a check recipe that changed the worktree is a defect in that recipe.
 - Hand back only when `just check` ends with "All checks passed and the worktree is unchanged." and `git status --short` is empty. The `project-check` skill is the procedure.
 </important>
 

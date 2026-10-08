@@ -63,6 +63,8 @@ These depart from the plan or the ticket:
 - **`birdie` is a listed recipe, not private.** `reject` and `stale delete` need this worktree's `TMPDIR`, and birdie's own hint, a bare `gleam run -m birdie stale delete`, would read the shared list. The testing page says to use `just birdie`.
 - **`main`'s gate was red when this ticket started.** `just check` failed at `docs-check`, because PR #2 added Decision 0008 and PR #4 then brought in the docs contract, leaving 0008 unregistered and unreachable. This branch fixed it in a separate commit. PR #5 landed a byte-identical fix on `main` in the meantime, so rebasing onto `main` dropped that commit.
 - **The root README now says five recipe groups.** "Four groups" left out `audit`.
+- **`main` was merged in after #7, not rebased.** The pull request was already open, so a merge commit needs no force-push. Two conflicts were resolved by keeping both sides. The `check` recipe runs 09's `agents-check` and this branch's `lint-gleam` and `snapshots-check`. `docs/README.md` keeps `main`'s Reference bullet, with its agent-contract link, and this branch's Testing bullet below it.
+- **`.gitignore` lists Claude Code's runtime state.** After the merge, `just agents-check` failed in this worktree on `.claude/scheduled_tasks.lock`, which a running Claude Code session had written. The check reads only `.gitignore`, and only `.git/info/exclude` hid the file. The lock and Claude Code's other runtime paths now sit beside `.claude/settings.local.json`. A fresh clone, as in CI, has none of them.
 
 Verified rather than assumed:
 
@@ -88,9 +90,15 @@ Code review findings declined:
 - **`http_picture` neither escapes nor rejects a newline in a header value**, so two different requests could render alike. Snapshot inputs are fixed literals, and a header value that holds a newline is not valid HTTP.
 - **The manifest guard line is repeated in four recipes, and `manifest-check` runs five times per gate.** That is 03's existing pattern, and each run takes milliseconds. A wrapper for the guard would be a refactor of 03's recipes, outside this ticket.
 
+Pull request review findings applied:
+
+- **The lists of recipes that write files read as complete, and were not.** Copilot raised this twice, on the Justfile comment and the root README, and one fix answers both. `just test` and `just snapshots-stale` write ignored `.new` files and `build/birdie/knarr_referenced.txt`, and `just build` and `just lint-gleam` write under `build/`. The README also contradicted the testing page, which already said `test` writes "ignored paths only". Both now say any recipe may write ignored paths, and name the four recipes that change tracked files.
+- **The Justfile comment left out `just birdie reject`.** birdie's `reject_all` calls `update_accepted_snapshots`, which rewrites the header of a moved `.accepted` file, as the testing page says. The comment and the README now name it.
+- **09's `AGENTS.md` said `just fix` is the only recipe that rewrites tracked files.** That became false once this branch landed. It now names the snapshot recipes too.
+
 Follow-ups:
 
-- **09:** add one AGENTS.md sentence: accept snapshots with `just snapshots-accept`, read the diff, and give the reason in the pull request.
+- **09:** merged without the AGENTS.md sentence this note asked for, so this branch added it to the `src/` and `test/` block: accept a changed snapshot with `just snapshots-accept`, read `git diff test/birdie_snapshots/`, and give the reason in the pull request.
 - **11 and 13:** rerun `just initialize` (or `gleam deps download`) in each worktree to fetch the new hex packages. Until then, `just build` fails offline.
 - **14:** pass `httpc.send` to the S1 client's `fetch` functions unchanged. Move `gleam_http` and `gleam_json` into `[dependencies]` once `src/` uses them.
 - **26:** count snapshot tests like any other test. A snapshot covers no clause.

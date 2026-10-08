@@ -11,11 +11,11 @@ export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":"
 # Python would otherwise write __pycache__/ beside the checkers it runs.
 export PYTHONDONTWRITEBYTECODE := "1"
 
-# Which recipes write files: `initialize`, `fix`, `snapshots-review`,
-# `snapshots-accept` and `birdie`. Only `fix`, `snapshots-accept`, an accept
-# inside `snapshots-review`, and `birdie accept` or `birdie stale delete` touch
-# tracked files. Every recipe in the check group is read-only, and `just check`
-# proves it.
+# Any recipe may write ignored paths, such as build/ and the <title>.new a
+# failing snapshot test leaves. Four recipes change tracked files on purpose:
+# `fix`, `snapshots-review`, `snapshots-accept`, and `birdie` running
+# `accept`, `reject` or `stale delete`. None is in the check group, and
+# `just check` proves its recipes change nothing Git can see.
 
 # birdie keeps the list of snapshots a test run referenced in $TMPDIR, named by
 # project only, so every worktree would share one list. Each recipe that runs

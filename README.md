@@ -31,13 +31,19 @@ Then run the gate:
 just check
 ```
 
-`just --list` shows every recipe in four groups: setup, develop, format and check.
+`just --list` shows every recipe in five groups: setup, develop, format, check and audit.
 
 ## The gate
 
 `just check` is read-only. It runs each recipe in the check group through `scripts/checks/run_project_check.py`, which snapshots every tracked and untracked-unignored file first. The gate fails on the first recipe that changes any of them, even when that recipe passed ([Decision 0004](docs/decisions/0004-gate-checkers.md)).
 
-Only two recipes write files: `just initialize`, which writes ignored paths only, and `just fix`, which repairs formatting and lint findings in tracked files. The pre-commit hook runs the read-only config, `.pre-commit-config.yaml`. `just fix` runs `.pre-commit-fix.yaml`.
+Four recipes write files on purpose:
+
+- `just initialize` writes ignored paths only.
+- `just fix` repairs formatting and lint findings in tracked files.
+- `just snapshots-review` and `just snapshots-accept` accept snapshot changes into the tracked files under `test/birdie_snapshots/`.
+
+The pre-commit hook runs the read-only config, `.pre-commit-config.yaml`. `just fix` runs `.pre-commit-fix.yaml`. The [testing reference](docs/reference/testing.md) covers the snapshot recipes and how `just check` stays read-only around them.
 
 [CI](.github/workflows/ci.yml) runs `just check` on every pull request and
 every push to `main`, using the same locked environment and `just initialize`

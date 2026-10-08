@@ -1,6 +1,6 @@
-date: 2026-10-08T06:07Z
+date: 2026-10-08T06:27Z
 host: Darwin arm64
-commit: f345d9d (08-testing-toolkit)
+commit: b269f03 (08-testing-toolkit)
 
 == setup: the clone borrows this checkout's tools
 ok   .pixi and .tools symlinked, build/packages copied; the worktree is clean

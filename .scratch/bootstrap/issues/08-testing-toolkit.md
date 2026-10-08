@@ -72,6 +72,7 @@ Verified rather than assumed:
 Not verified:
 
 - Nothing ran on linux-64. CI's first run of this branch is the first.
+- `just snapshots-review`'s interactive `birdie review` step, `just birdie reject` and `just birdie stale delete` were only dry-run (`just -n`), never executed. `snapshots-accept`, `snapshots-stale`, `snapshots-check` and `birdie accept` ran in the worktree and in the evidence clone.
 - The `/version` body in the tests is cut down from a kind v1.35.8 reply by hand, not captured. The repository holds only the server's `gitVersion` (10's evidence). Kubernetes sends `major` and `minor` as strings, and a managed cluster's `minor` may carry a `+`. That is from memory of `version.Info`, so the example models them as strings, which commits to nothing.
 
 Code review findings applied:

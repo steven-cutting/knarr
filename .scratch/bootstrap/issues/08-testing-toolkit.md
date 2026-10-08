@@ -53,6 +53,7 @@ What birdie 2.0.2 does, read from its source and shown in [birdie-check.txt](../
 - **No check mode.** On a new or changed snapshot, `birdie.snap` always writes `<title>.new` and fails the test. "Non-writing" therefore means the gate's own contract: nothing Git can see changes. `test/birdie_snapshots/*.new` is gitignored, as `build/` is, and the gate fails at `just test` without the runner reporting a worktree change. The `.new` it leaves is what `just snapshots-review` reads next.
 - **The stale list is shared across worktrees by default.** birdie writes it to `$TMPDIR/knarr_referenced.txt`. Each birdie-running recipe sets `TMPDIR` to the ignored `build/birdie`. This is set per recipe, not exported, because the gate runner and pytest's `tmp_path` also read `TMPDIR`.
 - **A stale list can survive a run.** birdie empties the list only when a run reads an accepted snapshot, so `just test` deletes it first. `stale check` fails when the list is missing.
+- **`accept` takes every `.new` present, whichever run wrote it.** `just test` therefore removes every `.new` first (see the review findings below).
 - **Accepted files are reproducible.** The `file:` header is relative (`./test/…`), so an accept on another machine writes the same bytes. The evidence shows `git diff` empty after accepting.
 
 These depart from the plan or the ticket:
@@ -72,6 +73,19 @@ Not verified:
 
 - Nothing ran on linux-64. CI's first run of this branch is the first.
 - The `/version` body in the tests is cut down from a kind v1.35.8 reply by hand, not captured. The repository holds only the server's `gitVersion` (10's evidence). Kubernetes sends `major` and `minor` as strings, and a managed cluster's `minor` may carry a `+`. That is from memory of `version.Info`, so the example models them as strings, which commits to nothing.
+
+Code review findings applied:
+
+- **`just snapshots-accept` could accept an old picture.** It runs the tests, ignores their failure, and then accepts every `.new`. When a snapshot test failed before it reached `birdie.snap`, a `.new` from an earlier run was accepted into the tracked file. Reproduced by hand: a test that panics before it snaps, a planted wrong `.new`, then `birdie accept` replaced the accepted line. `just test` now removes every `.new` before it runs, so each one left is from that run. The evidence has the case.
+- **The lists of writing recipes left out `just birdie`**, which can delete or write tracked snapshot files. The root README and the Justfile comment now name it.
+- **The wrapper's pass-through test could not see word splitting.** The stand-in recorded `"$*"`. It now records one argument per line, and with the wrapper's `"$@"` unquoted the test fails.
+- **`snapshots-pending` passed on a directory it could not read**, because it sent `find`'s errors to `/dev/null`. A missing directory still means nothing is pending, and an unreadable one now fails with `find`'s error.
+- **`snapshots-stale` prints nothing when a test fails.** That is kept on purpose, because a test that fails before it snaps would make its snapshot look stale. The recipe's doc and the testing page now say "if they pass".
+
+Code review findings declined:
+
+- **`http_picture` neither escapes nor rejects a newline in a header value**, so two different requests could render alike. Snapshot inputs are fixed literals, and a header value that holds a newline is not valid HTTP.
+- **The manifest guard line is repeated in four recipes, and `manifest-check` runs five times per gate.** That is 03's existing pattern, and each run takes milliseconds. A wrapper for the guard would be a refactor of 03's recipes, outside this ticket.
 
 Follow-ups:
 

@@ -4,9 +4,9 @@
 # throwaway clone of the committed branch, this shows that the gate then fails
 # at `just test` without changing anything Git can see, that `just
 # snapshots-check` fails on the pending .new and on a stale snapshot, that
-# `just snapshots-accept` restores the committed file, where the referenced
-# list lives, and the glinter fail-open that scripts/checks/run_glinter.sh
-# closes.
+# `just snapshots-accept` restores the committed file and never accepts a .new
+# from an earlier run, where the referenced list lives, and the glinter
+# fail-open that scripts/checks/run_glinter.sh closes.
 # The clone borrows this checkout's .pixi and .tools (symlinked) and a copy of
 # build/packages, so it needs no network; every just command runs with outbound
 # network denied (sandbox-exec on macOS, unshare on Linux). It writes only to
@@ -127,6 +127,22 @@ git diff --quiet || { git diff; fail 'accepting did not restore the committed fi
 [ ! -e "$new" ] || fail 'a .new remains after accepting'
 clean 'after accepting the new snapshot'
 echo 'ok   just snapshots-accept restored the committed file: git diff is empty and no .new remains'
+
+echo; echo '== an old .new is never accepted: the test fails before it snaps'
+testfile=test/sans_io_example_test.gleam
+awk '{ print } /^pub fn snapshot_version_request_test\(\) -> Nil \{$/ { print "  panic as \"fails before it snaps\"" }' \
+  "$testfile" > "$work/early.gleam" && cp "$work/early.gleam" "$testfile"
+grep -q 'fails before it snaps' "$testfile" || fail 'the early failure did not apply'
+sed 's/^accept: application\/json$/accept: an-old-picture/' "$accepted" > "$new"
+run early.log snapshots-accept
+plain < "$work/early.log" | grep -q 'fails before it snaps' || { plain < "$work/early.log"; fail 'the test did not fail early'; }
+plain < "$work/early.log" | grep -q 'No new snapshots to accept' || { plain < "$work/early.log"; fail 'accept found a snapshot to accept'; }
+git diff --quiet -- "$accepted" || { git diff; fail 'accept took the old .new'; }
+[ ! -e "$new" ] || fail 'the old .new survived just test'
+echo 'ok   just test removed the old .new; just snapshots-accept accepted nothing and the accepted file is unchanged'
+show "$work/early.log" 'fails before it snaps|No new snapshots'
+git checkout -q -- "$testfile"
+clean 'after the early-failure case'
 
 echo; echo '== a stale snapshot: an accepted file no test refers to'
 printf '%s\n' '---' 'version: 2.0.2' 'title: orphan' '---' 'no test refers to this' > "$snapshots/orphan.accepted"

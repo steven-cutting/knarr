@@ -37,11 +37,12 @@ just check
 
 `just check` is read-only. It runs each recipe in the check group through `scripts/checks/run_project_check.py`, which snapshots every tracked and untracked-unignored file first. The gate fails on the first recipe that changes any of them, even when that recipe passed ([Decision 0004](docs/decisions/0004-gate-checkers.md)).
 
-Four recipes write files on purpose:
+Five recipes write files on purpose:
 
 - `just initialize` writes ignored paths only.
 - `just fix` repairs formatting and lint findings in tracked files.
 - `just snapshots-review` and `just snapshots-accept` accept snapshot changes into the tracked files under `test/birdie_snapshots/`.
+- `just birdie` runs any other birdie command. `just birdie stale delete` deletes tracked snapshot files.
 
 The pre-commit hook runs the read-only config, `.pre-commit-config.yaml`. `just fix` runs `.pre-commit-fix.yaml`. The [testing reference](docs/reference/testing.md) covers the snapshot recipes and how `just check` stays read-only around them.
 

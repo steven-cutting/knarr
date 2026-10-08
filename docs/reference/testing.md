@@ -73,9 +73,9 @@ A diff in an `.accepted` file is reviewed like code. The pull request that chang
 
 | Recipe | In `just check` | Writes | Does |
 | --- | --- | --- | --- |
-| `just test` | yes | ignored paths only | Runs every test. A new or changed snapshot fails and leaves `<title>.new`. |
+| `just test` | yes | ignored paths only | Removes every `.new`, then runs every test. A new or changed snapshot fails and leaves `<title>.new`. |
 | `just snapshots-check` | yes, after `test` | nothing | Fails on a pending `.new`, then on an accepted snapshot the last `just test` did not reference. |
-| `just snapshots-stale` | no | ignored paths only | Runs the tests, then lists stale snapshots. |
+| `just snapshots-stale` | no | ignored paths only | Runs the tests and, if they pass, lists stale snapshots. A test that fails before it snaps would make its snapshot look stale. |
 | `just snapshots-review` | no | tracked files, when you accept | Runs the tests (ignoring their failure), then opens birdie's interactive review. |
 | `just snapshots-accept` | no | tracked files | Runs the tests, then accepts every pending snapshot without prompting. Read the diff before committing. |
 | `just birdie <command>` | no | depends on the command | Any other birdie command, such as `reject` or `stale delete`. |
@@ -84,7 +84,7 @@ The usual loop: change the code, run `just test`, and see a snapshot fail with i
 
 ### birdie has no check mode
 
-birdie 2.0.2 has no mode that only compares: no flag, environment variable or setting. When a snapshot is new or changed, `birdie.snap` always writes `<title>.new` beside the accepted file, prints the picture or diff, and fails the test. The gate's "read-only" means what its runner checks: nothing Git can see may change ([Decision 0004](../decisions/0004-gate-checkers.md)). So `.gitignore` ignores `test/birdie_snapshots/*.new`, just as it ignores `build/`. A failing gate leaves the `.new` that `just snapshots-review` reads next. A test whose snapshot matches deletes any `.new` left over for it. The [ticket 08 evidence](../../.scratch/bootstrap/evidence/08/README.md) shows each case.
+birdie 2.0.2 has no mode that only compares: no flag, environment variable or setting. When a snapshot is new or changed, `birdie.snap` always writes `<title>.new` beside the accepted file, prints the picture or diff, and fails the test. The gate's "read-only" means what its runner checks: nothing Git can see may change ([Decision 0004](../decisions/0004-gate-checkers.md)). So `.gitignore` ignores `test/birdie_snapshots/*.new`, just as it ignores `build/`. A failing gate leaves the `.new` that `just snapshots-review` reads next. `just test` removes every `.new` before it runs, so each one left afterwards is a picture from that run, and no accept can take an older one. The [ticket 08 evidence](../../.scratch/bootstrap/evidence/08/README.md) shows each case.
 
 ### Each worktree keeps its own referenced list
 

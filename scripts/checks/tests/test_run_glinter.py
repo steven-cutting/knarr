@@ -23,13 +23,13 @@ UNAVAILABLE = "gleam is unavailable; run just initialize"
 
 
 def stand_in(tmp_path: Path, *, stdout: str = "", stderr: str = "", status: int = 0) -> Path:
-    """A `gleam` that records its arguments, prints what it is given, and exits."""
+    """A `gleam` that records its arguments, one per line, prints what it is given, and exits."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gleam = bin_dir / "gleam"
     gleam.write_text(
         "#!/bin/sh\n"
-        f'printf \'%s\\n\' "$*" > "{tmp_path / "arguments"}"\n'
+        f'printf \'%s\\n\' "$@" > "{tmp_path / "arguments"}"\n'
         f"printf '%s' '{stdout}'\n"
         f"printf '%s' '{stderr}' >&2\n"
         f"exit {status}\n"
@@ -58,9 +58,15 @@ def test_a_clean_run_passes_with_glinter_s_output(tmp_path: Path) -> None:
 def test_glinter_runs_through_gleam_with_the_arguments_passed_on(tmp_path: Path) -> None:
     bin_dir = stand_in(tmp_path)
     wrap(tmp_path, f"{bin_dir}:{BARE_PATH}", "--format", "json", "test/a b.gleam")
-    assert (tmp_path / "arguments").read_text() == (
-        "run --no-print-progress -m glinter --format json test/a b.gleam\n"
-    )
+    assert (tmp_path / "arguments").read_text().splitlines() == [
+        "run",
+        "--no-print-progress",
+        "-m",
+        "glinter",
+        "--format",
+        "json",
+        "test/a b.gleam",
+    ]
 
 
 def test_a_finding_keeps_glinter_s_status(tmp_path: Path) -> None:

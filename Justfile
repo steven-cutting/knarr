@@ -11,10 +11,11 @@ export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":"
 # Python would otherwise write __pycache__/ beside the checkers it runs.
 export PYTHONDONTWRITEBYTECODE := "1"
 
-# Which recipes write files: `initialize`, `fix`, `snapshots-review` and
-# `snapshots-accept`. Only `fix` and `snapshots-accept`, and an accept inside
-# `snapshots-review`, touch tracked files. Every recipe in the check group is
-# read-only, and `just check` proves it.
+# Which recipes write files: `initialize`, `fix`, `snapshots-review`,
+# `snapshots-accept` and `birdie`. Only `fix`, `snapshots-accept`, an accept
+# inside `snapshots-review`, and `birdie accept` or `birdie stale delete` touch
+# tracked files. Every recipe in the check group is read-only, and `just check`
+# proves it.
 
 # birdie keeps the list of snapshots a test run referenced in $TMPDIR, named by
 # project only, so every worktree would share one list. Each recipe that runs
@@ -49,23 +50,27 @@ build: manifest-check
 
 # A new or changed snapshot fails here. birdie then writes the new picture
 # beside the accepted one as <title>.new, which is ignored, so the gate stays
-# read-only; `just snapshots-review` shows it. The referenced list is removed
-# first because birdie empties it only when a run reads an accepted snapshot.
+# read-only; `just snapshots-review` shows it. Every .new is removed first, so
+# those left afterwards are this run's, and no accept takes an older picture.
+# So is the referenced list, which birdie empties only when a run reads an
+# accepted snapshot.
 [group('develop')]
 [group('check')]
 [doc('Run the Gleam tests, snapshot tests included (refuses a drifted manifest.toml)')]
 test: manifest-check
-    mkdir -p "{{ birdie_tmpdir }}"; rm -f "{{ birdie_tmpdir }}/knarr_referenced.txt"
+    mkdir -p "{{ birdie_tmpdir }}"; rm -f "{{ birdie_tmpdir }}/knarr_referenced.txt" test/birdie_snapshots/*.new
     before=$(cksum < manifest.toml); TMPDIR="{{ birdie_tmpdir }}" gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # `stale check` reads the list the last `just test` wrote: run without one, it
-# fails. Neither command here prompts or writes a tracked file.
+# fails. It runs only if the tests pass, because a test that fails before it
+# snaps leaves its snapshot unreferenced, and so falsely stale. Neither command
+# here prompts or writes a tracked file.
 [group('develop')]
-[doc('Run the tests, then list accepted snapshots no test referenced')]
+[doc('Run the tests and, if they pass, list accepted snapshots no test referenced')]
 snapshots-stale: test (birdie "stale" "check")
 
-# The tests run first, their failure ignored, so every .new shows the current
-# picture. Accepting writes tracked files under test/birdie_snapshots/.
+# The tests run first, their failure ignored, so every .new is a picture from
+# this run. Accepting writes tracked files under test/birdie_snapshots/.
 [group('develop')]
 [doc('Rerun the tests, then review each new or changed snapshot interactively')]
 snapshots-review:
@@ -157,16 +162,16 @@ lint-gleam: manifest-check
     before=$(cksum < manifest.toml); sh scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # birdie has no check mode: `just test`, which runs just before this in the
-# gate, has already failed on a new or changed snapshot. This fails on a .new
-# file left behind, such as one whose test was renamed, then on an accepted
-# snapshot the last `just test` did not reference.
+# gate, has already failed on a new or changed snapshot. Run on its own, after
+# a failing `just test`, this names each pending .new. Then it fails on an
+# accepted snapshot the last `just test` did not reference.
 [group('check')]
 [doc('Fail on a pending or stale snapshot (reads what the last just test left)')]
 snapshots-check: snapshots-pending (birdie "stale" "check")
 
 [private]
 snapshots-pending:
-    pending=$(find test/birdie_snapshots -type f -name '*.new' 2> /dev/null | sort); [ -z "$pending" ] || { printf '%s\n' "$pending" 'pending snapshots: review them with just snapshots-review' >&2; exit 1; }
+    [ -d test/birdie_snapshots ] || exit 0; pending=$(find test/birdie_snapshots -type f -name '*.new'); [ -z "$pending" ] || { printf '%s\n' "$pending" | sort >&2; echo 'pending snapshots: review them with just snapshots-review' >&2; exit 1; }
 
 [group('check')]
 [doc('Fail on unformatted or invalid TOML')]

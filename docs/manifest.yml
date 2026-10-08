@@ -140,6 +140,19 @@
       "requires": []
     },
     {
+      "path": "decisions/0008-safe-to-evict-on-upstream-ca.md",
+      "title": "Decision 0008: safe-to-evict on upstream Cluster Autoscaler",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_safe_to_evict_upstream_ca"
+      ],
+      "requires": []
+    },
+    {
       "path": "decisions/README.md",
       "title": "Decision records",
       "kind": "project",

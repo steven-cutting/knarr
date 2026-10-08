@@ -153,6 +153,19 @@
       "requires": []
     },
     {
+      "path": "decisions/0009-allium-objective-map.md",
+      "title": "Decision 0009: The Allium objective map",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_allium_objective_map"
+      ],
+      "requires": []
+    },
+    {
       "path": "decisions/README.md",
       "title": "Decision records",
       "kind": "project",
@@ -281,8 +294,8 @@
       "requires": []
     },
     {
-      "path": "decisions/0009-metrics.md",
-      "title": "Decision 0009: Prometheus metrics",
+      "path": "decisions/0010-metrics.md",
+      "title": "Decision 0010: Prometheus metrics",
       "kind": "decision",
       "audience": [
         "maintainer",

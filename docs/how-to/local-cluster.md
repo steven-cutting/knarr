@@ -71,5 +71,5 @@ readiness only. Both jobs remain outside aggregate `check`.
 
 After 14 consecutive days without infrastructure-related failures, a maintainer
 may consider making kind required. That is a separate branch-protection decision,
-not an automatic workflow change. See the [metrics decision](../decisions/0009-metrics.md)
+not an automatic workflow change. See the [metrics decision](../decisions/0010-metrics.md)
 and [testing reference](../reference/testing.md) for the other boundaries.

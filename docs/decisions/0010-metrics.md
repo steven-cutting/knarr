@@ -1,12 +1,12 @@
 ---
-title: "Decision 0009: Prometheus metrics"
+title: "Decision 0010: Prometheus metrics"
 kind: "decision"
 audience: ["maintainer", "agent"]
 canonical_for: ["decision_metrics"]
 requires: []
 ---
 
-# Decision 0009: Prometheus metrics
+# Decision 0010: Prometheus metrics
 
 ## Decision
 

@@ -36,7 +36,7 @@ Either way the library sits behind a `metrics` module. Metric names follow contr
 
 The skeleton has an OTP application callback, a Gleam supervisor and a Mist
 listener. Diagnostics routing is pure; metrics collection is injected at the
-adapter boundary. Decision 0009 chooses prometheus.erl, using 01's rebar3 proof.
+adapter boundary. Decision 0010 chooses prometheus.erl, using 01's rebar3 proof.
 The startup counter registers before listener startup and survives listener
 recovery. The skeleton makes no Kubernetes API calls.
 

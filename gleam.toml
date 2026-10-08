@@ -9,3 +9,19 @@ gleam_stdlib = ">= 1.0.0 and < 2.0.0"
 
 [dev_dependencies]
 gleeunit = ">= 1.11.0 and < 2.0.0"
+qcheck = ">= 1.0.5 and < 2.0.0"
+birdie = ">= 2.0.2 and < 3.0.0"
+glinter = ">= 2.19.2 and < 3.0.0"
+gleam_http = ">= 4.4.0 and < 5.0.0"
+gleam_json = ">= 3.1.0 and < 4.0.0"
+
+# glinter, run by `just lint-gleam` inside `just check`. Without `include` it
+# lints src/ alone.
+[tools.glinter]
+include = ["src/", "test/"]
+warnings_as_errors = true
+
+[tools.glinter.ignore]
+# gleeunit finds every public `_test` function by its name, so no module ever
+# imports one. The helper modules beside them keep the rule.
+"test/**/*_test.gleam" = ["unused_exports"]

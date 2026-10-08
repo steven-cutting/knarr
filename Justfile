@@ -11,9 +11,16 @@ export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":"
 # Python would otherwise write __pycache__/ beside the checkers it runs.
 export PYTHONDONTWRITEBYTECODE := "1"
 
-# Which recipes write files: only `fix` and `initialize` here (and 08's snapshot
-# review and accept recipes when they arrive). Only `fix` touches tracked files.
-# Every recipe in the check group is read-only, and `just check` proves it.
+# Which recipes write files: `initialize`, `fix`, `snapshots-review` and
+# `snapshots-accept`. Only `fix` and `snapshots-accept`, and an accept inside
+# `snapshots-review`, touch tracked files. Every recipe in the check group is
+# read-only, and `just check` proves it.
+
+# birdie keeps the list of snapshots a test run referenced in $TMPDIR, named by
+# project only, so every worktree would share one list. Each recipe that runs
+# birdie points TMPDIR here instead. It is set per recipe, not exported: the
+# gate runner and pytest's tmp_path also read TMPDIR.
+birdie_tmpdir := justfile_directory() / "build" / "birdie"
 [private]
 default:
     @just --list
@@ -40,11 +47,48 @@ initialize:
 build: manifest-check
     before=$(cksum < manifest.toml); gleam build --warnings-as-errors; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
+# A new or changed snapshot fails here. birdie then writes the new picture
+# beside the accepted one as <title>.new, which is ignored, so the gate stays
+# read-only; `just snapshots-review` shows it. The referenced list is removed
+# first because birdie empties it only when a run reads an accepted snapshot.
 [group('develop')]
 [group('check')]
-[doc('Run the Gleam tests (refuses a drifted manifest.toml)')]
+[doc('Run the Gleam tests, snapshot tests included (refuses a drifted manifest.toml)')]
 test: manifest-check
-    before=$(cksum < manifest.toml); gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+    mkdir -p "{{ birdie_tmpdir }}"; rm -f "{{ birdie_tmpdir }}/knarr_referenced.txt"
+    before=$(cksum < manifest.toml); TMPDIR="{{ birdie_tmpdir }}" gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+
+# `stale check` reads the list the last `just test` wrote: run without one, it
+# fails. Neither command here prompts or writes a tracked file.
+[group('develop')]
+[doc('Run the tests, then list accepted snapshots no test referenced')]
+snapshots-stale: test (birdie "stale" "check")
+
+# The tests run first, their failure ignored, so every .new shows the current
+# picture. Accepting writes tracked files under test/birdie_snapshots/.
+[group('develop')]
+[doc('Rerun the tests, then review each new or changed snapshot interactively')]
+snapshots-review:
+    -{{ just_executable() }} test
+    {{ just_executable() }} birdie review
+
+# For agents: accepts every pending snapshot without prompting. It writes
+# tracked files, so read their diff before committing.
+[group('develop')]
+[doc('Rerun the tests, then accept every new or changed snapshot (writes tracked files)')]
+snapshots-accept:
+    -{{ just_executable() }} test
+    {{ just_executable() }} birdie accept
+
+# birdie's command line, with this worktree's TMPDIR and the manifest guard:
+# `just birdie reject`, `just birdie stale delete`. A bare `gleam run -m
+# birdie stale ...`, as birdie's own hints suggest, reads the shared list in
+# the system's TMPDIR instead.
+[group('develop')]
+[doc("Run a birdie command (reject, stale delete) with this worktree's TMPDIR")]
+birdie +arguments: manifest-check
+    mkdir -p "{{ birdie_tmpdir }}"
+    before=$(cksum < manifest.toml); TMPDIR="{{ birdie_tmpdir }}" gleam run --no-print-progress -m birdie "$@"; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # The gate checkers' own tests (scripts/checks/tests/).
 [group('develop')]
@@ -55,11 +99,11 @@ test-checkers:
 
 # ----------------------------------------------------------------- format ---
 
-# Automatic repairs through the fix config, the only recipe that rewrites
-# tracked files. The config runs twice because one fixer's first pass may
-# leave what another then repairs.
+# Automatic repairs through the fix config, which rewrites tracked files. The
+# config runs twice because one fixer's first pass may leave what another then
+# repairs.
 [group('format')]
-[doc('Repair formatting and lint findings in place (the only recipe that edits tracked files)')]
+[doc('Repair formatting and lint findings in place (edits tracked files)')]
 fix:
     -prek run --all-files --config .pre-commit-fix.yaml
     prek run --all-files --config .pre-commit-fix.yaml
@@ -104,6 +148,25 @@ links-audit:
 [doc('Fail on unformatted Gleam')]
 format-check:
     gleam format --check src test
+
+# [tools.glinter] in gleam.toml sets what is linted and the rules. glinter
+# passes when it skips a file it cannot parse; the wrapper fails instead.
+[group('check')]
+[doc('Lint src/ and test/ with glinter, warnings as errors (refuses a drifted manifest.toml)')]
+lint-gleam: manifest-check
+    before=$(cksum < manifest.toml); sh scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+
+# birdie has no check mode: `just test`, which runs just before this in the
+# gate, has already failed on a new or changed snapshot. This fails on a .new
+# file left behind, such as one whose test was renamed, then on an accepted
+# snapshot the last `just test` did not reference.
+[group('check')]
+[doc('Fail on a pending or stale snapshot (reads what the last just test left)')]
+snapshots-check: snapshots-pending (birdie "stale" "check")
+
+[private]
+snapshots-pending:
+    pending=$(find test/birdie_snapshots -type f -name '*.new' 2> /dev/null | sort); [ -z "$pending" ] || { printf '%s\n' "$pending" 'pending snapshots: review them with just snapshots-review' >&2; exit 1; }
 
 [group('check')]
 [doc('Fail on unformatted or invalid TOML')]
@@ -150,4 +213,4 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check check-specs analyse-specs format-check build test test-checkers toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check check-specs analyse-specs format-check lint-gleam build test snapshots-check test-checkers toml-check lint

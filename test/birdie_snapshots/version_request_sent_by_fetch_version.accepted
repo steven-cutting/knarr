@@ -1,0 +1,8 @@
+---
+version: 2.0.2
+title: version request sent by fetch_version
+file: ./test/sans_io_example_test.gleam
+test_name: snapshot_version_request_test
+---
+GET https://kind-control-plane/version
+accept: application/json

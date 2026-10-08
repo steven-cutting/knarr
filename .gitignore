@@ -8,9 +8,17 @@
 
 .DS_Store
 
-# Gleam's build output and its downloaded packages.
+# Gleam's build output and its downloaded packages. The snapshot recipes also
+# point birdie's TMPDIR at build/birdie, so each worktree keeps its own list of
+# referenced snapshots.
 build/
 erl_crash.dump
+
+# A snapshot test that finds a new or changed picture writes it beside the
+# accepted one as <title>.new and fails; birdie has no mode that skips the
+# write. Ignoring it keeps `just check` read-only, and `just snapshots-review`
+# reads it next.
+test/birdie_snapshots/*.new
 
 # The pixi environments `just initialize` installs from pixi.lock (Decision
 # 0003): the compiler, OTP, Python and every gate tool.

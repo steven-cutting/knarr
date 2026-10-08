@@ -1,3 +1,11 @@
+---
+title: "Knarr: Project Overview"
+kind: "explanation"
+audience: ["contributor", "maintainer", "agent"]
+canonical_for: ["project_overview"]
+requires: []
+---
+
 # Knarr: Project Overview
 
 > **Status:** Draft, scoped to the MVP. This document sets a high-level direction for later work and for drafting tickets. It is not a specification. Anything marked **OPEN** has not been decided and will be settled in a ticket. **Recommended** means a proposed default, not a decision. Post-MVP options, alternatives and research notes live in [DEFERRED.md](DEFERRED.md).

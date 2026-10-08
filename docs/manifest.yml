@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "pages": [
+    {
+      "path": "DEFERRED.md",
+      "title": "Knarr: Deferred Options and Research",
+      "kind": "project",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "deferred_options"
+      ],
+      "requires": []
+    },
+    {
+      "path": "OVERVIEW.md",
+      "title": "Knarr: Project Overview",
+      "kind": "explanation",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "project_overview"
+      ],
+      "requires": []
+    },
+    {
+      "path": "README.md",
+      "title": "Knarr documentation",
+      "kind": "project",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "documentation_navigation"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0001-specs-decide-behaviour.md",
+      "title": "Decision 0001: Specifications decide behaviour",
+      "kind": "decision",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_spec_first"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0002-sans-io-boundaries.md",
+      "title": "Decision 0002: Effects live behind sans-IO boundaries",
+      "kind": "decision",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_sans_io"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0003-tool-manager.md",
+      "title": "Decision 0003: Tool manager",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_tool_manager"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0004-gate-checkers.md",
+      "title": "Decision 0004: Gate checkers",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_gate_checkers"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0005-project-managed-allium-cli.md",
+      "title": "Decision 0005: A project-managed Allium binary",
+      "kind": "decision",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_allium_cli"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0006-apache-2-0.md",
+      "title": "Decision 0006: Apache-2.0",
+      "kind": "decision",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_license"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0007-local-cluster.md",
+      "title": "Decision 0007: Local cluster and test tiers",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_local_cluster",
+        "test_tiers"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/README.md",
+      "title": "Decision records",
+      "kind": "project",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_navigation"
+      ],
+      "requires": []
+    },
+    {
+      "path": "explanation/README.md",
+      "title": "Explanation: controller boundaries",
+      "kind": "explanation",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "controller_explanation_navigation"
+      ],
+      "requires": []
+    },
+    {
+      "path": "how-to/README.md",
+      "title": "How to change the documentation",
+      "kind": "how-to",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "change_documentation"
+      ],
+      "requires": []
+    },
+    {
+      "path": "project/README.md",
+      "title": "Project direction and scope",
+      "kind": "project",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "project_navigation"
+      ],
+      "requires": []
+    },
+    {
+      "path": "reference/documentation-contract.md",
+      "title": "Documentation contract",
+      "kind": "reference",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "documentation_contract"
+      ],
+      "requires": []
+    },
+    {
+      "path": "tutorials/README.md",
+      "title": "Tutorials: first repository check",
+      "kind": "tutorial",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "first_repository_check"
+      ],
+      "requires": []
+    },
+    {
+      "path": "overview-explainer.html",
+      "title": "Knarr Overview Explainer",
+      "kind": "explanation",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "overview_visual_explainer"
+      ],
+      "requires": []
+    }
+  ]
+}

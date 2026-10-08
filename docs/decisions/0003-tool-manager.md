@@ -8,7 +8,7 @@ requires: []
 
 # Decision 0003: Tool manager
 
-Adapted from libpawdoku's [Decision 0011: Tool manager](https://github.com/steven-cutting/libpawdoku/blob/51d8b55ac4f769a6a4d66abacb9642a7d4062127/docs/decisions/0011-tool-manager.md) at commit `51d8b55`. There pixi owned the tools and rustup kept the compiler. Here pixi owns the compiler too.
+Adapted on 2026-10-07 from libpawdoku's [Decision 0011: Tool manager](https://github.com/steven-cutting/libpawdoku/blob/51d8b55ac4f769a6a4d66abacb9642a7d4062127/docs/decisions/0011-tool-manager.md) at commit `51d8b55`. There pixi owned the tools and rustup kept the compiler. Here pixi owns the compiler too.
 
 ## Context
 

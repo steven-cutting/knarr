@@ -20,7 +20,7 @@ default:
 
 # ------------------------------------------------------------------ setup ---
 
-# The one first-run command, and the only one that needs network: the pixi
+# The one first-run command; it needs network, as does links-audit: the pixi
 # environment, the tools.txt downloads, and Gleam's hex packages. Hooks install
 # from the primary checkout only. Never stages, commits or pushes.
 [group('setup')]
@@ -89,6 +89,18 @@ manifest-check:
     python3 scripts/checks/manifest_check.py
 
 [group('check')]
+[doc('Validate documentation metadata, registration, links, and reachability')]
+docs-check:
+    python3 scripts/checks/validate_docs.py
+
+# Online checks stay outside the read-only, offline gate. Include hidden
+# bootstrap docs, while excluding Git internals and generated directories.
+[group('audit')]
+[doc('Check Markdown and HTML links online (separate from the offline gate)')]
+links-audit:
+    lychee --no-progress --include-fragments --hidden --extensions md,html,htm --exclude-path '(^|/)(\.git|\.pixi|\.tools|build|ai_tmp)/' .
+
+[group('check')]
 [doc('Fail on unformatted Gleam')]
 format-check:
     gleam format --check src test
@@ -122,4 +134,4 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check format-check build test test-checkers toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check format-check build test test-checkers toml-check lint

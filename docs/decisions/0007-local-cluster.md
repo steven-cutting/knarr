@@ -3,7 +3,7 @@ title: "Decision 0007: Local cluster and test tiers"
 kind: "decision"
 audience: [maintainer, agent]
 canonical_for: [decision_local_cluster, test_tiers]
-requires: [decision_tool_manager]
+requires: []
 ---
 
 # Decision 0007: Local cluster and test tiers

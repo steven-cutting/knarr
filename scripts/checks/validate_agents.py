@@ -32,6 +32,7 @@ CANONICAL_SKILLS = Path(".agents/skills")
 LOCK_FILE = "skills-lock.json"
 LOCK_SCHEMA = 1
 SHA256 = re.compile(r"[0-9a-f]{64}")
+COMMIT = re.compile(r"[0-9a-f]{40}")
 # The whole of a bridge body. Compared against this rather than measured: a word
 # budget lets a bridge carry an instruction of its own as long as it is brief,
 # and an instruction surface that says "this bridge adds nothing" has to mean it.
@@ -40,11 +41,14 @@ BRIDGE_BODY = (
     "That file is canonical and this bridge adds nothing to it."
 )
 UNRESOLVED = re.compile(r"{" + r"{|{" + r"%|{" + r"#")
+# What `lock` mode prints when no lock exists to copy `source` from. The
+# commit is not hex on purpose: the gate refuses it until the provenance is
+# written by hand, so a fresh lock cannot pass with no provenance at all.
 PLACEHOLDER_SOURCE = {
     "repository": "https://example.invalid/replace-me",
-    "tag": "v0.0.0",
-    "commit": "0" * 40,
-    "licence": "unknown",
+    "tag": "replace with the upstream tag",
+    "commit": "replace with the upstream commit, 40 hex digits",
+    "licence": "replace with the upstream licence",
 }
 
 
@@ -160,6 +164,9 @@ def _parse_lock(data: object) -> dict[str, dict[PurePosixPath, str]]:
         for field in ("repository", "tag", "commit")
     ):
         message = "source must name the repository, tag and commit"
+        raise ValueError(message)
+    if not COMMIT.fullmatch(source["commit"]):
+        message = "source.commit must be a 40-digit lowercase hex commit"
         raise ValueError(message)
     skills = data.get("skills")
     if not isinstance(skills, dict):

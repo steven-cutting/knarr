@@ -552,6 +552,8 @@ def test_lock_entry_without_skill_md_is_refused(surface: Path) -> None:
         lock_text(schema_version=2),
         '{"schema_version": 1, "skills": {}}',
         lock_text(source={"repository": "x"}),
+        lock_text(source={**SOURCE, "commit": "7f7f008e"}),
+        lock_text(source={**SOURCE, "commit": "0" * 39 + "G"}),
         lock_text(skills=[]),
         lock_text(skills={"allium": {"files": ["SKILL.md"], "upstream_path": "skills/allium"}}),
         lock_text(skills=entry({"SKILL.md": "abc"})),
@@ -648,7 +650,9 @@ def test_lock_mode_prints_a_lock_that_validates(surface: Path) -> None:
     assert check(surface).returncode == 0
 
 
-def test_lock_mode_without_an_existing_lock_uses_placeholders(surface: Path) -> None:
+def test_lock_mode_without_an_existing_lock_prints_placeholders_the_gate_refuses(
+    surface: Path,
+) -> None:
     vendor(surface, "allium", VENDORED_FILES)
     (surface / "skills-lock.json").unlink()
     result = check(surface, "lock", "allium")
@@ -656,6 +660,12 @@ def test_lock_mode_without_an_existing_lock_uses_placeholders(surface: Path) -> 
     printed = json.loads(result.stdout)
     assert set(printed["source"]) >= {"repository", "tag", "commit"}
     assert printed["skills"]["allium"]["files"]["SKILL.md"] == sha256(VENDORED_SKILL.encode())
+    # A shell redirect truncates the lock before lock mode reads it, so the
+    # placeholders must not pass as provenance.
+    write(surface, "skills-lock.json", result.stdout)
+    result = check(surface)
+    assert result.returncode == 1
+    assert "skills-lock.json: source.commit must be a 40-digit" in result.stderr
 
 
 def test_lock_mode_refuses_no_names_or_an_absent_skill(surface: Path) -> None:

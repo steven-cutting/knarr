@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "skills": {
+    "allium": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "bad4431c65c9ad3e9b6192d851d857e6720e8947067d2e9be0e2ab77c942ad54",
+        "references/actioning-findings.md": "66e250cf0403929146d375411f1e10e55f28d0b306b87af568f2a078d0c485db",
+        "references/assessing-specs.md": "c2af229a914a709d13acc94d303ae4dd988eabc86f2ed31f3c06720633cc66c3",
+        "references/driving-the-loop.md": "71e36b0a5b42176572fb1565a747bfc5a0bcb0f84d935fb9377bc652e9f7a4fd",
+        "references/integrating-slices.md": "5b2f15611a929e2a80d374262d170015664019ff761dbc9135e11308051b7acc",
+        "references/language-reference.md": "501039c32ad610043c1be6f9c8102480cf3d7dce59fe6f733b9fa3e4ea2435a1",
+        "references/migration-v1-to-v2.md": "62fbe27570a62ecd168e55e0d6336e86c1b53d9f98211238b6198e6842d4af8e",
+        "references/migration-v2-to-v3.md": "5a0a06832bca27d5105a9ba8ba3f89b69a62311ef0d6b71a3f8a141669dfe9d0",
+        "references/patterns.md": "f64889cdb2614236f4d3fe66884769edf65ed7b6040f8044846433d194d38da7",
+        "references/recommended-loops.md": "714929d2944839e92380549c08c1a4d4fa9a43a9d1bcd9bdfa0b81c1c91d5502",
+        "references/schemas/distill-result.schema.json": "138f5745f816b6e9fafb7d2addab94e2075a3966e0923485cc407d18ba99805e",
+        "references/schemas/ledger.schema.json": "ec714ab15da38edad55c5e220c5da8f434551d3480257b45e9c800be822cf0d0",
+        "references/schemas/propagate-result.schema.json": "a653b2921c4aabe9e8d54708df17a7540cd27652ffc0cb3378c753adf8339af5",
+        "references/schemas/tend-result.schema.json": "4c38cee772268f576d98a453ebe0f35f857cf9563f1a3e2b2c1db362f750763e",
+        "references/schemas/trace-entry.schema.json": "037853ee1a9b932a62a5f4c4a65e7a69cb000c0102346dcf7c94d350d28b7475",
+        "references/schemas/weed-result.schema.json": "556f1feb11fb57d10f8808b0bf03b61d897d8912c60e4ca6c9757253c1ad161a",
+        "references/schemas/witness-result.schema.json": "ea03ee7c93c7d668a42a8aaa51f79eadd9536886373b404df24e6dff81159f8c",
+        "references/test-generation.md": "11b9ffd17f1efc1f21cc1769ff7b85b54eb617e17d24fb03c4afdc766cc4c128"
+      },
+      "upstream_path": "skills/allium"
+    },
+    "distill": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "5c0eb0f24c8a004c69a6775bf7996224e563d7042ff3fe3b44bff29b8a48d2d8",
+        "references/worked-examples.md": "3a13d5088a1edb1606c0ed1ab03ca20c51d076cfc2037be9395ad74477877b14"
+      },
+      "upstream_path": "skills/distill"
+    },
+    "elicit": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "cdafcd7f03606adcc990ae35ed5a97fe91a1e2bf00dde675c7f1d5f74dc9010f",
+        "references/assumption-checking.md": "1ec5014e6e772cb07fd11156900f607f5ec0a51f5c375c418690590cc811f373",
+        "references/detail-elicitation.md": "0d95202c16d2d22477bffd5476afee420c1388ce5db61addafb599292483ce59",
+        "references/library-spec-signals.md": "fc7877e710521fb1b8413acec754892f3bbc5cd116cc82f75bb8e7d75ea88602",
+        "references/obstacle-elicitation.md": "803e42bef0ded24b3a403d81058ed09faac07fe901f308d4b44cc4962bb89a3d",
+        "references/process-discovery.md": "7c8b9b09bef7e3fa171328b19df59f7962313f4063a03b95a23bd60d70086d73"
+      },
+      "upstream_path": "skills/elicit"
+    },
+    "propagate": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "5e2d88808bd92bc65cd92802ed8e12e46960fda998b67f725a10a7aea509af96"
+      },
+      "upstream_path": "skills/propagate"
+    },
+    "tend": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "631e5a25350937a7f98640d67d187e3813f39184baf7f25dd553381495dd092e"
+      },
+      "upstream_path": "skills/tend"
+    },
+    "weed": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "63199129376f307ee3b585581d5f5b9a6bd2e57625f85bc02bcda6a4f928f869"
+      },
+      "upstream_path": "skills/weed"
+    },
+    "witness": {
+      "files": {
+        "LICENSE": "6d4b654eaa990b380aa2b6488a9de259265576809d8022f66bed6c243956e531",
+        "SKILL.md": "ce036cfcad3b2215132245d1443e7552afaf6cd043e5cd51f3ef28abef837189"
+      },
+      "upstream_path": "skills/witness"
+    }
+  },
+  "source": {
+    "commit": "7f7f008e0c6b0a17cc81f5cb1c05a4b923cd63c2",
+    "licence": "MIT",
+    "repository": "https://github.com/juxt/allium",
+    "tag": "v3.16.0"
+  }
+}

@@ -8,9 +8,29 @@
     "MD024": { "siblings_only": true },
     // Frontmatter carries a title field, but the level-one heading in the body
     // is the document's real title and the docs contract requires it.
-    "MD025": { "front_matter_title": "" }
+    "MD025": { "front_matter_title": "" },
+    // AGENTS.md wraps task-specific guidance in <important if="..."> blocks,
+    // the relevance signal agent runtimes read; nothing else is inline HTML.
+    "MD033": { "allowed_elements": ["important"] },
+    // A skill bridge is frontmatter and one sentence; the agents validator
+    // fixes that body, so a heading cannot be added. CLAUDE.md is one line.
+    "MD041": false
   },
   // .scratch/ is named because ** does not descend into dot-directories.
   "globs": ["**/*.md", ".scratch/**/*.md"],
-  "ignores": [".pixi", ".tools", "build", "ai_tmp"]
+  // The vendored Allium skills are upstream bytes pinned by skills-lock.json
+  // and never reformatted here.
+  "ignores": [
+    ".pixi",
+    ".tools",
+    "build",
+    "ai_tmp",
+    ".agents/skills/allium",
+    ".agents/skills/distill",
+    ".agents/skills/elicit",
+    ".agents/skills/propagate",
+    ".agents/skills/tend",
+    ".agents/skills/weed",
+    ".agents/skills/witness"
+  ]
 }

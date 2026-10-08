@@ -47,11 +47,15 @@ repos:
         pass_filenames: false
         types: [toml]
 
+      # The vendored Allium skills are upstream bytes pinned by skills-lock.json
+      # (ticket 09): the layout and spelling hooks skip them, lychee still
+      # resolves their links, and the fix config never rewrites them.
       - id: typos
         name: typos
         entry: sh scripts/with-env.sh typos --force-exclude
         language: system
         types: [text]
+        exclude: ^\.agents/skills/(allium|distill|elicit|propagate|tend|weed|witness)/
 
       # --no-globs: lint only the files prek passes. The config's `globs` are
       # for running markdownlint-cli2 by hand, and merging them in would lint
@@ -61,6 +65,7 @@ repos:
         entry: sh scripts/with-env.sh markdownlint-cli2 --no-globs
         language: system
         types: [markdown]
+        exclude: ^\.agents/skills/(allium|distill|elicit|propagate|tend|weed|witness)/
 
       - id: lychee
         name: lychee (offline, local links only)
@@ -81,7 +86,7 @@ repos:
         types: [text]
         # Evidence transcripts are recorded tool output, kept byte for byte,
         # and the evidence scripts keep the layout they were verified with.
-        exclude: ^\.scratch/bootstrap/evidence/
+        exclude: ^(\.scratch/bootstrap/evidence/|\.agents/skills/(allium|distill|elicit|propagate|tend|weed|witness)/)
 
       - id: ruff-check
         name: ruff check

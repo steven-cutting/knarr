@@ -1,0 +1,20 @@
+# The projection state.sh reads branch protection through, and the one
+# projection-test.sh checks offline. One labelled line, in a fixed order. A
+# missing field prints `null`, so it can never match the expected line.
+"strict=\(.required_status_checks.strict)"
++ " checks=\([.required_status_checks.checks[]?.context] | sort | join(","))"
++ " admins=\(.enforce_admins.enabled)"
++ " pr=\(.required_pull_request_reviews != null)"
++ " approvals=\(.required_pull_request_reviews.required_approving_review_count)"
++ " dismiss_stale=\(.required_pull_request_reviews.dismiss_stale_reviews)"
++ " code_owners=\(.required_pull_request_reviews.require_code_owner_reviews)"
++ " last_push=\(.required_pull_request_reviews.require_last_push_approval)"
++ " force_pushes=\(.allow_force_pushes.enabled)"
++ " deletions=\(.allow_deletions.enabled)"
++ " restrictions=\(.restrictions != null)"
++ " linear=\(.required_linear_history.enabled)"
++ " conversations=\(.required_conversation_resolution.enabled)"
++ " signatures=\(.required_signatures.enabled)"
++ " lock=\(.lock_branch.enabled)"
++ " block_creations=\(.block_creations.enabled)"
++ " fork_syncing=\(.allow_fork_syncing.enabled)"

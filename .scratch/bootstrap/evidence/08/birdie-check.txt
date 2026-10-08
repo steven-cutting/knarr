@@ -1,6 +1,6 @@
-date: 2026-10-08T06:27Z
+date: 2026-10-08T07:35Z
 host: Darwin arm64
-commit: b269f03 (08-testing-toolkit)
+commit: 17b500b (08-testing-toolkit)
 
 == setup: the clone borrows this checkout's tools
 ok   .pixi and .tools symlinked, build/packages copied; the worktree is clean
@@ -19,6 +19,7 @@ ok   just check exit 1, stopped at just test, naming the snapshot:
      ==> just env-check
      ==> just manifest-check
      ==> just docs-check
+     ==> just agents-check
      ==> just check-specs
      ==> just analyse-specs
      ==> just format-check
@@ -44,6 +45,7 @@ ok   just check exit 1, stopped at just test, naming the snapshot:
      ==> just env-check
      ==> just manifest-check
      ==> just docs-check
+     ==> just agents-check
      ==> just check-specs
      ==> just analyse-specs
      ==> just format-check

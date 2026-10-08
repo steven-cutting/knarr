@@ -1,4 +1,4 @@
-# 30: Close the remaining bootstrap verification gaps
+# 35: Close the remaining bootstrap verification gaps
 
 **Context:** [Ticket 11's audit](../evidence/11/README.md) distinguishes evidence from the claims tickets 01–09 left unverified. The integrated gate is exercised locally and in native Linux CI, but that does not exercise every probe or agent runtime those tickets discussed.
 
@@ -24,4 +24,4 @@
 
 ## Hand-back requirements
 
-Link each result from ticket 11's inventory. Keep raw working material under `ai_tmp/` and durable, reviewed evidence under `.scratch/bootstrap/evidence/30/`. Request authorization separately for network use, hosted dispatch, or access outside the ticket worktree. Record any remaining item as open rather than inferring success from an unrelated green gate.
+Link each result from ticket 11's inventory. Keep raw working material under `ai_tmp/` and durable, reviewed evidence under `.scratch/bootstrap/evidence/35/`. Request authorization separately for network use, hosted dispatch, or access outside the ticket worktree. Record any remaining item as open rather than inferring success from an unrelated green gate.

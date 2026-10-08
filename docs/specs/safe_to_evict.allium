@@ -1,0 +1,20 @@
+-- allium: 3
+
+-- Module: safe_to_evict.
+-- Scope: when knarr sets cluster-autoscaler.kubernetes.io/safe-to-evict to
+-- "false", when it removes it, and that it never writes "true" by default: the
+-- threshold and its hysteresis against Cluster Autoscaler's blackout, pods
+-- with local storage, caps that avoid pinning nodes, and the best-effort limits
+-- (§6, §9.9). Grounded in Decision 0008 (spike S2a, ticket 15); GKE
+-- confirmation is spike S2b (ticket 16).
+-- Owner: ticket 25.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "§9.9 Threshold: which band or bands write \"false\", and the hysteresis around them, wider than the cost banding (Decision 0008)."
+open question "§9.9 Removal: that ending protection removes the annotation rather than writing \"true\", and what is written for pods with emptyDir or hostPath volumes (Decision 0008, Exp4)."
+open question "§9.9 Pinning: the cap on the share of a workload's pods marked at once and on how long one mark is held, with expiry left to §9.12."
+open question "§9.9 Best effort: how the clauses state that a mark is honoured only up to CA's one re-check and not once eviction has started (Decision 0008)."
+open question "§9.9 GKE: which clauses spike S2b (ticket 16) must confirm on GKE's managed Cluster Autoscaler, including local-storage pods on control plane 1.22 or later."

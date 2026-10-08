@@ -1,0 +1,19 @@
+-- allium: 3
+
+-- Module: k8s_client.
+-- Scope: the in-cluster API boundary (§8, §9.2). Verified TLS with the
+-- service-account CA and an IP-SAN hostname check, token reload from disk,
+-- get, list and patch on pods, get and list on Deployments and ReplicaSets, the
+-- minimum namespaced Role, and the patch content types and preconditions the
+-- write mode needs (§9.10).
+-- Owner: spike S1 (ticket 14) drafts this module's spec-then-build pair; ticket
+-- 22 amends it with what the write mode needs. Blocked on S1.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "§9.2 TLS: the exact ssl options, and whether hostname verification against the IP in KUBERNETES_SERVICE_HOST works (spike S1, ticket 14)."
+open question "§9.2 Tokens: how often the projected service-account token is re-read, and what happens when the read fails (ticket 14)."
+open question "§9.2 Verbs: the exact verbs on pods, deployments, replicasets and events the Role grants, to be confirmed by what the client uses (§8 RBAC, ticket 14)."
+open question "§9.10 Patch support: the patch content types and preconditions the client must support once ticket 22 chooses the write mode."

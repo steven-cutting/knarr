@@ -8,7 +8,7 @@
 
 **Blocked by:** 13
 
-**From 11:** [30](30-bootstrap-verification-gaps.md) tracks native Linux TLS/rebar3 probes and `/version` fixture provenance; coordinate those items before treating 01's emulated TLS results or 08's hand-written fixture as native or captured evidence.
+**From 11:** [35](35-bootstrap-verification-gaps.md) tracks native Linux TLS/rebar3 probes and `/version` fixture provenance; coordinate those items before treating 01's emulated TLS results or 08's hand-written fixture as native or captured evidence.
 
 **MVP critical path:** yes. The whole controller depends on this client, and S1 validates §9.2.
 

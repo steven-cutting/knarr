@@ -1,4 +1,8 @@
 -- allium: 3
 
 -- Knarr root specification.
--- Behaviour clauses will be added by the elicitation tickets.
+-- Behaviour clauses will be added by the elicitation tickets. Decision 0009
+-- maps OVERVIEW §4–§9 onto the modules beside this file, each of which holds
+-- only the open questions its owning ticket settles:
+--   worker_contract, config, banding, reconcile, ownership, lifecycle, budget,
+--   safe_to_evict, k8s_client and observability.

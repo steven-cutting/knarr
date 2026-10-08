@@ -22,17 +22,17 @@
 
 The [evidence and claim inventory](../evidence/11/README.md) record verification on 2026-10-08 at `4f0eca5c342493c7830cf6be77791f2207956115`, which was both this branch's starting commit and GitHub's current `main`.
 
-- **Fresh clone:** one `just initialize` took 14.950 seconds; `just check` took 91.067 seconds and passed again in 69.711 seconds under a network-denying macOS sandbox. The clone remained clean. The pixi cache was empty and isolated; Gleam's existing user cache was reused. This is not the fully cold timing 03 deferred: [30](30-bootstrap-verification-gaps.md) retains that claim.
+- **Fresh clone:** one `just initialize` took 14.950 seconds; `just check` took 91.067 seconds and passed again in 69.711 seconds under a network-denying macOS sandbox. The clone remained clean. The pixi cache was empty and isolated; Gleam's existing user cache was reused. This is not the fully cold timing 03 deferred: [35](35-bootstrap-verification-gaps.md) retains that claim.
 - **Linked gate:** `just check` passed in 93.423 seconds with 13 Gleam tests and 285 checker tests, ending with "All checks passed and the worktree is unchanged." The gate preserved the in-progress evidence diff; a clean final commit is verified separately.
 - **Linked initialization:** printed the hook-skip notice; all 15 shared hook-file hashes were unchanged. No hook was installed from this worktree.
 - **CI:** [run 37745546445](https://github.com/steven-cutting/knarr/actions/runs/37745546445) passed the repository gate and aggregate `check` at the audited SHA, including 13 Gleam tests and 285 checker tests on native Linux.
 - **Branch protection:** read-only API evidence confirms the required-check list is still empty. The [exact minimal request and payload](../evidence/11/README.md#prepared-branch-protection-change) are prepared for authorization. Administrators remain exempt by 04's decision. No GitHub setting has changed.
-- **Remaining claims:** [30](30-bootstrap-verification-gaps.md) owns fully cold timing, native TLS/rebar3 probes, the primary hook, the unidentified intermittent test, hosted audit execution, unexercised snapshot commands, version-fixture provenance and Copilot discovery. No new tooling or validators were added.
-- **Adversarial review:** Claude Code's latest-Opus alias resolved to Opus 5.5, invoked at medium effort with read-only tools. It reported two medium and five low findings, no high findings. The [review and dispositions](../evidence/11/README.md#adversarial-review) record the corrections, including follow-up discoverability, retained observations and the stricter agent-sandbox limitation now tracked by 30. Final validation includes all new files after staging.
+- **Remaining claims:** [35](35-bootstrap-verification-gaps.md) owns fully cold timing, native TLS/rebar3 probes, the primary hook, the unidentified intermittent test, hosted audit execution, unexercised snapshot commands, version-fixture provenance and Copilot discovery. No new tooling or validators were added.
+- **Adversarial review:** Claude Code's latest-Opus alias resolved to Opus 5.5, invoked at medium effort with read-only tools. It reported two medium and five low findings, no high findings. The [review and dispositions](../evidence/11/README.md#adversarial-review) record the corrections, including follow-up discoverability, retained observations and the stricter agent-sandbox limitation now tracked by 35. Final validation includes all new files after staging.
 
 ### For later tickets
 
 - **05:** update its pending required-check status only after the authorized mutation and read-back confirm exactly `check` is required.
 - **12:** the fresh-clone workflow is proven with the explicit Gleam-cache limitation. Link existing setup and testing documentation rather than copying this audit's commands into another owner page.
-- **13 and 14:** a native Linux green gate does not prove the standalone TLS or rebar3 probes. Coordinate those results with 30 before relying on them.
-- **30:** every open verification item has a source ticket and acceptance criteria; keep claims open until the named behaviour is actually observed.
+- **13 and 14:** a native Linux green gate does not prove the standalone TLS or rebar3 probes. Coordinate those results with 35 before relying on them.
+- **35:** every open verification item has a source ticket and acceptance criteria; keep claims open until the named behaviour is actually observed.

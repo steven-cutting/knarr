@@ -39,6 +39,16 @@ just check
 
 Only two recipes write files: `just initialize`, which writes ignored paths only, and `just fix`, which repairs formatting and lint findings in tracked files. The pre-commit hook runs the read-only config, `.pre-commit-config.yaml`. `just fix` runs `.pre-commit-fix.yaml`.
 
+[CI](.github/workflows/ci.yml) runs `just check` on every pull request and
+every push to `main`, using the same locked environment and `just initialize`
+as contributors. Its aggregate `check` fails if any gate job fails, is cancelled,
+or is skipped. Configure `check` as the only required status check on `main`.
+When adding a gate job, add it to the aggregate's `needs` list.
+
+The separate [audit](.github/workflows/audit.yml) runs `just links-audit` on
+Mondays at 06:00 UTC and on manual dispatch. Remote link availability stays
+outside the required gate.
+
 Moving a pin is a manual edit, never a recipe:
 
 - **A conda package:** edit its `==` line in `pixi.toml`, run `pixi update <package>`, read the `pixi.lock` diff, commit both files, and rerun `just initialize`.

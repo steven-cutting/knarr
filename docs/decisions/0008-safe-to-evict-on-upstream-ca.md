@@ -3,7 +3,7 @@ title: "Decision 0008: safe-to-evict on upstream Cluster Autoscaler"
 kind: "decision"
 audience: [maintainer, agent]
 canonical_for: [decision_safe_to_evict_upstream_ca]
-requires: [decision_local_cluster]
+requires: []
 ---
 
 # Decision 0008: safe-to-evict on upstream Cluster Autoscaler

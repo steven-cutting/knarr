@@ -1,6 +1,6 @@
-date: 2026-10-08T06:00Z
+date: 2026-10-08T06:07Z
 host: Darwin arm64
-commit: 4e85fb0 (08-testing-toolkit)
+commit: f345d9d (08-testing-toolkit)
 
 == setup: the clone borrows this checkout's tools
 ok   .pixi and .tools symlinked, build/packages copied; the worktree is clean
@@ -56,6 +56,11 @@ ok   just check exit 1, stopped at just test, naming the snapshot:
 ok   Git sees only the deletion ( D test/birdie_snapshots/version_request_sent_by_fetch_version.accepted); the .new is ignored
 ok   just snapshots-check exit 1, naming the pending .new
 ok   just snapshots-accept restored the committed file: git diff is empty and no .new remains
+
+== an old .new is never accepted: the test fails before it snaps
+ok   just test removed the old .new; just snapshots-accept accepted nothing and the accepted file is unchanged
+      info: fails before it snaps
+     No new snapshots to accept.
 
 == a stale snapshot: an accepted file no test refers to
 ok   just test passes with the orphan present

@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!pixi.toml
+!pixi.lock
+!gleam.toml
+!manifest.toml
+!src/
+!src/**

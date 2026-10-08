@@ -19,6 +19,15 @@ This page covers knarr's unit tests: the tools, the snapshot workflow, and the s
 - **kind**: everything kwok gives, plus real pods. 13's smoke test and the e2e job use it.
 - **GKE**: run by hand against a short-lived cluster, never on every change.
 
+The gate also runs the diagnostics adapter against local HTTP sockets and
+crashes a supervised listener to prove recovery on the same port without
+resetting metrics. These tests need no cluster or external network. Test and
+lint recipes select a loopback address and ephemeral application port so concurrent worktrees do
+not contend for port 8080 or expose metrics on the LAN. The checker suite also
+starts isolated Erlang subprocesses to verify startup failure, exhausted
+supervision and normal shutdown exit codes; its recipe builds first. Image and cluster checks are separate recipes in
+the [local cluster guide](../how-to/local-cluster.md).
+
 ## The toolkit
 
 Every package is a dev dependency. `gleam.toml` gives the range, and `manifest.toml` pins the version and checksum.

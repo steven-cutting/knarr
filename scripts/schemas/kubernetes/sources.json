@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/yannh/kubernetes-json-schema",
+  "revision": "7464e8eb55dab7063a4e6cb6cd6e2ed19f399580",
+  "directory": "v1.35.0-standalone-strict",
+  "files": {
+    "deployment-apps-v1.json": {
+      "sha256": "46dc7cc4bec2c9a62400491e2b8057635afbfa6838999c518f7bea5c621a989b",
+      "gzip_sha256": "5badc15c7b58029e42b3653d74d0c17dd1d379eb27881c85c6ef5bf99af386e8"
+    },
+    "role-rbac-v1.json": {
+      "sha256": "dfe8fb03b1642f985b57b12edd1727b6867c13ed4b6761ef81bdd51b1d236711",
+      "gzip_sha256": "74e467a36108b56feb3fc55f0a5c4e77a672bd73a02cd7ba36aeb69546e7ff86"
+    },
+    "serviceaccount-v1.json": {
+      "sha256": "8193d6c3561475c6d3d5c44e1faedb1df53905373d904bc17015694326d659cf",
+      "gzip_sha256": "4814c099b2160ba922e557cb0401b5395750d5d775f0dd03c0fd3e666939972b"
+    }
+  }
+}

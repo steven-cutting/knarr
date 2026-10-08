@@ -25,6 +25,55 @@ jobs:
       - uses: ./.github/actions/setup
       - run: just check
 
+  cluster-smoke:
+    name: Kind smoke (non-required)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      KNARR_CLUSTER: kind
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cluster: "true"
+      - run: just deployment-check
+      - run: just cluster-up
+      - run: just image-build
+      - run: just image-check
+      - run: just deploy
+      - run: just smoke
+      - if: failure()
+        run: just cluster-diagnostics
+      - if: always()
+        run: just cluster-down
+
+  cluster-kwok:
+    name: Kwok readiness (non-required)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      KNARR_CLUSTER: kwok
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cluster: "true"
+      - run: just deployment-check
+      - run: just cluster-up
+      - run: just cluster-ready
+      - if: failure()
+        run: just cluster-diagnostics
+      - if: always()
+        run: just cluster-down
+
   # This is the sole status check intended for branch protection. Only required
   # gate jobs belong in needs. Keep the initial kind and kwok jobs out (tickets
   # 10 and 13); kind needs a stated period of stability before becoming required.

@@ -1,0 +1,146 @@
+"""Cluster commands must never use the caller's Kubernetes context."""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+SCRIPT = Path(__file__).resolve().parents[1] / "cluster.py"
+
+
+def run_fake(
+    tmp_path: Path, runner: str, action: str, *, configured: bool = False
+) -> tuple[subprocess.CompletedProcess[str], list]:
+    checkout = tmp_path / "work tree"
+    checkout.mkdir()
+    if configured:
+        state = checkout / ".cluster"
+        state.mkdir(mode=0o700)
+        (state / "kubeconfig").write_text("local fake context")
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    log = tmp_path / "calls.jsonl"
+    for tool in ["kind", "kwokctl", "kubectl", "docker", "kustomize"]:
+        executable = binaries / tool
+        executable.write_text(
+            f"#!{sys.executable}\n"
+            "import json, os, sys\n"
+            "if sys.argv[1:3] == ['image', 'inspect']: print('sha256:changed-image')\n"
+            "with open(os.environ['CALL_LOG'], 'a') as f:\n"
+            "    f.write(json.dumps([sys.argv, os.environ.get('KUBECONFIG'), os.environ.get('KWOK_WORKDIR'), os.environ.get('KUBERNETES_SERVICE_HOST'), os.environ.get('KUBERNETES_SERVICE_PORT')]) + '\\n')\n"
+        )
+        executable.chmod(0o755)
+    env = {
+        **os.environ,
+        "PATH": f"{binaries}:{os.environ['PATH']}",
+        "CALL_LOG": str(log),
+        "KNARR_CLUSTER": runner,
+        "KUBECONFIG": "/wrong/context",
+        "KUBERNETES_SERVICE_HOST": "production.invalid",
+        "KUBERNETES_SERVICE_PORT": "443",
+    }
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), action, str(checkout)],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+    return result, calls
+
+
+def test_kind_down_scopes_every_command(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "kind", "down")
+    assert result.returncode == 0, result.stderr
+    assert len(calls) == 1
+    arguments, kubeconfig, workdir, _, _ = calls[0]
+    assert arguments[1:3] == ["delete", "cluster"]
+    assert "--name" in arguments
+    assert kubeconfig == str(tmp_path / "work tree/.cluster/kubeconfig")
+    assert workdir == str(tmp_path / "work tree/.cluster/kwok")
+
+
+def test_kwok_refuses_endpoint_smoke(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "kwok", "smoke")
+    assert result.returncode != 0
+    assert "kind" in result.stderr
+    assert not calls
+
+
+def test_unknown_runner_refused(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "production", "up")
+    assert result.returncode != 0
+    assert not calls
+
+
+def test_failed_delete_keeps_state(tmp_path: Path) -> None:
+    checkout = tmp_path / "work tree"
+    state = checkout / ".cluster"
+    state.mkdir(parents=True)
+    (state / "kubeconfig").write_text("keep this")
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    executable = binaries / "kind"
+    executable.write_text("#!/bin/sh\nexit 7\n")
+    executable.chmod(0o755)
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "down", str(checkout)],
+        env={**os.environ, "KNARR_CLUSTER": "kind", "PATH": f"{binaries}:{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert (state / "kubeconfig").read_text() == "keep this"
+
+
+def test_changing_runner_refuses_to_overwrite_state(tmp_path: Path) -> None:
+    checkout = tmp_path / "work tree"
+    state = checkout / ".cluster"
+    state.mkdir(parents=True)
+    (state / "runner").write_text("kind")
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    executable = binaries / "kwokctl"
+    executable.write_text("#!/bin/sh\nexit 7\n")
+    executable.chmod(0o755)
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "up", str(checkout)],
+        env={**os.environ, "KNARR_CLUSTER": "kwok", "PATH": f"{binaries}:{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "cluster-down" in result.stderr
+    assert (state / "runner").read_text() == "kind"
+
+
+def test_deploy_records_image_identity_for_rollout(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "kind", "deploy", configured=True)
+    assert result.returncode == 0, result.stderr
+    data = json.loads((tmp_path / "work tree/.cluster/render/resources.json").read_text())
+    deployment = next(item for item in data["items"] if item["kind"] == "Deployment")
+    template = deployment["spec"]["template"]
+    assert (
+        template["metadata"]["annotations"]["knarr.dev/local-image-id"] == "sha256:changed-image"
+    )
+    assert template["spec"]["containers"][0]["image"].startswith("knarr:work-tree-")
+    assert all(call[1] == str(tmp_path / "work tree/.cluster/kubeconfig") for call in calls)
+
+
+def test_deploy_requires_local_kubeconfig(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "kind", "deploy")
+    assert result.returncode != 0
+    assert "cluster-up" in result.stderr
+    assert not calls
+
+
+def test_deploy_cannot_inherit_in_cluster_configuration(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "kind", "deploy", configured=True)
+    assert result.returncode == 0, result.stderr
+    assert all(call[3:] == [None, None] for call in calls)

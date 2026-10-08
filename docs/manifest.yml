@@ -279,6 +279,33 @@
         "overview_visual_explainer"
       ],
       "requires": []
+    },
+    {
+      "path": "decisions/0009-metrics.md",
+      "title": "Decision 0009: Prometheus metrics",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_metrics"
+      ],
+      "requires": []
+    },
+    {
+      "path": "how-to/local-cluster.md",
+      "title": "Run the walking skeleton locally",
+      "kind": "how-to",
+      "audience": [
+        "contributor",
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "local_cluster_loop"
+      ],
+      "requires": []
     }
   ]
 }

@@ -21,3 +21,6 @@ Knarr is a Kubernetes controller that biases scale-down toward idle or cheap wor
 - [Decisions](decisions/README.md): accepted architectural and tooling choices.
 
 The [overview](OVERVIEW.md) remains a draft direction, not a behavioural specification. Its open questions remain open until the owning ticket settles them. The [visual explainer](overview-explainer.html) illustrates that direction and is best opened locally in a browser.
+
+- [Run the walking skeleton locally](how-to/local-cluster.md).
+- [Decision 0009: Prometheus metrics](decisions/0009-metrics.md).

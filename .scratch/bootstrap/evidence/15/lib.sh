@@ -12,8 +12,9 @@
 #                            the setup trap's way round (README): the pod lands
 #                            on a new ng-a node, and kwokctl's own node is the
 #                            place it can move to. Prints the node name
-#   exists, refute_taint,    below; an apiserver error is never read as "gone"
-#   wait_* and log helpers   or "no taint" (stubbed in lib_test.sh)
+#   exists, refute_taint,    below; an apiserver error is never read as "gone",
+#   evictions, wait_* and    "no taint" or a count (stubbed in lib_test.sh)
+#   log helpers
 #   since_of <node>          CA log on stdin: the latest "is unneeded since"
 #                            for <node>, as epoch seconds (pure; lib_test.sh)
 #   timer_verdict <since0> <since1> <removal> <unneeded>
@@ -242,6 +243,21 @@ wait_gone() { # kind, name, timeout: 0 once the apiserver says it is gone
 }
 wait_node_gone() { wait_gone node "$1" "$2"; } # node, timeout
 wait_pod_gone() { wait_gone pod "$1" "$2"; }   # pod, timeout
+# evictions <code>: the apiserver's count of pods/eviction requests that
+# returned <code>, 0 if none yet. A failed /metrics read, or one with no
+# apiserver_request_total at all, prints nothing and returns 2, so it never
+# supplies a count. Take it with `c=$(evictions 429) || fail ...`.
+evictions() {
+  ev=$(kubectl get --raw /metrics --request-timeout=5s 2> /dev/null) || return 2
+  printf '%s\n' "$ev" | perl -ne '$seen = 1 if /^apiserver_request_total\{/; if (/^apiserver_request_total\{.*code="'"$1"'".*subresource="eviction"/ && /(\S+)$/) { $s += $1 } END { exit 2 unless $seen; print $s + 0, "\n" }'
+}
+# wait_evictions <code> <count> <timeout>: 0 once the count for <code> is above
+# <count>. A failed read is polled through, never read as a count.
+wait_evictions() {
+  i=0; until we=$(evictions "$1") && [ "$we" -gt "$2" ]; do
+    i=$((i + 1)); [ "$i" -lt $(($3 * 2)) ] || return 1; sleep 0.5
+  done
+}
 wait_log() { # extended regex, timeout
   i=0; until ca_log | grep -qE -- "$1"; do
     i=$((i + 1)); [ "$i" -lt $(($2 * 2)) ] || return 1; sleep 0.5

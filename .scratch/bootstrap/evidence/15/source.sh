@@ -30,8 +30,13 @@ fetch() { # tag, path under cluster-autoscaler/; prints the local copy
   printf '%s\n' "$f"
 }
 printf 'date: %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)"
-printf '%s is tag object %s, commit %s\n' "$tag" "$(gh api "repos/$repo/git/ref/tags/$tag" --jq .object.sha)" "$(gh api "repos/$repo/commits/$tag" --jq .sha)"
-printf '%s is commit %s\n' "$next" "$(gh api "repos/$repo/commits/$next" --jq .sha)"
+# Each gh answer is taken on its own line, so set -e stops on a failed one;
+# inside printf's arguments it would print as blank.
+tag_object=$(gh api "repos/$repo/git/ref/tags/$tag" --jq .object.sha)
+tag_commit=$(gh api "repos/$repo/commits/$tag" --jq .sha)
+next_commit=$(gh api "repos/$repo/commits/$next" --jq .sha)
+printf '%s is tag object %s, commit %s\n' "$tag" "$tag_object" "$tag_commit"
+printf '%s is commit %s\n' "$next" "$next_commit"
 
 # path|first line|last line|fixed string that must be in that range|what it shows
 citations='utils/drain/drain.go|144|147|PodSafeToEvictKey] == "true"|"true" is an exact string match
@@ -143,11 +148,17 @@ done
 
 echo; echo '== safe-to-evict "on-completion" (autoscaler PR #9355)'
 merge=$(gh api "repos/$repo/pulls/9355" --jq '.merge_commit_sha')
-printf 'PR #9355 "%s", merged %s as %s\n' "$(gh api "repos/$repo/pulls/9355" --jq .title)" "$(gh api "repos/$repo/pulls/9355" --jq .merged_at)" "$merge"
+title=$(gh api "repos/$repo/pulls/9355" --jq .title)
+merged=$(gh api "repos/$repo/pulls/9355" --jq .merged_at)
+printf 'PR #9355 "%s", merged %s as %s\n' "$title" "$merged" "$merge"
 for t in "$tag" cluster-autoscaler-1.36.0 "$next"; do
   # compare <tag>...<merge>: "behind" or "identical" means the tag contains it.
   st=$(gh api "repos/$repo/compare/$t...$merge" --jq .status)
-  if gh api "repos/$repo/contents/cluster-autoscaler/simulator/drainability/rules/oncompletion/rule.go?ref=$t" > /dev/null 2>&1; then rule=present; else rule=absent; fi
+  # Only GitHub's 404 means absent; a rate limit, auth or network failure stops
+  # the run with gh's message, as fetch does.
+  if out=$(gh api --silent "repos/$repo/contents/cluster-autoscaler/simulator/drainability/rules/oncompletion/rule.go?ref=$t" 2>&1); then rule=present
+  elif printf '%s\n' "$out" | grep -qF '(HTTP 404)'; then rule=absent
+  else printf 'cannot check rules/oncompletion/rule.go at %s: %s\n' "$t" "$out" >&2; exit 1; fi
   case $st in behind|identical) in=yes;; *) in=no;; esac
   printf '%-26s contains the merge: %-3s (compare: %s); rules/oncompletion/rule.go: %s\n' "$t" "$in" "$st" "$rule"
 done

@@ -6,9 +6,9 @@
 #   timer_verdict  kept, reset or unclear, from two since values, the removal
 #                  time and the unneeded time
 #   recheck_of     the latest "will re-check them at" time, as epoch seconds
-#   exists, wait_gone, has_taint, refute_taint
+#   exists, wait_gone, has_taint, refute_taint, evictions, wait_evictions
 #                  through a stub kubectl: a refused or Forbidden request is
-#                  never read as "gone" or as "no taint"
+#                  never read as "gone", as "no taint" or as a count
 # Usage: sh lib_test.sh
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
@@ -66,8 +66,9 @@ eq 'klog_epoch reads a klog prefix with this year' \
 
 # The API helpers, through a stub kubectl first on PATH. KUBECTL_STUB picks
 # what the apiserver does: present (the object exists, with STUB_TAINTS as its
-# taint keys), absent (NotFound), refused (no connection) or forbidden (RBAC).
-# A failed request must never read as "gone" or as "no taint".
+# taint keys, and STUB_METRICS is its /metrics), absent (NotFound), refused
+# (no connection) or forbidden (RBAC). A failed request must never read as
+# "gone", as "no taint" or as a count.
 stub=$(mktemp -d)
 trap 'rm -rf "${stub:?}"' EXIT
 cat > "$stub/kubectl" <<'EOF'
@@ -79,15 +80,20 @@ case $KUBECTL_STUB in
     case " $* " in *' --ignore-not-found '*) exit 0 ;; esac
     echo "Error from server (NotFound): $2 \"$3\" not found" >&2; exit 1 ;;
   present)
-    case " $* " in *' -o name '*) echo "$2/$3" ;; *) printf '%s' "$STUB_TAINTS" ;; esac ;;
+    case " $* " in
+      *' --raw '*) printf '%s\n' "$STUB_METRICS" ;;
+      *' -o name '*) echo "$2/$3" ;;
+      *) printf '%s' "$STUB_TAINTS" ;;
+    esac ;;
   *) echo "stub kubectl: unknown KUBECTL_STUB '$KUBECTL_STUB'" >&2; exit 3 ;;
 esac
 EOF
 chmod +x "$stub/kubectl"
 PATH=$stub:$PATH
-KUBECTL_STUB=''; STUB_TAINTS=''; export KUBECTL_STUB STUB_TAINTS
+KUBECTL_STUB=''; STUB_TAINTS=''; STUB_METRICS=''; export KUBECTL_STUB STUB_TAINTS STUB_METRICS
 api() { KUBECTL_STUB=$1; STUB_TAINTS=${2:-}; } # mode, [taint keys]
 status() { rc=0; "$@" || rc=$?; echo "$rc"; }
+said() { rc=0; out=$("$@") || rc=$?; printf '%s; exit %s\n' "$out" "$rc"; } # output and status
 # refute <mode> [taints]: refute_taint's message, then its exit status. fail
 # is replaced in the subshell, since the real one reads CA's container.
 refute() {
@@ -123,6 +129,23 @@ eq 'refute_taint: fails when the node has the taint' "$(refute present ToBeDelet
 eq 'refute_taint: fails on a refused connection' "$(refute refused)" "could not read ng-a-x's taints; exit 1"
 eq 'refute_taint: fails on a Forbidden answer' "$(refute forbidden)" "could not read ng-a-x's taints; exit 1"
 eq 'refute_taint: names a deleted node as removed, not as an API error' "$(refute absent)" 'ng-a-x was removed; exit 1'
+
+# Series in the form kube-apiserver writes them, labels in sorted order.
+STUB_METRICS='# TYPE apiserver_request_total counter
+apiserver_request_total{code="201",component="apiserver",dry_run="",group="",resource="pods",scope="resource",subresource="eviction",verb="POST",version="v1"} 2
+apiserver_request_total{code="429",component="apiserver",dry_run="",group="",resource="pods",scope="resource",subresource="eviction",verb="POST",version="v1"} 5
+apiserver_request_total{code="429",component="apiserver",dry_run="All",group="",resource="pods",scope="resource",subresource="eviction",verb="POST",version="v1"} 1
+apiserver_request_total{code="429",component="apiserver",dry_run="",group="",resource="nodes",scope="cluster",subresource="",verb="LIST",version="v1"} 7'
+api present; eq 'evictions: sums every pods/eviction series with the code' "$(said evictions 429)" '6; exit 0'
+eq 'evictions: counts only the code asked for' "$(said evictions 201)" '2; exit 0'
+eq 'evictions: 0 for a code no eviction has returned yet' "$(said evictions 500)" '0; exit 0'
+eq 'wait_evictions: returns 0 once the count is above the baseline' "$(status wait_evictions 429 5 1)" 0
+eq 'wait_evictions: times out while the count is at the baseline' "$(status wait_evictions 429 6 1)" 1
+api refused; eq 'evictions: nothing and 2 on a refused connection, not 0' "$(said evictions 429)" '; exit 2'
+api forbidden; eq 'evictions: nothing and 2 on a Forbidden answer, not 0' "$(said evictions 429)" '; exit 2'
+STUB_METRICS=''
+api present; eq 'evictions: nothing and 2 for a /metrics with no request counter' "$(said evictions 429)" '; exit 2'
+api refused; eq 'wait_evictions: times out on a refused connection' "$(status wait_evictions 429 0 1)" 1
 
 printf '%d passed, %d failed\n' "$pass" "$failed"
 [ "$failed" -eq 0 ]

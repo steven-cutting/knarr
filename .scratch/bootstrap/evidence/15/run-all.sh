@@ -30,9 +30,13 @@ run exp4-local-storage.txt    sh exp4-local-storage.sh "$tools" "$root/exp4"
 # Only this run's containers count, so another worktree's cluster does not
 # fail the check. Each experiment's cluster is named by 10's name.sh after its
 # work dir; kwokctl names its containers kwok-<cluster>-<component>, and
-# lib.sh names the CA container <cluster>-ca.
-names=$(for d in exp1 exp2 exp3 exp4; do sh ../10/name.sh "$root/$d" name; done | tr '\n' ' ')
-left=$(docker ps -a --format '{{.Names}}' | awk -v names="$names" '
+# lib.sh names the CA container <cluster>-ca. A failed name or container
+# listing stops the run rather than reading as "none left": a pipeline's
+# status is its last command's, so each is taken on its own first.
+names=''
+for d in exp1 exp2 exp3 exp4; do c=$(sh ../10/name.sh "$root/$d" name); names="$names $c"; done
+all=$(docker ps -a --format '{{.Names}}') || { echo 'cannot list docker containers' >&2; exit 1; }
+left=$(printf '%s\n' "$all" | awk -v names="$names" '
   BEGIN { n = split(names, c, " ") }
   { for (i = 1; i <= n; i++) if ($1 == c[i] "-ca" || index($1, "kwok-" c[i] "-") == 1) print $1 }')
 [ -z "$left" ] || { printf 'containers left by this run:\n%s\n' "$left" >&2; exit 1; }

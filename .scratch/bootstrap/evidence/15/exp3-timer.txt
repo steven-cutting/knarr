@@ -1,4 +1,4 @@
-date: 2026-10-07T23:47Z
+date: 2026-10-08T01:58Z
 
 == cluster
 server: v1.35.5
@@ -8,35 +8,35 @@ kwok provider ConfigMaps: nodegroup ng-a, 0..3 nodes, 2 CPU / 4Gi (as in 10)
 
 == leg A: absent -> "true"
 CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
-pod exp3-a-666b6f6fc4-pvmf8 (absent) is on new node ng-a-xjwcn
-  since0 23:47:31.656; flip absent -> true seen by the loop at since0 +20.1 s; since1 23:47:31.656
-  removal 23:48:11.812: since0 +40.2 s, since1 +40.2 s (unneeded time 40 s)
+pod exp3-a-666b6f6fc4-wxvkx (absent) is on new node ng-a-94dmd
+  since0 01:58:30.295; flip absent -> true seen by the loop at since0 +20.1 s; since1 01:58:30.295
+  removal 01:59:10.448: since0 +40.2 s, since1 +40.2 s (unneeded time 40 s)
 ok   leg A: timer kept
 
 == leg B: "true" -> absent
 CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
-pod exp3-b-6445b54f6-rp6bz (true) is on new node ng-a-pt769
-  since0 23:48:33.526; flip true -> absent seen by the loop at since0 +20.1 s; since1 23:48:33.526
-  removal 23:49:13.677: since0 +40.2 s, since1 +40.2 s (unneeded time 40 s)
+pod exp3-b-6445b54f6-g29jn (true) is on new node ng-a-bx7hv
+  since0 01:59:32.175; flip true -> absent seen by the loop at since0 +20.1 s; since1 01:59:32.175
+  removal 02:00:12.327: since0 +40.2 s, since1 +40.2 s (unneeded time 40 s)
 ok   leg B: timer kept
 
 == leg C: absent -> "false" -> absent
 CA cluster-autoscaler-1.35.2, flags: --write-status-configmap=true --v=4 --scan-interval=5s --scale-down-unneeded-time=40s --scale-down-delay-after-add=0s --scale-down-delay-after-delete=0s --scale-down-delay-after-failure=0s --unremovable-node-recheck-timeout=15s --node-delete-delay-after-taint=5s --max-pod-eviction-time=2m 
-pod exp3-c-9654b7f44-p8d4f (absent) is on new node ng-a-9z2k6
-  since0 23:49:35.406; flip absent -> false seen by the loop at since0 +20.1 s; since1 (not unneeded)
-  23:49:55.477159 Node ng-a-9z2k6 cannot be removed: pod annotated as not safe to evict present: exp3-c-9654b7f44-p8d4f
-  23:49:55.477176 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-07 23:50:10.476280605 +0000 UTC m=+50.791452696
+pod exp3-c-9654b7f44-rjtg9 (absent) is on new node ng-a-zt6tl
+  since0 02:00:33.864; flip absent -> false seen by the loop at since0 +20.1 s; since1 (not unneeded)
+  02:00:53.926545 Node ng-a-zt6tl cannot be removed: pod annotated as not safe to evict present: exp3-c-9654b7f44-rjtg9
+  02:00:53.926574 1 nodes found to be unremovable in simulation, will re-check them at 2026-10-08 02:01:08.925553184 +0000 UTC m=+50.866619714
   flip false -> absent seen by the loop at since0 +25.1 s; CA's recheck time is since0 +35.1 s
   every loop from the flip back to the return:
-  23:50:00.491176 Starting main loop
-  23:50:00.491862 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
-  23:50:05.511657 Starting main loop
-  23:50:05.512157 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
-  23:50:10.528623 Starting main loop
-  23:50:10.529569 ng-a-9z2k6 is unneeded since 2026-10-07 23:50:10.528609488 +0000 UTC m=+50.843781620 duration 0s
-  ng-a-9z2k6 unneeded again: since1 23:50:10.529 (since0 +35.1 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
-  removal 23:50:50.838: since0 +75.4 s, since1 +40.3 s (unneeded time 40 s)
-  removal is +35.4 s later than since0 + 40 s
+  02:00:58.951426 Starting main loop
+  02:00:58.951804 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  02:01:03.964795 Starting main loop
+  02:01:03.970936 Scale-down calculation: ignoring 1 nodes unremovable in the last 15s
+  02:01:08.988746 Starting main loop
+  02:01:08.992838 ng-a-zt6tl is unneeded since 2026-10-08 02:01:08.988715183 +0000 UTC m=+50.929781755 duration 0s
+  ng-a-zt6tl unneeded again: since1 02:01:08.989 (since0 +35.1 s, recheck time +0.1 s, +10.0 s after the loop that saw the flip back)
+  removal 02:01:49.158: since0 +75.3 s, since1 +40.2 s (unneeded time 40 s)
+  removal is +35.3 s later than since0 + 40 s
 ok   leg C: timer reset
 ok   leg C: the node stayed out after the loops that saw the annotation gone, and came back on the first loop at CA's recheck time (block + 15 s)
 

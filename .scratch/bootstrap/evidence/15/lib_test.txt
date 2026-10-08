@@ -33,4 +33,13 @@ ok   refute_taint: fails when the node has the taint
 ok   refute_taint: fails on a refused connection
 ok   refute_taint: fails on a Forbidden answer
 ok   refute_taint: names a deleted node as removed, not as an API error
-35 passed, 0 failed
+ok   evictions: sums every pods/eviction series with the code
+ok   evictions: counts only the code asked for
+ok   evictions: 0 for a code no eviction has returned yet
+ok   wait_evictions: returns 0 once the count is above the baseline
+ok   wait_evictions: times out while the count is at the baseline
+ok   evictions: nothing and 2 on a refused connection, not 0
+ok   evictions: nothing and 2 on a Forbidden answer, not 0
+ok   evictions: nothing and 2 for a /metrics with no request counter
+ok   wait_evictions: times out on a refused connection
+44 passed, 0 failed

@@ -29,11 +29,6 @@ usage='usage: exp2-recheck.sh <tools-dir> <empty-work-dir>'
 ca_init "${1:?$usage}" "${2:?$usage}"
 ste='"cluster-autoscaler.kubernetes.io/safe-to-evict"'
 ste_key=cluster-autoscaler.kubernetes.io/safe-to-evict
-# evictions <code>: the apiserver's count of pods/eviction requests that
-# returned <code>, 0 if none yet.
-evictions() {
-  kubectl get --raw /metrics | perl -ne 'if (/^apiserver_request_total\{.*code="'"$1"'".*subresource="eviction"/ && /(\S+)$/) { $s += $1 } END { print $s + 0, "\n" }'
-}
 node_state() { kubectl get node "$1" -o custom-columns='NODE:.metadata.name,UNSCHEDULABLE:.spec.unschedulable,TAINTS:.spec.taints[*].key'; }
 # cleared <node>: true only when the node is read without error and has
 # neither the deletion taint nor the cordon. A failed read is not cleared.
@@ -107,27 +102,28 @@ spec:
   selector: {matchLabels: {app: exp2-retry}}
 EOF
 echo "pod $pod (\"true\") is on new node $node; PDB exp2-retry maxUnavailable 0"
-r0=$(evictions 429); e0=$(evictions 201)
+r0=$(evictions 429) || fail 'could not read the apiserver metrics'
+e0=$(evictions 201) || fail 'could not read the apiserver metrics'
 wait_taint "$node" ToBeDeletedByClusterAutoscaler 90 || fail "$node never tainted for deletion"
 echo "$node has ToBeDeletedByClusterAutoscaler (a risky node is sorted last, not skipped)"
-i=0; until [ "$(evictions 429)" -gt "$r0" ]; do
-  i=$((i + 1)); [ "$i" -lt 60 ] || fail 'no eviction was refused: kwok gave no retries'; sleep 0.5
-done
-r1=$(evictions 429)
+wait_evictions 429 "$r0" 30 || fail 'no eviction was refused: kwok gave no retries'
+r1=$(evictions 429) || fail 'could not read the apiserver metrics'
 kubectl annotate pod "$pod" "$ste_key=false" --overwrite > /dev/null
 echo "eviction refused $((r1 - r0)) time(s) (429); $pod flipped to \"false\" while CA retries"
-i=0; until [ "$(evictions 429)" -gt "$r1" ]; do
-  i=$((i + 1)); [ "$i" -lt 30 ] || fail 'CA stopped retrying after the flip'; sleep 0.5
-done
-r2=$(evictions 429); e2=$(evictions 201)
+wait_evictions 429 "$r1" 15 || fail 'CA stopped retrying after the flip'
+r2=$(evictions 429) || fail 'could not read the apiserver metrics'
+e2=$(evictions 201) || fail 'could not read the apiserver metrics'
 kubectl delete pdb exp2-retry > /dev/null
 echo "eviction refused again after the flip ($((r2 - r1)) more 429); PDB deleted"
 wait_pod_gone "$pod" 40 || fail "$pod not evicted after the PDB was deleted"
-[ "$(evictions 201)" -gt "$e2" ] || fail 'the pod went without an eviction'
+e3=$(evictions 201) || fail 'could not read the apiserver metrics'
+[ "$e3" -gt "$e2" ] || fail 'the pod went without an eviction'
 wait_node_gone "$node" 60 || fail "$node not deleted"
 show_log "Scale-down: removing node $node|All pods removed from $node" 2
 ! ca_log | grep -q "couldn't delete node \"$node\"" || fail 'CA aborted the deletion'
-printf 'pods/eviction requests in (c): %s refused (429), %s accepted (201)\n' "$(($(evictions 429) - r0))" "$(($(evictions 201) - e0))"
+r_end=$(evictions 429) || fail 'could not read the apiserver metrics'
+e_end=$(evictions 201) || fail 'could not read the apiserver metrics'
+printf 'pods/eviction requests in (c): %s refused (429), %s accepted (201)\n' "$((r_end - r0))" "$((e_end - e0))"
 echo "ok   (c) $pod, annotated \"false\" during retries, was evicted once the PDB allowed it; $node deleted"
 ca_stop
 

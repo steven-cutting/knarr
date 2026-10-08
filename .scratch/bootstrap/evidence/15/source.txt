@@ -1,4 +1,4 @@
-date: 2026-10-07T23:38Z
+date: 2026-10-08T01:49Z
 cluster-autoscaler-1.35.2 is tag object 3e1437753d1b64ea0db6d8e7408308b79a477f54, commit 2d42588803c71fe9b35dcd9e3669ac6bb550ca22
 cluster-autoscaler-1.36.1 is commit 35e8a280425c76a4040f57ae0fa232a952c02024
 

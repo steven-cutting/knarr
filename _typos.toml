@@ -28,3 +28,5 @@ extend-ignore-re = ["-[bcdfghjklmnpqrstvwxz2456789]{5}\\b"]
 [default.extend-words]
 # AIMD: additive increase, multiplicative decrease (docs/DEFERRED.md).
 aimd = "aimd"
+# JUXT Ltd, the copyright holder of the vendored Allium skills.
+juxt = "juxt"

@@ -4,3 +4,6 @@
 # Each lane adds its own table when it brings its checker in: [docs] (06),
 # [allium] (07), [agents] (09). scripts/checks/_project.py reads them and
 # refuses a missing file or a missing table.
+
+[allium]
+specs = "docs/specs"

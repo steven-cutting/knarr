@@ -20,6 +20,15 @@ Knarr is a Kubernetes controller that biases scale-down toward idle or cheap wor
 - [Project](project/README.md): current direction and deferred work.
 - [Decisions](decisions/README.md): accepted architectural and tooling choices.
 
+## Maintainer documents
+
+- [Repository README](../README.md): current pre-MVP status and local setup.
+- [Contributing](../CONTRIBUTING.md): the ticket frontier, worktrees, authorization, verification and merging.
+- [Security policy](../SECURITY.md): supported versions and private vulnerability reporting.
+- [Changelog](../CHANGELOG.md): notable unreleased changes.
+
+## Project context
+
 The [overview](OVERVIEW.md) remains a draft direction, not a behavioural specification. Its open questions remain open until the owning ticket settles them. The [visual explainer](overview-explainer.html) illustrates that direction and is best opened locally in a browser.
 
 - [Run the walking skeleton locally](how-to/local-cluster.md).

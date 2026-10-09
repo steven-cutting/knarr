@@ -1,0 +1,138 @@
+{
+  "files": [
+    {
+      "path": "src/knarr/application_ffi.erl",
+      "language": "erlang",
+      "covered_lines": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "uncovered_lines": [
+        11,
+        14,
+        17,
+        18,
+        19,
+        21,
+        22,
+        23
+      ],
+      "covered": 5,
+      "executable": 13
+    },
+    {
+      "path": "src/knarr/diagnostics.gleam",
+      "language": "gleam",
+      "covered_lines": [
+        17,
+        18,
+        19,
+        20,
+        22,
+        26,
+        28,
+        30,
+        32,
+        34,
+        35,
+        39,
+        40,
+        43,
+        44,
+        45,
+        47
+      ],
+      "uncovered_lines": [],
+      "covered": 17,
+      "executable": 17
+    },
+    {
+      "path": "src/knarr/metrics.gleam",
+      "language": "gleam",
+      "covered_lines": [],
+      "uncovered_lines": [
+        4
+      ],
+      "covered": 0,
+      "executable": 1
+    },
+    {
+      "path": "src/knarr/metrics_ffi.erl",
+      "language": "erlang",
+      "covered_lines": [
+        5,
+        7,
+        8,
+        10
+      ],
+      "uncovered_lines": [],
+      "covered": 4,
+      "executable": 4
+    },
+    {
+      "path": "src/knarr/runtime.gleam",
+      "language": "gleam",
+      "covered_lines": [
+        32,
+        33,
+        35,
+        36,
+        37,
+        42,
+        43,
+        44,
+        45,
+        47,
+        48,
+        49,
+        50,
+        51,
+        54,
+        55,
+        57
+      ],
+      "uncovered_lines": [],
+      "covered": 17,
+      "executable": 17
+    },
+    {
+      "path": "src/knarr/runtime_ffi.erl",
+      "language": "erlang",
+      "covered_lines": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "uncovered_lines": [],
+      "covered": 4,
+      "executable": 4
+    },
+    {
+      "path": "src/knarr.gleam",
+      "language": "gleam",
+      "covered_lines": [
+        8
+      ],
+      "uncovered_lines": [
+        12
+      ],
+      "covered": 1,
+      "executable": 2
+    }
+  ],
+  "totals": {
+    "gleam": {
+      "covered": 35,
+      "executable": 37
+    },
+    "erlang": {
+      "covered": 13,
+      "executable": 21
+    }
+  },
+  "test_exit_code": 0
+}

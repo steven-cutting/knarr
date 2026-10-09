@@ -22,7 +22,7 @@ Keep progress and blockers in the ticket as work proceeds. Tick acceptance boxes
 
 Use one ticket per worktree. Name its branch after the ticket file without `.md`: `.scratch/bootstrap/issues/12-maintainer-docs.md` uses `12-maintainer-docs`.
 
-For a ticket whose branch and worktree do not yet exist, run this example from the primary checkout:
+Before creating a branch, confirm local `main` includes the completed blockers. If it needs refreshing from the remote, obtain authorization for `git fetch` or `git pull` first. For a ticket whose branch and worktree do not yet exist, run this example from the primary checkout:
 
 ```sh
 git worktree add -b 12-maintainer-docs ../knarr-12-maintainer-docs main
@@ -33,7 +33,7 @@ Check `git worktree list` first. If the ticket already has a worktree, use that 
 
 Follow the README's [getting started instructions](README.md#getting-started) for prerequisites and `just initialize`, then run `just check`. Obtain the first-run network grant before initialization. Rerunning initialization after a pin change also needs authorization for its network access.
 
-Never install hooks from a linked worktree: all worktrees share `.git/hooks`. `just initialize` detects linked worktrees and skips hook installation with a notice. Install hooks by initializing the primary checkout; a linked worktree can run the gate without installing hooks.
+Never install hooks from a linked worktree: all worktrees share `.git/hooks`. `just initialize` detects linked worktrees and skips hook installation with a notice. A maintainer installs hooks by initializing the primary checkout; agents need explicit authorization before acting there on the shared hooks or using the network. A linked worktree can run the gate without installing hooks.
 
 Tracked bootstrap tickets and evidence belong in `.scratch/bootstrap/`. Temporary experiments and review output go in `ai_tmp/`, which is ignored and never committed.
 
@@ -41,7 +41,7 @@ Tracked bootstrap tickets and evidence belong in `.scratch/bootstrap/`. Temporar
 
 [AGENTS.md](AGENTS.md#invariants) requires explicit authorization for each action that leaves the worktree. Approval for one action does not authorize the next. In particular, obtain authorization before:
 
-- Network access, including `just initialize`, `gleam deps download`, `just links-audit` and image or tool downloads.
+- Network access, including `git fetch`, `git pull`, `just initialize`, `gleam deps download`, `just links-audit` and image or tool downloads.
 - Pushing a branch or tag, or running any `gh` command, including reads.
 - Registry operations or operations against a non-local cluster.
 - Opening, updating or merging a pull request, or changing repository settings.
@@ -60,7 +60,7 @@ Finish the ticket with hand-back notes recording what changed, the checks and ev
 
 ## Get the change merged
 
-After separate authorization to push and open a pull request, submit the ticket branch against `main`. Describe the resulting behaviour, validation and material limitations, and link the local ticket and relevant decisions. Keep security reports in the private channel described in [SECURITY.md](SECURITY.md).
+After separate authorization to push and open a pull request, submit the ticket branch against `main`. Push the ticket branch named in the authorization; permission to push that branch does not authorize pushing directly to `main`. Describe the resulting behaviour, validation and material limitations, and link the local ticket and relevant decisions. Keep security reports in the private channel described in [SECURITY.md](SECURITY.md).
 
 Pull requests to `main` require the aggregate CI status `check` to pass. External link audits and the initial cluster jobs are outside that required gate; the README's [gate section](README.md#the-gate) explains the CI setup. Maintainers review the change and merge it with authorization. Administrators can bypass protection under the existing repository policy, so the contributor workflow uses a pull request and the passing required check.
 

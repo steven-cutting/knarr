@@ -36,10 +36,24 @@
 ### Verification and review
 
 - `just docs-check` validates 23 handbook pages and 26 canonical topics, including links to the new root documents. `just lint` checks the staged new documents with all read-only hooks, including typos, Markdown formatting and offline links.
-- The full offline `just check` is the closing gate for this change. The baseline passed with 21 Gleam tests and 312 checker tests. No code, specification, dependency, tool pin or snapshot changed, so no new behavioural test was needed.
+- The full offline `just check` passed on the initial documentation commit's tree (`47b8342`), with 21 Gleam tests and 312 checker tests, ending with "All checks passed and the worktree is unchanged." The final review corrections are also subject to the full closing gate. No code, specification, dependency, tool pin or snapshot changed, so no new behavioural test was needed.
 - The sandbox denied the OTP application's loopback listener during the baseline gate and prek's cache log during the documentation lint run. The affected read-only recipes passed with execution permission outside the sandbox. No check was weakened or hook installed.
 - The requested `code-review` skill is unavailable. Review used the repository's `review-change` procedure on the complete staged diff, checking the controller-status claims, authorization rules, documentation ownership, link navigation and scope. No findings remained.
-- External links were checked offline only. The private-reporting setting and CI protection policy come from tickets 04 and 11's recorded evidence; no new GitHub request, online audit, push or cluster operation was made.
+- Link validation was offline; external URLs were not fetched. The private-reporting setting and CI protection policy come from tickets 04 and 11's recorded evidence. No new GitHub request, online audit, push or cluster operation was made during the initial implementation; publication was authorized separately afterward.
+
+### Adversarial review
+
+At the maintainer's request, Claude Code 2.1.295 reviewed commit `47b8342545d9eabbe5bfbae63d5a179dc00e13f2` using the latest `opus` alias with `--effort medium`. The returned model-usage metadata and the review both identify `claude-opus-5-5` (Opus 5.5). Only `Read`, `Grep` and `Glob` tools were available; no permission was denied. The reviewer read the complete diff and repository evidence but could not independently run checks or query GitHub.
+
+The review reported no high-severity defect, one medium finding and four low findings. All were addressed:
+
+- **Final gate evidence (medium):** the note above now records the full gate result on the initial documentation tree, rather than only the baseline result.
+- **Ticket-branch push scope (low):** CONTRIBUTING explicitly distinguishes authorization to push the ticket branch from authorization to push directly to `main`. The existing administrator policy remains the maintainer's decision.
+- **Base-branch freshness (low):** the worktree example now requires checking that local `main` contains completed blockers and names `git fetch` and `git pull` as network actions needing authorization.
+- **Primary-checkout hooks (low):** CONTRIBUTING names the maintainer as the hook installer and requires authorization for an agent acting on the shared hooks or network from the primary checkout.
+- **Navigation grouping (low):** the local skeleton guide and metrics decision now appear under Start here, while Project context holds the overview and visual explainer.
+
+The review's optional changelog comparison link and security-response wording suggestions were not defects. No release tag or response-time promise was added. The raw review output remains in ignored `ai_tmp/`; this record retains the model, effort, target, findings and dispositions.
 
 ### For later tickets
 

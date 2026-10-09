@@ -162,7 +162,8 @@ The Justfile exports `PATH` with these directories first, in this order:
 
 1. `.pixi/envs/default/bin`
 2. `.pixi/envs/cluster/bin`
-3. `.tools/bin`
+3. `.pixi/envs/audit/bin`, added by ticket 27
+4. `.tools/bin`
 
 Every recipe then calls each tool by name. No recipe runs `pixi run` or `pixi shell`. This follows libpawdoku 0011, and the evidence adds three reasons:
 
@@ -170,7 +171,7 @@ Every recipe then calls each tool by name. No recipe runs `pixi run` or `pixi sh
 - The environments have no `etc/conda/activate.d` scripts. Apart from `PATH` and pixi's own bookkeeping, activation sets only `PS1`. So a bare `PATH` export is equivalent to activation for every tool here, OTP and openssl included.
 - It avoids nested activation. Recipes call recipes.
 
-The cluster directory comes after the default one, so `gleam` and the other shared binaries always resolve from `default`. A cluster tool resolves only if the `cluster` environment is installed. Cluster recipes check for it first and print the install command if it is missing.
+The cluster directory comes after the default one, so `gleam` and the other shared binaries always resolve from `default`. A cluster tool resolves only if the `cluster` environment is installed. Cluster recipes check for it first and print the install command if it is missing. Amended by ticket 27: the `audit` environment, which holds grype alone, follows the cluster one on the same terms, and `just image-scan` checks for it the same way ([Decision 0013](0013-dependency-updates-and-audit.md)).
 
 ### pixi commands
 
@@ -188,7 +189,7 @@ Plain `pixi lock --check` is not the lock check. On drift it exits 1, but it has
 - **Locally:** pixi 0.81.0, with `requires-pixi = ">=0.81.0"` in the manifest as the floor.
 - **In CI:** `prefix-dev/setup-pixi` with `pixi-version: v0.81.0` and `locked: true`. setup-pixi v0.11.0 (commit `9dabb60412d3d2d967a8d682f7ce01317af40514`) is the current release. It was published on 2026-10-06, one day before this record. libpawdoku runs v0.10.2. 05 pins one of the two by SHA and records which.
 
-The version appears twice, once exact (CI) and once as a floor (the manifest), because nothing else can install pixi.
+The version appears twice, once exact (CI) and once as a floor (the manifest), because nothing else can install pixi. Amended by ticket 27: it now appears in five places. They are the floor, setup-pixi's `pixi-version`, the setup action's cache key, the Dockerfile build stage's `FROM ghcr.io/prefix-dev/pixi:<version>@sha256:…`, and the README's prerequisite. `scripts/checks/tests/test_dependency_pins.py` fails unless all five agree, and Renovate moves them in one pull request ([Decision 0013](0013-dependency-updates-and-audit.md)).
 
 ### `manifest.toml` (Verify 5)
 
@@ -260,7 +261,7 @@ The environments are large and per worktree. On osx-arm64, `default` is 521 MB a
 
 kubectl 1.34.3 is conda-forge's newest `kubernetes-client`. kubectl supports servers one minor version either side, 1.33 to 1.35. kind 0.33's default node image is v1.37.0, which is outside that range. So 10 picks a node image no newer than 1.35 (kind 0.33 publishes `kindest/node:v1.35.8`), or moves kubectl to `.tools/bin` with the reason recorded. kwok 0.8.0 ships cluster images for 1.35 (`v0.8.0-k8s.v1.35.5`), and CA has a 1.35.2 release. That makes 1.35 the one minor that kind, kwok, CA and kubectl all support today.
 
-There are two pin mechanisms: `pixi.lock` for conda packages and `tools.txt` for upstream downloads. Every pin is still a hash, and one recipe owns each. Dependency automation (27) has to cover both, as well as `manifest.toml`.
+There are two pin mechanisms: `pixi.lock` for conda packages and `tools.txt` for upstream downloads. Every pin is still a hash, and one recipe owns each. Dependency automation (27) has to cover both, as well as `manifest.toml`. Amended by ticket 27: [Decision 0013](0013-dependency-updates-and-audit.md) covers `pixi.lock` and `manifest.toml` with Renovate. `tools.txt` stays a manual routine, because no bot can rehash a download. The Dockerfile's base images, which had a tag only, are pinned by the digest of their OCI index.
 
 ## What would reopen this
 

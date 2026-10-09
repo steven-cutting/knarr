@@ -1,0 +1,84 @@
+date: 2026-10-09T23:23Z
+revision: 0474e67
+image: ghcr.io/renovatebot/renovate:44.149.0@sha256:33e1ce773404122fd3bcf1dca6ce9b5638a080da68a8972ad942d4d991cec464
+-- 1. renovate-config-validator --strict
+INFO: Validating .github/renovate.json
+INFO: Config validated successfully against 1 file(s)
+-- 2. HEAD: extracted, and pending today
+renovate 44.149.0: 57 dependencies in 10 files
+  dockerfile        2 in 1 files
+  github-actions   15 in 3 files
+  gleam            11 in 1 files
+  pixi             19 in 1 files
+  regex            10 in 4 files
+18 proposals in 8 branches:
+  renovate/github-actions                minor  github-actions prefix-dev/setup-pixi v0.10.2@d3f436a425481402e6a95a1d1fc10331c708cd9e -> v0.11.0@9dabb60412d3d2d967a8d682f7ce01317af40514  (.github/actions/setup/action.yml)
+  renovate/gleam-1.x                     patch  pixi           gleam ==1.19.0 -> ==1.19.1  (pixi.toml)
+  renovate/hex-packages                  minor  gleam          gleam_http >= 4.4.0 and < 5.0.0 -> >= 4.4.0 and < 5.0.0  (gleam.toml)
+  renovate/local-cluster                 patch  pixi           kustomize ==5.8.2 -> ==5.8.3  (pixi.toml)
+  renovate/local-cluster                 minor  regex          registry.k8s.io/etcd 3.6.10-0@sha256:f65c61039e7b7fd6e651f7ec2459b880589892cb13cf79c2f71c92aa08fc5144 -> 3.7.2-0@sha256:7c6c239825d00e3f6328a69caafd54be92063acf0c2ce78b8394699f52b75dc3  (scripts/checks/cluster.py)
+  renovate/local-cluster                 patch  regex          registry.k8s.io/kube-apiserver v1.35.5@sha256:51f1971bebe13f376d648e8e42d6949a05d1f2cacbafae50245d0c58bc84997f -> v1.35.9@sha256:32abf8e4e2ae679b35c719a04902c2ae1a98a5b8648ac034a4672e39660f8a73  (scripts/checks/cluster.py)
+  renovate/local-cluster                 patch  regex          registry.k8s.io/kube-controller-manager v1.35.5@sha256:4c8d90d21b29e25486d8d33be40416de0f121f63a316ca620e9cca2ac7ec5ebd -> v1.35.9@sha256:d7e4983f79ee763f7c56226395ab9c55261ff6035df5ed23eef9bd26b63eb140  (scripts/checks/cluster.py)
+  renovate/local-cluster                 patch  regex          registry.k8s.io/kube-scheduler v1.35.5@sha256:c8e2abd96d0206ac5d863ac1f61f8bd0067e9b001ee5b1de768a68f1b9f187ff -> v1.35.9@sha256:d96574ba699bc887eeefcc05d9f7828b4df5ba75feac6f20b98097aa85d1ed22  (scripts/checks/cluster.py)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/audit.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/audit.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/audit.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/python-3.x                    minor  pixi           python ==3.14.8 -> ==3.15.0  (pixi.toml)
+  renovate/ruff-0.x                      minor  pixi           ruff ==0.16.10 -> ==0.17.0  (pixi.toml)
+  renovate/ubuntu-26.x                   major  dockerfile     ubuntu 24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55 -> 26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7  (Dockerfile)
+-- 3. stale copy: real older pins in every managed location
+renovate 44.149.0: 57 dependencies in 10 files
+  dockerfile        2 in 1 files
+  github-actions   15 in 3 files
+  gleam            11 in 1 files
+  pixi             19 in 1 files
+  regex            10 in 4 files
+30 proposals in 11 branches:
+  renovate/github-actions                minor  github-actions prefix-dev/setup-pixi v0.10.2@d3f436a425481402e6a95a1d1fc10331c708cd9e -> v0.11.0@9dabb60412d3d2d967a8d682f7ce01317af40514  (.github/actions/setup/action.yml)
+  renovate/github-actions                patch  github-actions actions/checkout v7.0.0@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 -> v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1  (.github/workflows/ci.yml)
+  renovate/github-actions                patch  github-actions actions/checkout v7.0.0@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 -> v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1  (.github/workflows/ci.yml)
+  renovate/github-actions                patch  github-actions actions/checkout v7.0.0@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 -> v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1  (.github/workflows/ci.yml)
+  renovate/gleam-1.x                     patch  pixi           gleam ==1.19.0 -> ==1.19.1  (pixi.toml)
+  renovate/hex-packages                  patch  gleam          birdie >= 2.0.0 and < 3.0.0 -> >= 2.0.0 and < 3.0.0  (gleam.toml)
+  renovate/hex-packages                  minor  gleam          gleam_http >= 4.4.0 and < 5.0.0 -> >= 4.4.0 and < 5.0.0  (gleam.toml)
+  renovate/just-1.x                      minor  pixi           just ==1.57.0 -> ==1.58.0  (pixi.toml)
+  renovate/local-cluster                 patch  pixi           kustomize ==5.8.2 -> ==5.8.3  (pixi.toml)
+  renovate/local-cluster                 patch  regex          kindest/node v1.35.0@sha256:4613778f3cfcd10e615029370f5786704559103cf27bef934597ba562b269661 -> v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0  (scripts/checks/cluster.py)
+  renovate/local-cluster                 minor  regex          registry.k8s.io/etcd 3.6.10-0@sha256:f65c61039e7b7fd6e651f7ec2459b880589892cb13cf79c2f71c92aa08fc5144 -> 3.7.2-0@sha256:7c6c239825d00e3f6328a69caafd54be92063acf0c2ce78b8394699f52b75dc3  (scripts/checks/cluster.py)
+  renovate/local-cluster                 patch  regex          registry.k8s.io/kube-apiserver v1.35.5@sha256:51f1971bebe13f376d648e8e42d6949a05d1f2cacbafae50245d0c58bc84997f -> v1.35.9@sha256:32abf8e4e2ae679b35c719a04902c2ae1a98a5b8648ac034a4672e39660f8a73  (scripts/checks/cluster.py)
+  renovate/local-cluster                 patch  regex          registry.k8s.io/kube-controller-manager v1.35.5@sha256:4c8d90d21b29e25486d8d33be40416de0f121f63a316ca620e9cca2ac7ec5ebd -> v1.35.9@sha256:d7e4983f79ee763f7c56226395ab9c55261ff6035df5ed23eef9bd26b63eb140  (scripts/checks/cluster.py)
+  renovate/local-cluster                 patch  regex          registry.k8s.io/kube-scheduler v1.35.5@sha256:c8e2abd96d0206ac5d863ac1f61f8bd0067e9b001ee5b1de768a68f1b9f187ff -> v1.35.9@sha256:d96574ba699bc887eeefcc05d9f7828b4df5ba75feac6f20b98097aa85d1ed22  (scripts/checks/cluster.py)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/audit.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/audit.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/audit.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/major-github-actions          major  github-actions ubuntu 24.04 -> 26.04  (.github/workflows/ci.yml)
+  renovate/pixi                          minor  dockerfile     ghcr.io/prefix-dev/pixi 0.80.0@sha256:4cb073300e2c5eaee287bb3bcbadd3ddb7bce4ce36b27c41a19aad74c297c2f3 -> 0.81.0@sha256:788ae451641666e2d1f79d3dbe35392dfc7e9b394b16a3acb75c347f3badb2ab  (Dockerfile)
+  renovate/pixi                          minor  regex          ghcr.io/prefix-dev/pixi 0.80.0 -> 0.81.0  (.github/actions/setup/action.yml)
+  renovate/pixi                          minor  regex          ghcr.io/prefix-dev/pixi 0.80.0 -> 0.81.0  (.github/actions/setup/action.yml)
+  renovate/pixi                          minor  regex          ghcr.io/prefix-dev/pixi 0.80.0 -> 0.81.0  (README.md)
+  renovate/pixi                          minor  regex          ghcr.io/prefix-dev/pixi 0.80.0 -> 0.81.0  (pixi.toml)
+  renovate/python-3.x                    minor  pixi           python ==3.14.8 -> ==3.15.0  (pixi.toml)
+  renovate/ruff-0.x                      minor  pixi           ruff ==0.16.10 -> ==0.17.0  (pixi.toml)
+  renovate/ubuntu-24.04                  digest dockerfile     ubuntu 24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3 -> 24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55  (Dockerfile)
+  renovate/ubuntu-26.x                   major  dockerfile     ubuntu 24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3 -> 26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7  (Dockerfile)
+-- each manager proposes from the stale copy
+  yes  gleam          birdie                   gleam.toml                         renovate/hex-packages
+  yes  pixi           just                     pixi.toml                          renovate/just-1.x
+  yes  github-actions actions/checkout         .github/workflows/ci.yml           renovate/github-actions
+  yes  dockerfile     ubuntu                   Dockerfile                         digest
+  yes  regex          kindest/node             scripts/checks/cluster.py          renovate/local-cluster
+  yes  dockerfile     ghcr.io/prefix-dev/pixi  Dockerfile                         renovate/pixi
+  yes  regex          ghcr.io/prefix-dev/pixi  pixi.toml                          renovate/pixi
+  yes  regex          ghcr.io/prefix-dev/pixi  .github/actions/setup/action.yml   renovate/pixi
+  yes  regex          ghcr.io/prefix-dev/pixi  README.md                          renovate/pixi
+-- 4. setup-pixi's native reading of pixi-version, switched back on in the stale copy
+  github-releases, versioning conda: current v0.80.0 (released 2026-09-07), newest release seen 2026-09-15, 0 proposals
+  it proposes nothing, so the regex manager reads this input instead
+-- 9 of 9 expected proposals; no dependency skipped but the one switched off, no digest-pin proposal, and the token in no log

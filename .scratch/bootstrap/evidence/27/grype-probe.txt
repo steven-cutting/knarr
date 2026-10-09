@@ -1,0 +1,27 @@
+date: 2026-10-09T23:15Z
+revision: 0474e67
+Version: 0.120.1
+Syft Version: v1.54.1
+Supported DB Schema: 6
+image: registry:ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55, linux/amd64
+-- 1. every match
+database: schema v6.1.10, built 2026-10-09T06:32:32Z
+source: ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
+  amd64 manifest sha256:f610ab94648195aa356059f5b41d6085c9d4d903c072430cdd1af7bdb646106b, distro ubuntu 24.04
+75 matches: 1 High, 60 Medium, 12 Low, 2 Negligible
+6 with a fix: 1 High, 5 Low
+  High     CVE-2026-84782   libssl3t64 3.0.13-0ubuntu3.15 -> 3.0.13-0ubuntu3.16
+  Low      CVE-2026-35189   libssl3t64 3.0.13-0ubuntu3.15 -> 3.0.13-0ubuntu3.16
+  Low      CVE-2026-54872   libssl3t64 3.0.13-0ubuntu3.15 -> 3.0.13-0ubuntu3.16
+  Low      CVE-2026-75805   libssl3t64 3.0.13-0ubuntu3.15 -> 3.0.13-0ubuntu3.16
+  Low      CVE-2026-75806   libssl3t64 3.0.13-0ubuntu3.15 -> 3.0.13-0ubuntu3.16
+  Low      CVE-2026-77696   libssl3t64 3.0.13-0ubuntu3.15 -> 3.0.13-0ubuntu3.16
+-- 2. just image-scan's flags: --only-fixed --fail-on high
+  NAME        INSTALLED           FIXED IN            TYPE  VULNERABILITY   SEVERITY  EPSS         RISK   
+  libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-84782  High      0.4% (31st)  0.3    
+  libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-75806  Low       0.4% (30th)  0.1    
+  libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-35189  Low       0.3% (17th)  < 0.1  
+  libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-54872  Low       0.3% (16th)  < 0.1  
+  libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-77696  Low       0.2% (14th)  < 0.1  
+  libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-75805  Low       0.2% (11th)  < 0.1
+exit 2: a fixed vulnerability at or above high; the audit job reports it

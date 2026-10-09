@@ -1,0 +1,67 @@
+date: 2026-10-09T23:14Z
+gleam             http 200    73749 bytes  sha256 b4993aec6982  https://docs.renovatebot.com/modules/manager/gleam/
+pixi              http 200    70481 bytes  sha256 ff15faf67709  https://docs.renovatebot.com/modules/manager/pixi/
+github-actions    http 200   116881 bytes  sha256 9b3d68e62d22  https://docs.renovatebot.com/modules/manager/github-actions/
+regex             http 200    96079 bytes  sha256 529e0f1f1472  https://docs.renovatebot.com/modules/manager/regex/
+pre-commit        http 200    77520 bytes  sha256 f2426e339c40  https://docs.renovatebot.com/modules/manager/pre-commit/
+github-runners    http 200    59302 bytes  sha256 aff8a530e2a5  https://docs.renovatebot.com/modules/datasource/github-runners/
+local             http 200    35669 bytes  sha256 48a8fba31383  https://docs.renovatebot.com/modules/platform/local/
+options           http 200   784112 bytes  sha256 893a2103bc6e  https://docs.renovatebot.com/configuration-options/
+self-hosted       http 200   293079 bytes  sha256 b478a96168b7  https://docs.renovatebot.com/self-hosted-configuration/
+mend              http 200    46903 bytes  sha256 94ea73bcd5be  https://docs.renovatebot.com/mend-hosted/hosted-apps-config/
+permissions       http 200    61522 bytes  sha256 b3cb110a42a4  https://docs.renovatebot.com/security-and-permissions/
+presets-default   http 200   146328 bytes  sha256 fa7be096791f  https://docs.renovatebot.com/presets-default/
+presets-docker    http 200    38796 bytes  sha256 a29e0d0f3f6e  https://docs.renovatebot.com/presets-docker/
+presets-helpers   http 200    60005 bytes  sha256 026bc7940bee  https://docs.renovatebot.com/presets-helpers/
+dependabot        http 200   943814 bytes  sha256 bf940da03992  https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories
+dependency-graph  http 200   672106 bytes  sha256 c943fed18e6a  https://docs.github.com/en/code-security/reference/supply-chain-security/dependency-graph-supported-package-ecosystems
+osv-batch         http 200    30406 bytes  sha256 b307c46461ab  https://google.github.io/osv.dev/post-v1-querybatch/
+osv-schema        http 200   226247 bytes  sha256 0a1ead4f8ca9  https://ossf.github.io/osv-schema/
+osv-scanner       http 200    31038 bytes  sha256 42e25693e134  https://google.github.io/osv-scanner/supported-languages-and-lockfiles/
+trivy             http 200     7435 bytes  sha256 bd55c7e3f647  https://api.osv.dev/v1/vulns/CVE-2026-33634
+--
+found       gleam             "devDependencies Listed under dev-dependencies": the gleam manager reads the hyphenated dev table only, so gleam.toml spells it that way
+found       gleam             "The gleam manager uses the gleam program to update manifest.toml files": the hosted app must run gleam to move the lock
+found       gleam             "This manager supports lockFileMaintenance for the following file(s): manifest.toml": transitive hex packages move through lock file maintenance
+found       pixi              "Feature dependencies produce dynamic depType values in the form feature-<name>": the otp, cluster and audit features are read
+found       pixi              "Self-hosted administrators must explicitly allow this path by including pixi in the global allowedUnsafeExecutions setting": relocking pixi.lock is an unsafe execution
+found       pixi              "When pixi is not allowed, the package file is still updated, but pixi.lock is left unchanged": why every conda update stays held until 41 proves the hosted relock
+found       github-actions    "prefix-dev/setup-pixi pixi-version prefix-dev/pixi": setup-pixi's pixi-version input is read as prefix-dev/pixi
+found       github-actions    "action\.ya?ml$/": every action.yml, the setup action's included, is in the manager's file patterns
+found       github-actions    "Actions pinned to a bare SHA without a version comment are disabled by default": why every SHA carries its version comment
+found       regex             "The regex manager uses RE2 which does not support backreferences and lookahead assertions": the custom managers avoid both; the gate test refuses them
+found       regex             "matches are done per-file": so the patterns carry no line anchors
+found       pre-commit        "functionality is currently in beta testing, so you must opt-in": the pre-commit manager stays off: no remote hook exists to update
+found       github-runners    "This datasource returns a list of all runners that are hosted by GitHub": runner labels are covered without configuration
+found       local             "This feature is flagged as experimental": the dry run's platform is experimental
+found       local             "In this mode, Renovate defaults to dryRun=lookup": the dry run looks up updates and creates nothing
+found       local             "Branch creation is not supported": so the hold and the branches are 41's to see on the hosted app
+found       options           "composer , gleam": rangeStrategy update-lockfile works for gleam
+found       options           "Renovate only queries the OSV database for dependencies that use one of these datasources": Renovate's OSV alerts cover hex ...
+found       options           "packagist pypi rubygems": ... and not conda, docker or GitHub actions
+found       options           "You will only get OSV-based vulnerability alerts for direct dependencies": and only direct dependencies, so hex-audit asks about every locked package
+found       options           ""schedule" : [], "dependencyDashboardApproval" : false": a vulnerability fix skips the landing hold once the app is live, though it still never automerges
+found       self-hosted       ""mise" , "pixi"": pixi is one of the allowedUnsafeExecutions values
+not found   mend              "allowedUnsafeExecutions" (expected; as of 2026-10-09): whether the hosted app allows pixi is undocumented; 41 proves it
+found       mend              "Installing Renovate into selected repositories always leads to onboarding PRs": what 41 should expect at installation
+found       permissions       "Read for repository content and write for creating branches": the app writes branches ...
+found       permissions       "Explicit permission needed to update workflows": ... and workflow files: the trust surface 0013 records
+found       presets-default   "Enable Renovate Dependency Dashboard approval workflow": :dependencyDashboardApproval, the landing hold
+found       presets-docker    ""matchDatasources" : [ "docker" ], "pinDigests" : true": docker:pinDigests
+found       presets-helpers   ""matchDepTypes" : [ "action" , "workflow" ], "pinDigests" : true": helpers:pinGitHubActionDigests
+found       dependabot        "Hex mix v1": Dependabot's hex support is mix, not Gleam
+found       dependabot        "Dependabot support for Conda does not include private registries, vendoring, or lock file updates": and it cannot move pixi.lock
+found       dependency-graph  "GitHub Actions workflows YAML": Dependabot alerts read the workflows; the page lists no Hex, Conda or Docker
+found       osv-batch         "a querybatch request may return results with a next_page_token for only a few of the total queries": why hex-audit refuses a paged answer instead of passing it
+found       osv-schema        "Hex The package manager for the Erlang ecosystem; the name is a Hex package name": OSV's ecosystem name is Hex
+found       osv-schema        "the versions field is typically populated with enumerated versions (tags)": an OTP tag is matched against the tags OSV enumerated
+found       osv-scanner       "Elixir mix.lock": osv-scanner reads mix.lock for the Erlang ecosystem ...
+not found   osv-scanner       "manifest.toml" (expected; as of 2026-10-09): ... and not Gleam's manifest.toml
+not found   osv-scanner       "Gleam" (expected; as of 2026-10-09): ... nor anything Gleam
+found       trivy             "Trivy ecosystem supply chain briefly compromised": why Trivy is excluded (GHSA-69fq-xp46-6x23)
+found       trivy             "force-push 76 of 77 version tags": the action tags themselves were moved
+-- 37 phrases found, 0 not found, 3 expected not found, 0 unexpected
+-- the scanners conda-forge carries (linux-64), newest build of each
+grype        0.120.1
+trivy        0.75.0
+osv-scanner  2.6.0

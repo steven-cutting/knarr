@@ -10,6 +10,8 @@
 
 **From 28:** [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md), "cosign, SBOM and build provenance" and "Architectures"; [registry.txt](../evidence/28/registry.txt) part 2 for what an attested push looks like; [arm64-probe.txt](../evidence/28/arm64-probe.txt) for the arm64 cost.
 
+**From 27:** the arm64 re-lock is an ordinary pull request through [Decision 0013's re-lock route](../../../docs/decisions/0013-dependency-updates-and-audit.md#re-locks-ticket-38s-arm64-among-them), and both base-image digests are already indexes with an arm64 manifest ([digests.txt](../evidence/27/digests.txt)).
+
 **MVP critical path:** no. The MVP pulls a plain amd64 manifest.
 
 **Status:** ready-for-agent, round 2

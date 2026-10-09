@@ -1,0 +1,30 @@
+revision: 0474e67
+hex package range          11  renovate gleam (hex), group hex packages
+                               in gleam.toml
+hex package lock           38  renovate gleam: update-lockfile, lockFileMaintenance
+                               in manifest.toml
+conda pin (==)             19  renovate pixi, held for approval
+                               in pixi.toml
+conda package lock        106  renovate pixi lockFileMaintenance, held; hosted relock unproven (41)
+                               in pixi.lock
+action SHA                  7  renovate github-actions, group GitHub Actions
+                               in .github/actions/setup/action.yml, .github/workflows/audit.yml, .github/workflows/ci.yml
+runner label                7  renovate github-actions (github-runners), group GitHub Actions
+                               in .github/workflows/audit.yml, .github/workflows/ci.yml
+prek remote hook rev        0  none to cover: 4 repos, all local or builtin
+                               in .pre-commit-config.yaml, .pre-commit-fix.yaml
+base image digest           2  renovate dockerfile, docker:pinDigests
+                               in Dockerfile FROM
+cluster image digest        6  renovate regex (docker), group local cluster, held
+                               in scripts/checks/cluster.py
+pixi version                5  renovate: setup-pixi input, dockerfile, regex; group pixi, held
+                               in pixi.toml, setup action (2), Dockerfile, README.md
+tools.txt sha256           14  gap: manual; 7 tools on 2 platforms, no bot rehashes a download
+                               in tools.txt
+rebar3 ADD --checksum       1  gap: manual, with tools.txt's rebar3 line (test_image.py)
+                               in Dockerfile
+Kubernetes schema sha256    3  gap: manual, re-vendored with its sources.json
+                               in scripts/schemas/kubernetes/sources.json
+vendored skill hash         7  gap: manual, re-vendored from the tag the lock names
+                               in skills-lock.json
+-- 226 pins in 14 kinds; 25 in the 4 manual kinds

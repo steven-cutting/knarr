@@ -64,6 +64,11 @@ def main():
     config = json.loads(output("docker", "image", "inspect", image))[0]["Config"]
     if config["User"] != "10001:10001":
         raise RuntimeError("image must declare USER 10001:10001")
+    if config.get("Entrypoint") != [
+        "/opt/knarr/container-entrypoint.sh",
+        "/opt/knarr/shipment/entrypoint.sh",
+    ]:
+        raise RuntimeError("image must use the descriptor-bounding entrypoint")
     resources = json.loads((ROOT / "deploy/base/resources.json").read_text())
     deployment = next(item for item in resources["items"] if item["kind"] == "Deployment")
     memory = deployment["spec"]["template"]["spec"]["containers"][0]["resources"]["limits"][
@@ -108,7 +113,13 @@ def main():
     )
     if build != expected or runtime != expected:
         raise RuntimeError(f"OTP mismatch: owner={expected}, build={build}, runtime={runtime}")
-    container = output(*common, "--detach", "--publish=127.0.0.1::8080", image)
+    container = output(
+        *common,
+        "--ulimit=nofile=131072:131072",
+        "--detach",
+        "--publish=127.0.0.1::8080",
+        image,
+    )
     try:
         verify_running(container)
         subprocess.run(

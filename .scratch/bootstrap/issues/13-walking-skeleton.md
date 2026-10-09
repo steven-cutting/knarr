@@ -15,7 +15,7 @@ Either way the library sits behind a `metrics` module. Metric names follow contr
 
 **MVP critical path:** yes. It is the base every MVP feature is built and deployed on.
 
-**Status:** implemented; live validation pending
+**Status:** implemented; Linux image and cluster validation verified
 
 - [x] A short decision record picks the metrics library, weighing the rebar3 finding from 01.
 - [x] A supervised application on `gleam_otp` restarts a crashed child, and a test shows it.
@@ -23,13 +23,13 @@ Either way the library sits behind a `metrics` module. Metric names follow contr
   - `/healthz`: 200 while the VM is up
   - `/readyz`: 200 once the supervision tree has started
   - `/metrics`: Prometheus text exposition with one `knarr_` counter, plus VM collectors if the library provides them
-- [ ] The image is built from an `erlang-shipment` in a multi-stage build. It runs as a non-root numeric UID with a read-only root filesystem. A check proves the build and runtime stages use the same OTP major (the owner set in 01). hadolint passes, if 01 kept it.
+- [x] The image is built from an `erlang-shipment` in a multi-stage build. It runs as a non-root numeric UID with a read-only root filesystem. A check proves the build and runtime stages use the same OTP major (the owner set in 01). hadolint passes, if 01 kept it.
 - [x] A kustomize base renders:
   - a ServiceAccount
   - a minimal Role
   - a Deployment with `replicas: 1`, strategy `Recreate`, liveness and readiness probes, and a restrictive securityContext
 - [x] kubeconform validates the rendered base, if 01 kept it; otherwise the record names the replacement check.
-- [ ] `just` recipes cover cluster up, deploy and smoke, using the per-worktree naming from 10. The smoke test hits all three endpoints in the cluster.
+- [x] `just` recipes cover cluster up, deploy and smoke, using the per-worktree naming from 10. The smoke test hits all three endpoints in the cluster.
 - [x] A CI smoke job runs on kind. It is not a dependency of the aggregate `check` job (05) and is not a required status check until it has been stable for a stated period.
 
 ## Hand-back notes
@@ -61,7 +61,7 @@ Verification so far:
   exit code 1 after startup failure or exhausted supervision and exit code 0
   on normal shutdown. Routing tests cover readiness before
   and after startup, unknown paths, method rejection and injected exposition.
-- 302 Python checker and process tests passed, including worktree names, command isolation,
+- 310 Python checker and process tests cover, including worktree names, command isolation,
   runner changes, failed cleanup, image rollout identity, missing kubeconfig,
   inherited in-cluster configuration, image failure diagnostics and manifest security.
 - Production `gleam export erlang-shipment` succeeded. The entrypoint starts the
@@ -74,8 +74,9 @@ Verification so far:
   explicitly; that structural count is not a claim of formal behaviour coverage.
 - The full `just check` passed with "All checks passed and the worktree is
   unchanged."
-- Image execution, kind endpoint smoke and kwok readiness await network
-  authorization. Native GitHub Actions execution has not been observed.
+- Native Linux GitHub Actions verified image build/execution, kind endpoint
+  smoke and kwok readiness. ARM-host image builds remain unverified: the local
+  amd64 runtime failed in `prim_tty` under emulation.
 
 Later tickets:
 
@@ -120,3 +121,28 @@ tier. No registry publication or branch-protection change is part of this ticket
 
 The same Opus 5.5 reviewer checked the applied fixes in a focused follow-up at
 medium effort and reported no new definite, actionable bugs.
+
+### CI follow-up
+
+Cold CI exposed a missing build prerequisite: running glinter starts the OTP
+application without compiling its Gleam modules. `lint-gleam` now depends on
+`build`; isolated cold-package tests prove success and build-error propagation.
+Claude Code reviewed this fix with Opus 5.5 at medium effort and reproduced both
+outcomes independently.
+
+Kind then exposed an inherited descriptor-limit problem. Its containerd service
+sets `LimitNOFILE=infinity`; pods exited with `OOMKilled` before application
+logging at both 256 and 512 MiB, while standalone Docker used about 53 MiB.
+An offline runtime probe reproduced exit 137 with 1,073,741,816 descriptors;
+a bounded limit got past memory initialization. The container entrypoint now
+caps the soft limit at 65,536 and preserves lower inherited limits. The original
+64 MiB request and 256 MiB limit remain. Kind smoke passed with that fix.
+
+Image validation checks the actual entrypoint configuration, tests its cap, and
+starts the application with a high descriptor limit and the deployment's memory
+budget without swap. Informational stats cannot fail a healthy image. Failure
+diagnostics include container state, pod termination reasons and previous logs.
+Shell tests cover lower, high and unlimited limits without requiring the host to
+raise its hard limit; Docker supplies the real high-limit integration test.
+Opus 5.5 reviewed the follow-up at medium effort; its entrypoint-wiring and
+host-limit portability findings are covered by these regressions.

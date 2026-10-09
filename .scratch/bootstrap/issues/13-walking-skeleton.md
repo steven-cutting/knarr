@@ -55,8 +55,9 @@ maintainer considers making kind required.
 
 Verification so far:
 
-- 20 Gleam tests passed, including real local HTTP and killing the supervised
-  listener, then observing recovery on the OS-assigned port with counter value one.
+- 21 Gleam tests passed, including real local HTTP and killing the supervised
+  listener, then observing recovery with counter value one, both on an
+  OS-assigned port and on a fixed port that the restarted listener rebinds.
   Occupied-port startup returns failure. Separate Erlang subprocess tests prove
   exit code 1 after startup failure or exhausted supervision and exit code 0
   on normal shutdown. Routing tests cover readiness before
@@ -73,10 +74,11 @@ Verification so far:
   The diagnostic and lifecycle guarantees are prose contract invariants, tested
   explicitly; that structural count is not a claim of formal behaviour coverage.
 - The full `just check` passed with "All checks passed and the worktree is
-  unchanged."
+  unchanged." after the review follow-up below.
 - Native Linux GitHub Actions verified image build/execution, kind endpoint
-  smoke and kwok readiness. ARM-host image builds remain unverified: the local
-  amd64 runtime failed in `prim_tty` under emulation.
+  smoke and kwok readiness. The kwok readiness job has not run since `kwok`
+  left `tools.txt`; rerunning it needs a push. ARM-host image builds remain
+  unverified: the local amd64 runtime failed in `prim_tty` under emulation.
 
 Later tickets:
 
@@ -84,7 +86,14 @@ Later tickets:
   has no RoleBinding, no rules and no mounted ServiceAccount token. Reuse the
   existing runtime supervision and cluster recipes. `gleam_http` is now a runtime
   dependency; `gleam_json` remains a development dependency until source uses it.
+  The review follow-up below found that, on a fixed port, one listener crash
+  uses both restarts the root tolerates. Decide whether the code or the Recovery
+  clause changes before adding children under the same root.
 - **15:** use the kwok tier for controller/API semantics and kind for actual pods.
+- **27:** `env-check` refuses installed tools whose pin moved, but ignores an
+  installed tool that `tools.txt` no longer pins. Existing worktrees keep
+  `.tools/bin/kwok` and its `.pins` record until someone removes them by hand.
+  Dependency updates have to handle a removed pin, not only a changed one.
 - **28:** image publication, multi-platform releases and registry policy remain
   outside this ticket. The local image targets the locked linux/amd64 platform.
 
@@ -161,7 +170,8 @@ All five findings on PR 10 were valid and have local fixes:
   permits a new OS-assigned port after restart. The helper verifies a positive
   port, loopback binding and all three endpoints after child replacement,
   preserving startup-counter and VM-metric assertions. Occupied-port startup
-  failure remains covered.
+  failure remains covered. The review follow-up below adds a fixed-port test
+  beside it.
 - Mandatory downloads no longer include the unused standalone `kwok` binary.
   `kwokctl` and its controller image remain. No installer change or new pin is
   needed; the original tool investigation evidence is preserved.
@@ -182,3 +192,57 @@ from nine because of the Header value. Prose contract invariants still require
 explicit behavioral tests; this count is not formal behavior coverage.
 The full offline gate remains the acceptance check for the follow-up. Later
 tickets inherit the same runtime interfaces and cluster commands.
+
+### Review follow-up
+
+`/code-review xhigh` with Opus 5.5 reviewed the PR feedback follow-up commit
+and reported nine findings. Six are fixed here; none changes product behavior.
+
+- The recovery helper counted accepted keep-alive sockets as listeners, so a
+  retry after a partly successful attempt failed while those connections stayed
+  open. It now counts only sockets with no peer. One `serves` helper checks the
+  loopback listener, all three endpoints, the startup counter and VM metrics,
+  before and after the kill.
+- Port zero had replaced, not joined, the same-port recovery check. The Lifecycle
+  `Listening` clause now states that a supervised restart rebinds the configured
+  port, and a fixed-port test proves it beside the port-zero test. The
+  free-port allocator is back for that test only: a failed start retries on a
+  new port up to five times, so another process taking the released port no
+  longer fails the test.
+- The routing test covers `POST /other`: 404 with no `Allow` header.
+- Decision 0003 marks its kwok-inventory and Dockerfile-stage bullets as amended
+  by ticket 13, quoting what they originally said, and its reopen criterion names
+  `kwokctl`. Decision 0007 notes where ticket 13 later removed the `kwok` pin.
+- The testing reference says recovery is proven on an OS-assigned port and on a
+  fixed port.
+- The verification above previously claimed a full `just check` the follow-up
+  had not rerun; it now refers to the run below.
+
+`HEAD` on a known path stays 405, as the Routing clause states. The `env-check`
+gap for removed pins is left to 27, above.
+
+The fixed-port test exposed a pre-existing gap against the Recovery clause.
+After the kill, the supervisor's first restart fails with `Eaddrinuse` because
+the killed listener's socket is still closing; the supervisor's retry then
+binds. The retry counts as a second restart, so one crash on a fixed port uses
+the root's whole tolerance of two restarts in five seconds, and a second crash
+in that window stops the root and, through the entrypoint, the VM. Port 8080 is
+a fixed port. An experiment against the built runtime, outside the gate, killed
+the listener, waited for recovery and killed it again at once: on a fixed port
+the root shut down three times out of three; on port zero it survived three
+times out of three. The runtime is unchanged here because this follow-up
+changes no product behavior; 14 inherits the decision.
+
+Verification: the fixed-port test passed on its first run, before the socket
+filter changed, so it was never observed failing. Every run logs the
+`Eaddrinuse` restart failure above, and the test passes through the
+supervisor's retry; if the retry also found the socket still closing, the root
+would stop and the test would fail. That did not happen in the 13 runs
+observed. `POST /other` and the peername filter also passed against the
+existing code. After the changes, 21 Gleam tests passed ten consecutive times,
+and `just format-check` and `just build` passed. `just check-specs` and
+`just analyse-specs` report no diagnostics or findings;
+`just plan-spec docs/specs/knarr.allium` still reports 11 structural
+obligations. `just docs-check` validated 23 pages, and all 310 checker and
+process tests passed. The full `just check` passed with "All checks passed and
+the worktree is unchanged."

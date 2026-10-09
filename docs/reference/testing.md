@@ -20,8 +20,9 @@ This page covers knarr's unit tests: the tools, the snapshot workflow, and the s
 - **GKE**: run by hand against a short-lived cluster, never on every change.
 
 The gate also runs the diagnostics adapter against local HTTP sockets and
-crashes a supervised listener to prove recovery on the same port without
-resetting metrics. These tests need no cluster or external network. Test and
+crashes a supervised listener to prove recovery without resetting metrics,
+once on an OS-assigned port and once on a fixed port that it must rebind.
+These tests need no cluster or external network. Test and
 lint recipes select a loopback address and ephemeral application port so concurrent worktrees do
 not contend for port 8080 or expose metrics on the LAN. The checker suite also
 starts isolated Erlang subprocesses to verify startup failure, exhausted

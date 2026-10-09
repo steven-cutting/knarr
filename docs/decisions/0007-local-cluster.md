@@ -19,7 +19,7 @@ Five runners were candidates: kind, k3d, OrbStack's built-in Kubernetes, kwok (t
 3. speed: create-to-ready time and image-load time
 4. fitness for many concurrent worktrees
 
-[Decision 0003](0003-tool-manager.md) had already fixed the cluster minor at 1.35. It is the one minor that kind 0.33, kwok 0.8, CA and conda-forge's kubectl 1.34.3 all support. 0003 also fixed where each tool comes from: kind and kubectl from pixi's `cluster` environment, and kwok, kwokctl, k3d and setup-envtest as sha256-pinned downloads.
+[Decision 0003](0003-tool-manager.md) had already fixed the cluster minor at 1.35. It is the one minor that kind 0.33, kwok 0.8, CA and conda-forge's kubectl 1.34.3 all support. 0003 also fixed where each tool comes from: kind and kubectl from pixi's `cluster` environment, and kwok, kwokctl, k3d and setup-envtest as sha256-pinned downloads (ticket 13 later stopped installing the standalone `kwok` binary).
 
 All evidence was gathered on 2026-10-07 on an Apple M5 Pro (Darwin arm64), with OrbStack 2.2.3 and its Docker engine 29.4. The scripts and transcripts are in [`.scratch/bootstrap/evidence/10/`](../../.scratch/bootstrap/evidence/10/README.md). Every timing is a Mac number on a warm image cache.
 
@@ -99,7 +99,7 @@ It exists, and it runs. At tag `cluster-autoscaler-1.35.2`, `cluster-autoscaler/
 
 Each script exits non-zero on an unexpected result. [README](../../.scratch/bootstrap/evidence/10/README.md) gives the command that reruns them all.
 
-**Tools ([fetch.txt](../../.scratch/bootstrap/evidence/10/fetch.txt)).** The `cluster` environment installs from 01's manifest with `pixi install --locked -e cluster`, and kind, kubectl, helm and shellcheck print their pinned versions. kwok, kwokctl, k3d and setup-envtest each match their 0003 pin line, a copy with one byte appended is refused, and setup-envtest installs the 1.35.0 assets.
+**Tools ([fetch.txt](../../.scratch/bootstrap/evidence/10/fetch.txt)).** The `cluster` environment installs from 01's manifest with `pixi install --locked -e cluster`, and kind, kubectl, helm and shellcheck print their pinned versions. kwok, kwokctl, k3d and setup-envtest each matched the 0003 pin line of the time (ticket 13 later removed the `kwok` row), a copy with one byte appended is refused, and setup-envtest installs the 1.35.0 assets.
 
 **Naming ([name_test.txt](../../.scratch/bootstrap/evidence/10/name_test.txt)).** Twelve tests cover the plain case, a shared basename, a symlink, odd characters, a long name cut to exactly 32 characters, a cut landing on a dash, a basename with nothing usable, the three paths with a space in the worktree path, and the two error exits.
 

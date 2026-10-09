@@ -50,8 +50,9 @@ contract Lifecycle {
     @invariant Listening
         -- The default listener binds 0.0.0.0 on port 8080. OTP application
         -- configuration can override the bind address and port. Gate adapters
-        -- use loopback and OS-allocated ports. Port 0 lets the OS assign a
-        -- port on each listener start, including after a supervised restart.
+        -- use loopback and OS-allocated ports. After a supervised restart the
+        -- listener binds the same configured port. Port 0 instead lets the OS
+        -- assign a port on each listener start, so a restart may change it.
     @invariant Recovery
         -- A crashed listener is restarted by supervision and serves requests
         -- again without resetting the startup counter or duplicating metrics.

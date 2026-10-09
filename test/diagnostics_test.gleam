@@ -26,6 +26,10 @@ pub fn readiness_test() -> Nil {
 pub fn routing_test() -> Nil {
   let unknown = request.new() |> request.set_path("/other")
   assert diagnostics.respond(unknown, True, no_collection).status == 404
+  let unknown_post = unknown |> request.set_method(http.Post)
+  let result = diagnostics.respond(unknown_post, True, no_collection)
+  assert result.status == 404
+  assert response.get_header(result, "allow") == Error(Nil)
   list.each(["/healthz", "/readyz", "/metrics"], fn(path) {
     list.each([http.Post, http.Head, http.Options], fn(method) {
       let req =

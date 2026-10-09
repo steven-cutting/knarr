@@ -1,6 +1,6 @@
 # Ticket 11 evidence
 
-Gathered on 2026-10-08 for [integration](../../issues/11-integration.md), starting at `4f0eca5c342493c7830cf6be77791f2207956115`. GitHub's `main` and the clean `11-integration` worktree both named that commit. No controller, specification, tool pin or gate implementation changed.
+Gathered on 2026-10-08 for [integration](../../issues/11-integration.md), starting at `4f0eca5c342493c7830cf6be77791f2207956115`. GitHub's `main` and the clean `11-integration` worktree both named that commit. No controller, specification, tool pin or gate implementation changed. The [branch-protection read-back](#branch-protection-read-back) was gathered later, at 2026-10-09T03:19Z against `c96e10632be947a4f293cef774cfbc127aac9c1d`.
 
 ## Local verification
 
@@ -59,7 +59,7 @@ gh api --method PATCH repos/steven-cutting/knarr/branches/main/protection/requir
 
 [The payload](required-check.json) requires only `check`, explicitly bound to GitHub Actions app `15368`. The [app observation](check-source.json) records the source of the audited check run. The [GitHub API documentation](https://docs.github.com/en/rest/branches/branch-protection#update-status-check-protection) supports `checks` entries with `context` and `app_id`; the status-check PATCH endpoint leaves unrelated protection settings untouched. Omitting `strict` preserves its current value.
 
-Before applying it, reread protection and require that the current contexts and checks are still empty; if settings changed, prepare a new request for review. After authorization and execution, run `sh .scratch/bootstrap/evidence/04/state.sh check`, reusing 04's tested projection and rulesets check, and retain the full protection response. That script checks names but not app identity, so also run this read-only assertion and require exit zero:
+The prepared procedure, kept as history, was: before applying it, reread protection and require that the current contexts and checks are still empty; if settings changed, prepare a new request for review. After authorization and execution, run `sh .scratch/bootstrap/evidence/04/state.sh check`, reusing 04's tested projection and rulesets check, and retain the full protection response. That script checks names but not app identity, so also run this read-only assertion and require exit zero:
 
 ```sh
 source_matches=$(gh api repos/steven-cutting/knarr/branches/main/protection/required_status_checks \
@@ -67,11 +67,11 @@ source_matches=$(gh api repos/steven-cutting/knarr/branches/main/protection/requ
   test "$source_matches" = true
 ```
 
-Compare every other protection field against the fresh pre-change response, excluding only `required_status_checks.contexts` and `required_status_checks.checks`. Preserve `strict: false`, the administrator exemption and all other settings. Record the mutation and read-back before checking off 11's criterion or updating 05's pending status. This audit made no mutation.
+It went on: compare every other protection field against the fresh pre-change response, excluding only `required_status_checks.contexts` and `required_status_checks.checks`; preserve `strict: false`, the administrator exemption and all other settings; record the mutation and read-back before checking off 11's criterion or updating 05's pending status. This audit made no mutation, and the request will not be run: the setting is already in place.
 
 ### Branch-protection read-back
 
-The maintainer applied the required check through GitHub's branch-protection settings page, not through this audit. The prepared `PATCH` above was never run, and no session observed the pre-change reread it called for; what was verified is the state afterwards. The read-only calls below ran at 2026-10-09T03:19Z, when GitHub's `main` was `c96e10632be947a4f293cef774cfbc127aac9c1d`, and the files retain their responses:
+The maintainer applied the required check through GitHub's branch-protection settings page, not through this audit. The prepared `PATCH` above was never run, and no session observed the pre-change reread it called for. The comparison below is therefore against the audit's [pre-change response](protection.json) from 2026-10-08, not a fresh one; an intermediate change that was later reverted would not show. What was verified is the state afterwards. The read-only calls below ran at 2026-10-09T03:19Z, when GitHub's `main` was `c96e10632be947a4f293cef774cfbc127aac9c1d`:
 
 ```sh
 gh api repos/steven-cutting/knarr/branches/main/protection
@@ -83,9 +83,9 @@ gh api repos/steven-cutting/knarr/branches/main --jq .commit.sha
 ```
 
 - **Required checks:** [the status-check response](required-status-checks-after.json) has `strict: false`, `contexts: ["check"]` and `checks: [{"context": "check", "app_id": 15368}]`, matching [the prepared payload](required-check.json). The app-identity assertion above evaluates to `true` against it. The `required_status_checks` object inside [the full protection response](protection-after.json) is identical.
-- **Everything else unchanged:** with `required_status_checks.contexts` and `required_status_checks.checks` removed from both, [the full protection response](protection-after.json) and [the pre-change response](protection.json) are identical. `strict` is still `false`, administrators are still exempt, and force pushes and deletions are still disabled. The rulesets response is still `[]`.
+- **Everything else unchanged:** with `required_status_checks.contexts` and `required_status_checks.checks` removed from both, [the full protection response](protection-after.json) and [the pre-change response](protection.json) are identical. `strict` is still `false`, administrators are still exempt, and force pushes and deletions are still disabled. [The rulesets response](rulesets-after.json) is still `[]`.
 - **04's script:** [`state.sh check`](state-after.txt) exited 0 with `strict=false checks=check admins=false` and zero rulesets. Its `main on GitHub is ahead with 84668a5…` line compares GitHub's `main` with the commit ticket 04 pushed; its `info remote main` line, `c96e106…`, is the current `main`.
-- **CI on current `main`:** [run 37877497805](https://github.com/steven-cutting/knarr/actions/runs/37877497805) completed successfully at `c96e106`.
+- **CI on current `main`:** [the recorded runs query and branch SHA](ci-after.json) show [run 37877497805](https://github.com/steven-cutting/knarr/actions/runs/37877497805) completed successfully at `c96e106`. Only the projected fields were retained; no log excerpt was kept for this run.
 
 Administrators remain exempt by 04's decision, so `check` is required for pull requests but not for a direct push by the owner. The protection acceptance criterion is met.
 

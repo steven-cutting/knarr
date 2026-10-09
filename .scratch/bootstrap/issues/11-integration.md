@@ -20,7 +20,7 @@
 
 ## Hand-back notes
 
-The [evidence and claim inventory](../evidence/11/README.md) record verification on 2026-10-08 at `4f0eca5c342493c7830cf6be77791f2207956115`, which was both this branch's starting commit and GitHub's current `main`.
+The [evidence and claim inventory](../evidence/11/README.md) record verification on 2026-10-08 at `4f0eca5c342493c7830cf6be77791f2207956115`, which was both this branch's starting commit and GitHub's current `main`. The branch-protection read-back was gathered later, at 2026-10-09T03:19Z against `c96e106`.
 
 - **Fresh clone:** one `just initialize` took 14.950 seconds; `just check` took 91.067 seconds and passed again in 69.711 seconds under a network-denying macOS sandbox. The clone remained clean. The pixi cache was empty and isolated; Gleam's existing user cache was reused. This is not the fully cold timing 03 deferred: [35](35-bootstrap-verification-gaps.md) retains that claim.
 - **Linked gate:** `just check` passed in 93.423 seconds with 13 Gleam tests and 285 checker tests, ending with "All checks passed and the worktree is unchanged." The gate preserved the in-progress evidence diff; a clean final commit is verified separately.

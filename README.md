@@ -1,10 +1,16 @@
 # Knarr
 
-A Kubernetes controller, written in Gleam on the BEAM, that biases Deployment scale-down away from busy worker pods. It polls each worker over HTTP and sets `controller.kubernetes.io/pod-deletion-cost` (and optionally `cluster-autoscaler.kubernetes.io/safe-to-evict`) on the pod.
+A Kubernetes controller project, written in Gleam on the BEAM, designed to bias Deployment scale-down away from busy worker pods. The planned controller polls workers over HTTP and sets `controller.kubernetes.io/pod-deletion-cost` (and optionally `cluster-autoscaler.kubernetes.io/safe-to-evict`) on live pods.
 
-See [docs/OVERVIEW.md](docs/OVERVIEW.md) for the project overview, goals, worker contract draft and open questions.
+**Status: pre-MVP.** The implemented walking skeleton has supervised health, readiness and Prometheus metrics endpoints. It does not yet read or change Kubernetes objects; worker polling and annotation behaviour remain future work.
+
+See the [project overview](docs/OVERVIEW.md) for goals, the worker contract draft and open questions, and the [documentation index](docs/README.md) for the handbook.
 
 AI agents start at [AGENTS.md](AGENTS.md), the one contract for working here; `CLAUDE.md` and the Copilot instructions only point to it.
+
+- [Contributing](CONTRIBUTING.md): pick up a ticket, work locally and prepare a change for merging.
+- [Security policy](SECURITY.md): supported versions and private vulnerability reporting.
+- [Changelog](CHANGELOG.md): unreleased changes.
 
 ## Getting started
 
@@ -25,7 +31,7 @@ Any recent `just` works; 1.51 and the pinned 1.58 are known to. Without one, run
 
 It never formats, stages, commits or pushes, and it is safe to rerun. Rerun it after a pull that moves a pin in `pixi.lock` or `tools.txt`. Until you do, `just check` fails at `env-check` rather than running the old tools.
 
-**`just initialize` is the only step that needs network.** An agent needs an explicit network grant for that first run. After it, `just check` runs offline.
+**Repository initialization needs network; `just check` runs offline.** An agent needs an explicit network grant before the first run of `just initialize`. Each later network action needs its own authorization; see [Contributing](CONTRIBUTING.md#authorization).
 
 Then run the gate:
 
@@ -90,6 +96,8 @@ Each ticket is worked on its own branch, in its own git worktree. The branch nam
 Hooks are installed from the primary checkout only, because every linked worktree shares its `.git/hooks`. In a linked worktree, `just initialize` skips the hook step with a notice and completes the rest, and `just check` passes without hooks.
 
 The bootstrap tickets and the evidence the decision records cite live in `.scratch/`, which is tracked. Temporary work goes in `ai_tmp/`, which is ignored.
+
+The full [contributor workflow](CONTRIBUTING.md) covers ticket readiness, hand-back notes, authorization and getting a change merged.
 
 ## Licence
 

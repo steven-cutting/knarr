@@ -1,6 +1,6 @@
 # 39: Production rollout and acceptance on GKE Standard
 
-**Context:** The MVP bar is a real production workload on GKE Standard (OVERVIEW §1). Tickets 31 and 32 build the MVP clauses, [40](40-mvp-release.md) publishes the release that carries them (37's `v0.1.0` of the walking skeleton was the rehearsal of the route), 33 sets the threshold the acceptance is judged against, and [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md) decides how a release is installed: `kubectl apply -k` on the digest-pinned release overlay, one install per namespace, the Role in the base. This ticket installs a published release on a GKE Standard cluster, runs the production workload against it, and records the acceptance.
+**Context:** The MVP bar is a real production workload on GKE Standard (OVERVIEW §1). Tickets 31 and 32 build the MVP clauses, [40](40-mvp-release.md) publishes the release that carries them (37's `v0.1.0` of the walking skeleton was the rehearsal of the route), 33 sets the threshold the acceptance is judged against, and [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md) decides how a release is installed: `kubectl apply -k` on the digest-pinned release overlay, one install per namespace, the Role in the base. This ticket installs a published release on a GKE Standard cluster, runs the production workload against it, and records the acceptance.
 
 **What to build:** An installed knarr on GKE Standard from a published release, a real production workload opted in, the evidence that knarr biased its scale-down, and either the teardown or the handover to whoever runs it next.
 
@@ -8,7 +8,7 @@
 
 **Blocked by:** 31, 32, 33, 40, GKE Standard access (external)
 
-**From 28:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md); 40's hand-back for the digest.
+**From 28:** [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md); 40's hand-back for the digest.
 
 **MVP critical path:** yes. This is the acceptance.
 

@@ -13,7 +13,7 @@ Nothing updates these yet, and nothing audits them.
 
 **What to build:** A decision and a working setup that propose updates for every pin and flag known vulnerabilities, without ever pushing to `main` unreviewed.
 
-**Non-goals:** Release signing, SBOM and build provenance: [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md) defers them, and 38 builds them. The arm64 re-lock 38 may need goes through the update process this ticket sets up.
+**Non-goals:** Release signing, SBOM and build provenance: [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md) defers them, and 38 builds them. The arm64 re-lock 38 may need goes through the update process this ticket sets up.
 
 **Blocked by:** 05, 13
 

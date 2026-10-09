@@ -1,5 +1,5 @@
 #!/bin/sh
-# Ticket 28 evidence: the public sources Decision 0011 cites, fetched today.
+# Ticket 28 evidence: the public sources Decision 0012 cites, fetched today.
 # Each page is recorded with its HTTP status, size and sha256, and each cited
 # phrase is looked for in the page's text (tags stripped, entities decoded,
 # whitespace collapsed). A fetch failure stops the run. A phrase that is not

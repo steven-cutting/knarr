@@ -1,6 +1,6 @@
 # 40: MVP release
 
-**Context:** Ticket 37 publishes `v0.1.0` of the walking skeleton and proves the release route end to end: the existence guard for a new package, the `release` environment's approval, the public package and a pull by digest. That image is pre-MVP; it carries none of the clauses 31 and 32 build. This ticket publishes the first release that does, through the same route, so that 39 installs a digest of the MVP and not of the skeleton. [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md) decides the route; 37's hand-back records how it behaved.
+**Context:** Ticket 37 publishes `v0.1.0` of the walking skeleton and proves the release route end to end: the existence guard for a new package, the `release` environment's approval, the public package and a pull by digest. That image is pre-MVP; it carries none of the clauses 31 and 32 build. This ticket publishes the first release that does, through the same route, so that 39 installs a digest of the MVP and not of the skeleton. [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md) decides the route; 37's hand-back records how it behaved.
 
 **What to build:** The release pull request for the MVP, the tag, the approved run, and a pull by digest, each recorded.
 
@@ -8,7 +8,7 @@
 
 **Blocked by:** 31, 32, 37
 
-**From 28:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md); 37's hand-back for the route as it ran.
+**From 28:** [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md); 37's hand-back for the route as it ran.
 
 **MVP critical path:** yes. 39 installs this release.
 

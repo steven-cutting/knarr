@@ -1,0 +1,26 @@
+2026-10-09T04:29:47Z
+Darwin arm64
+579555e8213ebdeb46e69cdbf311e84591179b95
+ .scratch/bootstrap/evidence/26/README.md       |  97 ++++++
+ .scratch/bootstrap/evidence/26/coverage.json   | 138 +++++++++
+ .scratch/bootstrap/evidence/26/coverage.txt    | 399 +++++++++++++++++++++++++
+ .scratch/bootstrap/evidence/26/environment.txt |  26 ++
+ .scratch/bootstrap/evidence/26/run.sh          |  46 +++
+ .scratch/bootstrap/evidence/26/tests.txt       |  24 ++
+ .scratch/bootstrap/issues/26-spike-coverage.md |  53 +++-
+ Justfile                                       |   6 +
+ docs/decisions/0011-coverage.md                |  74 +++++
+ docs/decisions/README.md                       |   2 +
+ docs/manifest.yml                              |  16 +-
+ docs/reference/testing.md                      |  36 ++-
+ scripts/checks/coverage.py                     | 139 +++++++++
+ scripts/checks/coverage_ffi.erl                |  46 +++
+ scripts/checks/tests/test_coverage.py          | 254 ++++++++++++++++
+ 15 files changed, 1348 insertions(+), 8 deletions(-)
+8925aad2086e598a77028b9eb8994cd94ec956c7b6160cb43bcd7b6e921df826  Justfile
+1b30a738d36397e0decd35deaf9572ff98707ed852a85a9b02c01201f8530246  scripts/checks/coverage.py
+8286987fdf7600a3435101b87bf3147df173efd157efe92878b714299bee664b  scripts/checks/coverage_ffi.erl
+6c1030cc89c9a800dabb9245fb00519f0308065ebe6c5926da13fc2b07743509  scripts/checks/tests/test_coverage.py
+gleam 1.19.0
+Erlang/OTP 29 [erts-17.1] [source] [64-bit] [smp:18:18] [ds:18:18:10] [async-threads:1] [jit]
+Verified: external IP connections denied with EPERM; loopback allowed

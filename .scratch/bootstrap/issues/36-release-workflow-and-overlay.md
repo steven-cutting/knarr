@@ -1,6 +1,6 @@
 # 36: Release workflow and the digest-pinned release overlay
 
-**Context:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md) settles the route: SemVer with `gleam.toml` as the source of truth, a hand-written Keep a Changelog, the maintainer tags and CI publishes to `ghcr.io/steven-cutting/knarr` behind a `release` environment, consumers pin by digest, and §9.15 is kustomize only with a release overlay over `deploy/base`. Ticket 28 drafted the workflow, the guards and the overlay under [evidence/28](../evidence/28/README.md) and dry-ran them against a throwaway registry; none of it is live. This ticket makes it live, without running it.
+**Context:** [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md) settles the route: SemVer with `gleam.toml` as the source of truth, a hand-written Keep a Changelog, the maintainer tags and CI publishes to `ghcr.io/steven-cutting/knarr` behind a `release` environment, consumers pin by digest, and §9.15 is kustomize only with a release overlay over `deploy/base`. Ticket 28 drafted the workflow, the guards and the overlay under [evidence/28](../evidence/28/README.md) and dry-ran them against a throwaway registry; none of it is live. This ticket makes it live, without running it.
 
 **What to build:** `release.yml` under `.github/workflows/` from [the draft](../evidence/28/release.yml); the guards it sources in `scripts/release/lib.sh` from [28's lib.sh](../evidence/28/lib.sh), with their tests moved beside them in the shape the checker tests use; `deploy/release/` from [the overlay design](../evidence/28/overlay/kustomization.yaml); and the recipes and checker tests that keep base and overlay in step.
 
@@ -8,7 +8,7 @@
 
 **Blocked by:** 12, 28
 
-**From 28:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md); the hand-back notes in [ticket 28](28-spike-release-and-packaging.md#hand-back-notes).
+**From 28:** [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md); the hand-back notes in [ticket 28](28-spike-release-and-packaging.md#hand-back-notes).
 
 **MVP critical path:** yes. Nothing reaches GKE without a published image.
 

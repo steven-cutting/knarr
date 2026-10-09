@@ -10,7 +10,7 @@
 
 **MVP critical path:** yes for image publishing and the §9.15 packaging decision. Multi-arch, cosign, SBOM and provenance are not on it.
 
-**Status:** done. See [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md) and its [evidence](../evidence/28/README.md).
+**Status:** done. See [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md) and its [evidence](../evidence/28/README.md).
 
 - [x] The ticket decides a versioning scheme and a changelog workflow.
 - [x] An image publishing route to GHCR is designed and dry-run, with tags, digest pinning and immutability. Every push is marked **authorization required**.
@@ -26,14 +26,14 @@ Settled on 2026-10-09 (UTC). The maintainer chose kustomize only, "the maintaine
 
 ### What changed
 
-- [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md): SemVer with `gleam.toml` as the source of truth, a hand-written Keep a Changelog, `ghcr.io/steven-cutting/knarr` pushed by `release.yml` on a `v*` tag behind a `release` environment, tags `X.Y.Z`, `X.Y`, `X` (major above 0) and `sha-<7>` and never `latest`, immutability from digest pins plus a fail-closed pre-push guard plus a `v*` tag ruleset, kustomize only with a release overlay pinned by digest and the Role in the base, amd64 only, attestations later, cosign deferred. OVERVIEW §9.15 and its summary table say Decided; DEFERRED §8 carries Helm, arm64, and cosign, SBOM and provenance with the reasons. The decisions index also gained the missing line for 0010.
+- [Decision 0012](../../../docs/decisions/0012-release-and-packaging.md): SemVer with `gleam.toml` as the source of truth, a hand-written Keep a Changelog, `ghcr.io/steven-cutting/knarr` pushed by `release.yml` on a `v*` tag behind a `release` environment, tags `X.Y.Z`, `X.Y`, `X` (major above 0) and `sha-<7>` and never `latest`, immutability from digest pins plus a fail-closed pre-push guard plus a `v*` tag ruleset, kustomize only with a release overlay pinned by digest and the Role in the base, amd64 only, attestations later, cosign deferred. OVERVIEW §9.15 and its summary table say Decided; DEFERRED §8 carries Helm, arm64, and cosign, SBOM and provenance with the reasons. The decisions index also gained the missing line for 0010.
 - [Evidence](../evidence/28/README.md): a tested helper library, read-only probes of ghcr.io and the repository, the CI build durations, the dry run against a throwaway `registry:2`, the designed overlay rendered and validated, the emulated amd64 and arm64 probes, the vendor sources with their phrases, and the drafted `release.yml` under actionlint. `run-all.sh` reran all of it in 44 s and left nothing behind.
 - Tickets [36](36-release-workflow-and-overlay.md), [37](37-first-release-v0-1-0.md), [38](38-attestations-sbom-arm64.md), [39](39-gke-production-rollout.md) and [40](40-mvp-release.md) are drafted; 27, 33 and 34 point at them; the [bootstrap README](../README.md) graph and waves include them.
 
 ### What was verified, and what was not
 
 - Verified here: every guard and verdict on canned real output (91 tests); the guard's `present`, `absent` and `unknown` against the real ghcr.io with a public package; three digest readings agreeing on a pushed image; a tag moving while its first digest still pulls; the overlay rendering to a two-line difference from the base with all three resources valid; `release.yml` clean under actionlint with shellcheck.
-- Not verified, by design: no push to ghcr.io, no `docker login`, no tag, no environment, ruleset or visibility change. The authenticated existence guard against ghcr.io for a package that does not exist yet is 0011's one open behaviour; 37 records what it answers.
+- Not verified, by design: no push to ghcr.io, no `docker login`, no tag, no environment, ruleset or visibility change. The authenticated existence guard against ghcr.io for a package that does not exist yet is 0012's one open behaviour; 37 records what it answers.
 - Two corrections to the plan's premise. The real image cannot be built on this host: under amd64 emulation the BEAM fails to start in `prim_tty` at the first rebar3 dependency compile, as 13 saw at runtime, so the dry run pushes a labelled stand-in image (`FROM scratch`) with the same buildx command, and the only native build numbers are CI's (19 to 24 s, median 20 s). With the containerd image store, `--provenance=mode=min` on the docker driver pushes an OCI index rather than being refused, which is why the workflow sets `--provenance=false --sbom=false` explicitly and 38 pins the index digest when it turns them on.
 - Anonymous ghcr.io reads cannot tell an absent package from a private one (403 `denied` for both), so the guard runs after login and the anonymous answer is `unknown`.
 

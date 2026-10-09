@@ -4,7 +4,7 @@
 # (from ../lib.sh) and CHANGELOG.md exists (ticket 12). actionlint.sh lints it
 # here. Authorization required: every run of this workflow pushes to ghcr.io.
 #
-# The release model (Decision 0011): the maintainer merges a release pull
+# The release model (Decision 0012): the maintainer merges a release pull
 # request that bumps gleam.toml and CHANGELOG.md, tags the merge commit
 # vX.Y.Z and pushes the tag. This workflow verifies the tag, waits for the
 # maintainer's approval through the release environment, and pushes the image

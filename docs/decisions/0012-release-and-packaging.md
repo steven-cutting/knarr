@@ -1,12 +1,12 @@
 ---
-title: "Decision 0011: Release and packaging"
+title: "Decision 0012: Release and packaging"
 kind: "decision"
 audience: [maintainer, agent]
 canonical_for: [decision_release_and_packaging]
 requires: []
 ---
 
-# Decision 0011: Release and packaging
+# Decision 0012: Release and packaging
 
 ## Context
 

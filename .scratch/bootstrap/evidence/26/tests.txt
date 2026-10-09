@@ -1,0 +1,24 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.8, pytest-9.1.1, pluggy-1.6.0 -- /Users/scutting/.supacode/repos/knarr/26-spike-coverage/.pixi/envs/default/bin/python3
+rootdir: /Users/scutting/.supacode/repos/knarr/26-spike-coverage
+configfile: pytest.toml
+collecting ... collected 13 items
+
+scripts/checks/tests/test_coverage.py::test_reports_source_lines_and_ffi PASSED [  7%]
+scripts/checks/tests/test_coverage.py::test_missing_cache_fails_before_gleam_can_fetch[missing-directory] PASSED [ 15%]
+scripts/checks/tests/test_coverage.py::test_missing_cache_fails_before_gleam_can_fetch[missing-index] PASSED [ 23%]
+scripts/checks/tests/test_coverage.py::test_missing_cache_fails_before_gleam_can_fetch[wrong-version] PASSED [ 30%]
+scripts/checks/tests/test_coverage.py::test_uncalled_modules_empty_modules_and_startup PASSED [ 38%]
+scripts/checks/tests/test_coverage.py::test_failed_tests_keep_failure_and_report[assertion] PASSED [ 46%]
+scripts/checks/tests/test_coverage.py::test_failed_tests_keep_failure_and_report[snapshot] PASSED [ 53%]
+scripts/checks/tests/test_coverage.py::test_missing_collection_cannot_reuse_a_successful_report PASSED [ 61%]
+scripts/checks/tests/test_coverage.py::test_repeat_runs_are_isolated_and_leave_git_unchanged PASSED [ 69%]
+scripts/checks/tests/test_coverage.py::test_missing_debug_information_fails_collection PASSED [ 76%]
+scripts/checks/tests/test_coverage.py::test_drifted_manifest_is_refused_without_rewriting PASSED [ 84%]
+scripts/checks/tests/test_coverage.py::test_existing_eunit_options_and_paths_with_spaces PASSED [ 92%]
+scripts/checks/tests/test_coverage.py::test_alternatives_on_one_source_line_count_once PASSED [100%]
+
+============================= 13 passed in 29.86s ==============================
+real 30.03
+user 20.43
+sys 31.58

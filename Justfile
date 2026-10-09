@@ -164,9 +164,11 @@ format-check:
 
 # [tools.glinter] in gleam.toml sets what is linted and the rules. glinter
 # passes when it skips a file it cannot parse; the wrapper fails instead.
+# Build first: running a dependency module starts our OTP application without
+# compiling the application modules that its Erlang callback calls.
 [group('check')]
 [doc('Lint src/ and test/ with glinter, warnings as errors (refuses a drifted manifest.toml)')]
-lint-gleam: manifest-check
+lint-gleam: build
     before=$(cksum < manifest.toml); ERL_FLAGS="${ERL_FLAGS:-} -knarr port 0 bind '\"127.0.0.1\"'" sh scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # birdie has no check mode: `just test`, which runs just before this in the

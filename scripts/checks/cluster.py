@@ -217,7 +217,9 @@ def main():
         for args in [
             ("get", "pods", "-o", "wide"),
             ("describe", "deployment/knarr"),
+            ("describe", "pods", "-l", "app.kubernetes.io/name=knarr"),
             ("logs", "deployment/knarr", "--all-containers", "--tail=100"),
+            ("logs", "deployment/knarr", "--all-containers", "--previous", "--tail=100"),
             ("get", "events", "--sort-by=.lastTimestamp"),
         ]:
             subprocess.run(["kubectl", *args], check=False)

@@ -144,3 +144,17 @@ def test_deploy_cannot_inherit_in_cluster_configuration(tmp_path: Path) -> None:
     result, calls = run_fake(tmp_path, "kind", "deploy", configured=True)
     assert result.returncode == 0, result.stderr
     assert all(call[3:] == [None, None] for call in calls)
+
+
+def test_diagnostics_include_pod_termination_and_previous_logs(tmp_path: Path) -> None:
+    result, calls = run_fake(tmp_path, "kind", "diagnostics", configured=True)
+    assert result.returncode == 0, result.stderr
+    arguments = [call[0][1:] for call in calls]
+    assert ["describe", "pods", "-l", "app.kubernetes.io/name=knarr"] in arguments
+    assert [
+        "logs",
+        "deployment/knarr",
+        "--all-containers",
+        "--previous",
+        "--tail=100",
+    ] in arguments

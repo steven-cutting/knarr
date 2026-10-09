@@ -34,6 +34,14 @@ def test_startup_failure_retains_logs_and_cleans_container(monkeypatch):
         image.main()
     detached = next(args for args, _ in commands if "--detach" in args)
     assert "--rm" not in detached
+    resources = json.loads((image.ROOT / "deploy/base/resources.json").read_text())
+    deployment = next(item for item in resources["items"] if item["kind"] == "Deployment")
+    memory = deployment["spec"]["template"]["spec"]["containers"][0]["resources"]["limits"][
+        "memory"
+    ]
+    budget = str(int(memory.removesuffix("Mi")) * 1024 * 1024)
+    assert f"--memory={budget}" in detached
+    assert f"--memory-swap={budget}" in detached
     assert ["docker", "logs", "test-container"] in [args for args, _ in commands]
     assert commands[-1] == (["docker", "rm", "--force", "test-container"], {"check": False})
 

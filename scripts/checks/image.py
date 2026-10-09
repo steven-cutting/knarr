@@ -64,6 +64,14 @@ def main():
     config = json.loads(output("docker", "image", "inspect", image))[0]["Config"]
     if config["User"] != "10001:10001":
         raise RuntimeError("image must declare USER 10001:10001")
+    resources = json.loads((ROOT / "deploy/base/resources.json").read_text())
+    deployment = next(item for item in resources["items"] if item["kind"] == "Deployment")
+    memory = deployment["spec"]["template"]["spec"]["containers"][0]["resources"]["limits"][
+        "memory"
+    ]
+    if not memory.endswith("Mi"):
+        raise RuntimeError("image check expects the deployment memory limit in Mi")
+    budget = int(memory.removesuffix("Mi")) * 1024 * 1024
     common = [
         "docker",
         "run",
@@ -73,6 +81,8 @@ def main():
         "--cap-drop=ALL",
         "--security-opt=no-new-privileges",
         "--tmpfs=/tmp:rw,noexec,nosuid,size=16m",
+        f"--memory={budget}",
+        f"--memory-swap={budget}",
     ]
     build = output(*common, "--rm", "--entrypoint=cat", image, "/opt/build-otp")
     runtime = output(
@@ -89,8 +99,11 @@ def main():
     container = output(*common, "--detach", "--publish=127.0.0.1::8080", image)
     try:
         verify_running(container)
+        usage = output("docker", "stats", "--no-stream", "--format={{.MemUsage}}", container)
+        print(f"image: memory usage / deployment limit: {usage}")
         print(f"image: OTP {expected}, numeric user and read-only runtime verified")
     except Exception:
+        subprocess.run(["docker", "inspect", "--format={{json .State}}", container], check=False)
         subprocess.run(["docker", "logs", container], check=False)
         raise
     finally:

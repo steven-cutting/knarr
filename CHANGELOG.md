@@ -1,8 +1,8 @@
 # Changelog
 
-Notable changes to Knarr are recorded here. This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Knarr is pre-MVP; the entries below are unreleased. Versioning and the release workflow remain the responsibility of [ticket 28](.scratch/bootstrap/issues/28-spike-release-and-packaging.md).
+Notable changes to Knarr are recorded here. This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Knarr is pre-MVP; the entries below are unreleased. [Decision 0012](docs/decisions/0012-release-and-packaging.md) decides versioning and the release workflow: a release pull request moves this section under `## [X.Y.Z] - YYYY-MM-DD`, and the release workflow refuses a tag whose version has no such heading.
 
-## Unreleased
+## [Unreleased]
 
 ### Added
 

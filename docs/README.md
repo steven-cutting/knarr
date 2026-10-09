@@ -21,6 +21,7 @@ Knarr is a Kubernetes controller that biases scale-down toward idle or cheap wor
 - [Decisions](decisions/README.md): accepted architectural and tooling choices.
 - [Run the walking skeleton locally](how-to/local-cluster.md): build, deploy and check the local skeleton.
 - [Decision 0010: Prometheus metrics](decisions/0010-metrics.md): the skeleton's metrics choice.
+- [Decision 0012: Release and packaging](decisions/0012-release-and-packaging.md): how a release is versioned, published and installed.
 
 ## Maintainer documents
 

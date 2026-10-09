@@ -55,6 +55,7 @@ flowchart LR
 | Pod discovery: periodic LIST | Decided | §4 |
 | HA model: single replica, no leader election | Decided | §8, §9.19 |
 | Install scope: one namespace (Role) | Decided | §9.18 |
+| Packaging: kustomize only; the image on GHCR, installed pinned by digest | Decided | §9.15 |
 
 ## 2. Problem
 
@@ -533,7 +534,7 @@ flowchart LR
 12. **Cleanup, staleness and freshness.** Options: (i) never clean up; (ii) clean up when a pod or workload leaves scope; (iii) also clean up on graceful shutdown. Also covers: separate expiry for deletion cost and for `safe-to-evict`; what the marker timestamp means; conservative behavior on restart when freshness is unknown; startup reconciliation of marked pods; annotations left after a crash; and an uninstall procedure.
 13. **Rollouts:** guidance on `maxUnavailable` / `maxSurge` plus graceful drain. Cost biases victims within an old ReplicaSet but cannot stop that ReplicaSet from scaling to zero.
 14. **Observability:** metrics (poll results, band distribution, patch rate, errors), Events and logs.
-15. **Deployment packaging:** kustomize and/or Helm, plus a namespaced Role.
+15. **Decided:** kustomize only. A release overlay over the kind base pins the published image by digest, and the namespaced Role stays in the base (see [Decision 0012](decisions/0012-release-and-packaging.md), [DEFERRED.md §8](DEFERRED.md#8-other-future-targets)).
 16. **Testing strategy:** unit tests for mapping and banding, end-to-end tests on kind with a fake worker image, and an envtest equivalent or substitute. Also sets the thresholds for the §3 success criteria.
 17. **Future targets:** see [DEFERRED.md](DEFERRED.md) (§7 Karpenter, §8 other future targets).
 18. **Decided:** one install per namespace, with a Role (see §8, [DEFERRED.md §5](DEFERRED.md#5-install-scope-and-configuration-alternatives)).

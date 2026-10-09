@@ -64,4 +64,4 @@ After separate authorization to push and open a pull request, submit the ticket 
 
 Pull requests to `main` require the aggregate CI status `check` to pass. External link audits and the initial cluster jobs are outside that required gate; the README's [gate section](README.md#the-gate) explains the CI setup. Maintainers review the change and merge it with authorization. Administrators can bypass protection under the existing repository policy, so the contributor workflow uses a pull request and the passing required check.
 
-Release versioning, publishing and changelog automation are decisions for [ticket 28](.scratch/bootstrap/issues/28-spike-release-and-packaging.md). User-facing worker, KEDA and operations guides belong to [ticket 34](.scratch/bootstrap/issues/34-user-guides.md).
+[Decision 0012](docs/decisions/0012-release-and-packaging.md) decides release versioning, publishing and the changelog's release headings; tickets 36 to 40 carry it out. User-facing worker, KEDA and operations guides belong to [ticket 34](.scratch/bootstrap/issues/34-user-guides.md).

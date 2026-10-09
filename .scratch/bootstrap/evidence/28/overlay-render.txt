@@ -1,0 +1,21 @@
+date: 2026-10-09T05:09Z
+kustomize v5.8.2, kubeconform v0.8.0
+-- the base, for comparison
+kubeconform: Summary: 3 resources found parsing stdin - Valid: 3, Invalid: 0, Errors: 0, Skipped: 0
+image: knarr:local; imagePullPolicy: Never
+-- the committed overlay (placeholder digest)
+kubeconform: Summary: 3 resources found parsing stdin - Valid: 3, Invalid: 0, Errors: 0, Skipped: 0
+image: ghcr.io/steven-cutting/knarr@sha256:0000000000000000000000000000000000000000000000000000000000000000
+-- the overlay with the dry run's digest
+kubeconform: Summary: 3 resources found parsing stdin - Valid: 3, Invalid: 0, Errors: 0, Skipped: 0
+image: ghcr.io/steven-cutting/knarr@sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+imagePullPolicy: IfNotPresent
+Role rules: []
+automountServiceAccountToken: false (ServiceAccount and pod)
+-- diff base -> release render (the overlay changes exactly these lines)
+  31,32c31,32
+  <       - image: knarr:local
+  <         imagePullPolicy: Never
+  ---
+  >       - image: ghcr.io/steven-cutting/knarr@sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+  >         imagePullPolicy: IfNotPresent

@@ -1,0 +1,43 @@
+date: 2026-10-09T05:09Z
+docker 29.4.0 linux/arm64, github.com/docker/buildx v0.33.0, builder: docker driver, BuildKit v0.29.0
+-- 1. release guards on this checkout
+tag v0.1.0 against gleam.toml version 0.1.0: exit 0 (0 is a match)
+tags for v0.1.0 at 579555e8213ebdeb46e69cdbf311e84591179b95: 0.1.0 0.1 sha-579555e
+-- 2. buildx build --push to a throwaway registry:2 (knarr28-reg-28-spike-release-and-pa-e4abe7ef)
+registry:2 on http://127.0.0.1:32774 (loopback only)
+pushed 3 tags in 0 s (log: /Users/scutting/.supacode/repos/knarr/28-spike-release-and-packaging/ai_tmp/28/run-all-root/registry/build.log)
+manifest media type: application/vnd.docker.distribution.manifest.v2+json
+image store: overlayfs driver-type=io.containerd.snapshotter.v1
+with --provenance=mode=min the same build pushes an index instead (the containerd image store allows it; the classic store refuses):
+  MediaType: application/vnd.oci.image.index.v1+json
+  Digest:    sha256:af8ae95eb3d464cf5feea7852c55bd38d2dfa02282c32003e4056ea9ccc7a21e
+    Platform:    linux/amd64
+    Platform:    unknown/unknown
+    Annotations: 
+      vnd.docker.reference.type:   attestation-manifest
+  so with attestations on, the digest to pin is the index's, not the image manifest's (ticket 38)
+-- 3. one digest, three readings
+--metadata-file:           sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+Docker-Content-Digest:     sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+imagetools inspect:        sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+all three agree
+tag 0.1.0 -> sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+tag 0.1 -> sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+tag sha-579555e -> sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+tags/list: {"name":"knarr","tags":["0.1.0","0.1","sha-579555e","attest-probe"]}
+-- 4. the pre-push guard against this registry
+HEAD knarr:0.1.0: present (exit 1, http 200): the workflow would refuse to push
+HEAD knarr:9.9.9: absent (exit 0, http 404): the workflow would proceed
+HEAD against a closed port: unknown (exit 2, curl 7): the workflow would stop, not push
+-- 5. tags move, digests do not
+a second push to knarr:0.1.0, which the guard above refuses in the workflow; here it shows what a moved tag does
+second push:               sha256:239422b1c9c23c1e74a3b333fedeb902379060ae4a37bd72ace70640931a5d65
+tag 0.1.0 now ->           sha256:239422b1c9c23c1e74a3b333fedeb902379060ae4a37bd72ace70640931a5d65
+tag sha-579555e still ->   sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+docker pull knarr@<first digest> after the tag moved: exit 0
+verdict: moved (exit 0)
+labels on the image pulled by the first digest: 0.1.0 579555e8213ebdeb46e69cdbf311e84591179b95 / knarr stand-in for the release dry run
+-- 6. a real pull by tag, after removing every local copy
+docker pull knarr:0.1.0: RepoDigests knarr@sha256:239422b1c9c23c1e74a3b333fedeb902379060ae4a37bd72ace70640931a5d65, title: second push
+arch of the pulled image: linux/amd64
+digest=sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b

@@ -1,0 +1,142 @@
+---
+title: "Decision 0012: Release and packaging"
+kind: "decision"
+audience: [maintainer, agent]
+canonical_for: [decision_release_and_packaging]
+requires: []
+---
+
+# Decision 0012: Release and packaging
+
+## Context
+
+The MVP bar is a real production workload on GKE Standard (OVERVIEW §1), so the image has to be published somewhere GKE can pull from, and §9.15 left deployment packaging open: kustomize, Helm or both, plus a namespaced Role. The walking skeleton ([ticket 13](../../.scratch/bootstrap/issues/13-walking-skeleton.md)) left a kustomize base under `deploy/base/` that runs `knarr:local` with `imagePullPolicy: Never` on kind, a CI that builds the image and never pushes it, no tag, no changelog, and `version = "0.1.0"` in `gleam.toml`.
+
+Ticket 28 is a spike in the shape of libpawdoku's S02: decide how knarr is versioned, built, published and installed, and dry-run the first release without publishing anything. The dry run pushes to a throwaway `registry:2` on loopback with the exact `docker buildx build --push` the drafted workflow runs; ghcr.io is only read, anonymously. Nothing was tagged, pushed, logged in to, or changed in the repository's settings. The maintainer settled three choices in the planning session on 2026-10-08: kustomize only, "the maintainer tags and CI publishes", and amd64 only for the MVP.
+
+The evidence was gathered on 2026-10-09 (UTC) on an Apple M5 Pro (Darwin arm64) with OrbStack 2.2.3, whose Docker engine is 29.4.0 (linux/arm64) with buildx 0.33.0, BuildKit 0.29.0 and the containerd image store. The scripts and transcripts are in [`.scratch/bootstrap/evidence/28/`](../../.scratch/bootstrap/evidence/28/README.md).
+
+## Decision
+
+### Versioning and the changelog
+
+- **SemVer 2.0.0, and `gleam.toml` is the source of truth.** A release is the git tag `vX.Y.Z` (or `vX.Y.Z-rc.N` for a prerelease) on a commit whose `gleam.toml` says `version = "X.Y.Z"`. `-rc.N`, with `N` written without a leading zero, is the only prerelease form: `-alpha.1`, `-01` and `-rc` are refused. The workflow refuses any other combination. The first release is `v0.1.0`.
+- **A hand-written `CHANGELOG.md` in the Keep a Changelog 1.1.0 shape.** Ticket 12 creates it with an `## [Unreleased]` section. A release pull request moves that section under `## [X.Y.Z] - YYYY-MM-DD` and bumps `gleam.toml` in the same change; the workflow refuses a tag whose version has no line that is exactly that heading, so an undated heading or one with a suffix such as `draft` or `[YANKED]` does not count.
+- **The maintainer tags, CI publishes.** The release pull request merges like any other. The maintainer then tags the merge commit on `main` with an annotated `vX.Y.Z` and pushes the tag (**authorization required**). The push starts `release.yml`, which verifies the tag, waits for the maintainer's approval through the `release` environment (**authorization required**), and pushes the image. Merge methods stay at GitHub's defaults: the ancestry guard only needs the tagged commit to be on `main`, so nothing here reads the shape of history.
+
+### The image publishing route
+
+- **Registry and name.** `ghcr.io/steven-cutting/knarr`, pushed from the workflow with `GITHUB_TOKEN`, which links the package to the repository. The package does not inherit the repository's public visibility (`sources.txt`), so ticket 37 makes it public once by hand (**authorization required**); a public package pulls anonymously, which is what a GKE node does.
+- **Tags.** A release pushes `X.Y.Z`, `X.Y`, `X` (only once the major is above 0) and `sha-<7>`, where `<7>` is the tagged commit's short hash. A prerelease pushes `X.Y.Z-rc.N` and `sha-<7>` only. Nothing ever pushes `latest`: it would be a floating pointer that no install should follow. `tags_for` in `lib.sh` is the one definition of this set.
+- **Digest.** The workflow reads the pushed digest from buildx's `--metadata-file` and prints `ghcr.io/steven-cutting/knarr@sha256:…` in its step summary. Every install pins that digest. The image carries `org.opencontainers.image.source`, `.version`, `.revision` and `.created` labels, so an image found in a cluster says which release it is.
+- **Immutability, from three layers,** because GHCR has no immutable-tag setting (`sources.txt`, "not found" on the GHCR page as of 2026-10-09):
+  1. Consumers pin by digest. A tag can move; a digest cannot ([registry.txt](../../.scratch/bootstrap/evidence/28/registry.txt), part 5: after a second push to `0.1.0` the tag resolves to the new manifest, while the first digest still pulls and shows the first push's labels).
+  2. The workflow refuses to push over an existing tag. Before building, it asks the registry whether `X.Y.Z` exists, after logging in, and proceeds only on `absent` (HTTP 404). `present` (200) fails the run with "bump the version". Anything else (401, 403, 5xx, no connection) is `unknown` and also fails the run: a refused or failed request is never read as absent ([ghcr-probe.txt](../../.scratch/bootstrap/evidence/28/ghcr-probe.txt) shows all three verdicts against the real ghcr.io, with a public package as the control).
+  3. A tag ruleset on `v*` restricts updates and deletions, so the git tag that names a release cannot move or vanish either. Ticket 37 creates it (**authorization required**).
+- **The workflow.** [`release.yml`](../../.scratch/bootstrap/evidence/28/release.yml) is drafted under evidence and linted there ([actionlint.txt](../../.scratch/bootstrap/evidence/28/actionlint.txt)); ticket 36 moves it under `.github/workflows/`, where it is live. It runs on `vX.Y.Z` and `vX.Y.Z-rc.N` tag pushes only, with `permissions: {}` at the top, in one repository-wide concurrency group with `cancel-in-progress: false`: two release runs never overlap, so an older run cannot push `X.Y` or `X` after a newer one and move them backward. GitHub keeps at most one pending run per group, so a third tag pushed while one run is in progress and another is pending cancels the pending run; the maintainer re-runs it from the Actions page, because the tag ruleset stops the tag being pushed again. A `verify` job (`contents: read`) runs the guards: tag equals `gleam.toml`, the tag is an ancestor of `origin/main`, the changelog has the heading. A `publish` job (`needs: verify`, `environment: release`, `contents: read` and `packages: write`) logs in with `GITHUB_TOKEN` through stdin, runs the existence guard, builds `linux/amd64` with the plain docker CLI the runner ships, pushes the tag set, and prints the digest. Only `actions/checkout` is pinned, by full commit SHA. The `release` environment has the maintainer as its required reviewer and "Prevent self-review" **off**: with one maintainer, on would deadlock every release. It must exist before the workflow is merged, because GitHub creates a referenced environment with no protection rules; ticket 36 creates it (**authorization required**) and ticket 37 confirms it before the first tag.
+- **`--provenance=false --sbom=false` on the first release.** BuildKit adds a provenance attestation by default, and with the containerd image store the pushed object is then an OCI index with an attestation manifest, whose digest is not the image manifest's ([registry.txt](../../.scratch/bootstrap/evidence/28/registry.txt), part 2); with the classic store the docker driver refuses. Turning both off makes the pushed object one manifest whose digest is the same in `--metadata-file`, in the registry's `Docker-Content-Digest` header and in `imagetools inspect` (part 3), whatever the runner's image store. Ticket 38 turns them on and pins the index digest instead.
+- **The image is built in CI only.** On the maintainer's arm64 host the emulated amd64 build fails at the first step that starts the BEAM: the kernel's `user` process dies in `prim_tty` ([amd64-probe.txt](../../.scratch/bootstrap/evidence/28/amd64-probe.txt), the failure ticket 13 reported). The native build on `ubuntu-24.04` takes 19 to 24 s, median 20 s, over the ten `just image-build` steps that succeeded in the last twelve kind-smoke jobs (two of those jobs failed later, at another step) ([ci-durations.txt](../../.scratch/bootstrap/evidence/28/ci-durations.txt)).
+
+### §9.15: kustomize only
+
+- **`deploy/base/` stays as it is,** the kind loop's base, with `knarr:local`, `imagePullPolicy: Never`, an empty Role and no mounted token; `scripts/checks/tests/test_deployment.py` pins those.
+- **A release overlay, `deploy/release/`,** built by ticket 36 from the design under [`evidence/28/overlay/`](../../.scratch/bootstrap/evidence/28/overlay/kustomization.yaml). It changes two things and nothing else: the `images` field renames the image to `ghcr.io/steven-cutting/knarr` pinned by digest, and one JSON patch sets `imagePullPolicy: IfNotPresent`. [overlay-render.txt](../../.scratch/bootstrap/evidence/28/overlay-render.txt) renders it with the dry run's digest, validates all three resources against the vendored schemas, and diffs it against the base render: two lines differ.
+- **The namespaced Role lives in the base.** One install per namespace (§9.18), so the Role, its verbs and the RoleBinding are the same for the kind loop and for a release. Ticket 14 adds them to the base; the overlay inherits them. A release is installed with `kubectl apply -k` on the overlay at the release tag, with the digest from the workflow's summary; ticket 34 writes that guide.
+- **Helm is deferred** ([DEFERRED.md §8](../DEFERRED.md#8-other-future-targets)). One consumer, one namespace, two differences from the base and no values to template: a chart would add a second packaging to keep in step with the base for nothing it needs today. `kubernetes-helm` stays pinned in the cluster environment, unused, until a second consumer asks for values.
+
+### Architectures: amd64 only for the MVP
+
+- The lock has no `linux-aarch64` entry, so a `linux/arm64` build fails at `pixi install --locked` in under a second with pixi's own message ([arm64-probe.txt](../../.scratch/bootstrap/evidence/28/arm64-probe.txt)). Both base images have arm64 variants.
+- **The cost of arm64:** add `linux-aarch64` to `pixi.toml` platforms and re-lock (ticket 27's domain, since it moves every pin's lock entry), one more build job on an `ubuntu-24.04-arm` runner (free on public repositories), and a `docker buildx imagetools create` that merges the two manifests into one index, whose digest the overlay then pins. The native arm64 BEAM runtime is unverified (13). GKE Standard node pools are amd64 unless an Arm machine family is chosen, and no target cluster has one. Deferred to ticket 38 with these numbers ([DEFERRED.md §8](../DEFERRED.md#8-other-future-targets)).
+
+### cosign, SBOM and build provenance
+
+- **cosign keyless signing: deferred.** It would add a Sigstore signature per release that consumers verify with cosign, which no consumer has asked for, and GitHub's artifact attestations give the same provenance claim with the tooling the repository already uses.
+- **GitHub artifact attestations: adopt later, in ticket 38.** `actions/attest-build-provenance` v4.2.2 attests the pushed digest and pushes the attestation to the registry; `gh attestation verify oci://…` checks it, the path `scripts/install-tools.sh` already takes for rebar3. Free on public repositories. Not in the first release because it needs `id-token: write` and `attestations: write` on the publish job, and the first release should prove the pull path with the smallest token.
+- **BuildKit `--provenance` and `--sbom`: off for the first release, on in ticket 38.** Both change what the registry stores under the tag from one manifest to an index, so the digest the overlay pins changes shape (above). The first release pins the plain manifest; 38 switches to the index digest and documents it.
+
+## Findings
+
+Every row was observed in one `run-all.sh` run; the transcript named is in the evidence directory. After the review of the pull request, `lib_test.txt` and `actionlint.txt` were rerun on their own on 2026-10-09 (UTC), offline, for the narrowed prerelease grammar, the exact changelog heading and the single concurrency group; `registry.sh` only feeds those helpers `v0.1.0` and `gleam.toml`, whose verdicts did not change, so the other transcripts stand.
+
+| Transcript | What it shows | Verdict |
+| --- | --- | --- |
+| [lib_test.txt](../../.scratch/bootstrap/evidence/28/lib_test.txt) | The guards and verdicts the dry run and the drafted workflow rest on: tag parsing, the tag set, the `gleam.toml` and changelog guards, three digest readers, the existence verdict failing closed, the moved verdict, ancestry through a stub `git` and on a throwaway repository, and the timing arithmetic | 91 passed, 0 failed |
+| [ghcr-probe.txt](../../.scratch/bootstrap/evidence/28/ghcr-probe.txt) | Anonymously, ghcr.io answers 401 for the knarr package and 403 `denied` for a pull token, the same for a missing and a private package; the guard says `unknown`. Against a public package the guard gives `present`, `absent` and `unknown` (bad token, closed port). The repository is public, has one environment (`copilot`), no ruleset, `check` required on `main`, no tag and no release; the maintainer's `gh` token lacks `read:packages` | Confirmed. The guard runs after login; anonymous reads cannot tell absent from private |
+| [ci-durations.txt](../../.scratch/bootstrap/evidence/28/ci-durations.txt) | The last twelve `ci.yml` runs: the kind-smoke job's `just image-build` step on `ubuntu-24.04` | 10 steps, 19 to 24 s, median 20 s |
+| [registry.txt](../../.scratch/bootstrap/evidence/28/registry.txt) | The dry run against `registry:2`: `v0.1.0` matches `gleam.toml`; three tags pushed with the labels; the digest agrees across `--metadata-file`, `Docker-Content-Digest` and `imagetools inspect`, and every tag resolves to it; the guard gives `present`, `absent`, `unknown`; a second push moves the tag while the first digest still pulls with its labels (`moved`); a pull by tag after removing every local copy | Confirmed. With `--provenance=mode=min` the containerd store pushes an index instead |
+| [overlay-render.txt](../../.scratch/bootstrap/evidence/28/overlay-render.txt) | The committed overlay renders with its placeholder; with the dry run's digest it renders `ghcr.io/steven-cutting/knarr@sha256:…` and `IfNotPresent`; kubeconform validates 3 of 3 resources each time; the Role's rules stay `[]` and no token is mounted; the diff against the base is two lines | Confirmed |
+| [amd64-probe.txt](../../.scratch/bootstrap/evidence/28/amd64-probe.txt) | The emulated amd64 build fails after 13 s at `gleam export erlang-shipment`: `prim_tty` cannot start, the kernel's `user` process fails | Confirmed: the build is CI-only on this host |
+| [arm64-probe.txt](../../.scratch/bootstrap/evidence/28/arm64-probe.txt) | `pixi.lock` has 0 `linux-aarch64` entries; the arm64 build stage fails at `pixi install --locked` in under a second; both base images have arm64 variants | Confirmed: arm64 needs a re-lock first |
+| [sources.txt](../../.scratch/bootstrap/evidence/28/sources.txt) | Fourteen vendor pages fetched with their sha256; 22 cited phrases found; `immutable` not found on the GHCR page, as expected | Public-source research, as of 2026-10-09 |
+| [actionlint.txt](../../.scratch/bootstrap/evidence/28/actionlint.txt) | The drafted `release.yml` under actionlint with shellcheck: no findings; `permissions: {}` at the top; two `v*` triggers; one action, pinned by SHA | Clean |
+
+## Sources
+
+Public-source research as of 2026-10-09; [sources.txt](../../.scratch/bootstrap/evidence/28/sources.txt) records each page's sha256 and each phrase.
+
+- GHCR: a workflow logs in with `GITHUB_TOKEN`, which links the package to the repository; a CLI push does not link; the page has no immutable-tag setting ([working with the Container registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)). A linked package inherits the repository's permissions but not its visibility; public packages pull anonymously ([access control and visibility](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility)).
+- Environments: one of up to six required reviewers approves; required reviewers are available on public repositories on the Free plan ([deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)); "Prevent self-review" is a setting ([manage environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)).
+- Rulesets: restrict updates and restrict deletions apply to tags matching a pattern ([available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)).
+- Runners: `ubuntu-24.04-arm` exists; standard runners are free and unlimited on public repositories ([GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)).
+- Attestations: `actions/attest-build-provenance` takes `subject-digest` and `push-to-registry` ([action.yml](https://github.com/actions/attest-build-provenance/blob/main/action.yml)); attestations are available on public repositories on the Free plan ([use artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)); `gh attestation verify` takes `oci://<image-uri>` ([manual](https://cli.github.com/manual/gh_attestation_verify)).
+- BuildKit: provenance `mode=min` is on by default; `--provenance=false --sbom=false` opts out ([attestations](https://docs.docker.com/build/metadata/attestations/)).
+- cosign keyless signing ([Sigstore](https://docs.sigstore.dev/cosign/signing/overview/)), [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html), and the kustomize [`images` field](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/images/), which pins by digest.
+
+## Verification
+
+Each script exits non-zero on an unexpected result and writes only to the work directory it is given, apart from the Docker objects it creates and removes. The [evidence README](../../.scratch/bootstrap/evidence/28/README.md) gives the command that reruns everything; it ends by checking that the run left no registry container or probe image behind.
+
+**Helpers ([lib_test.txt](../../.scratch/bootstrap/evidence/28/lib_test.txt)).** Ninety-one tests, on inputs copied from real output: `--metadata-file` JSON, `curl -sI` headers from `registry:2` and ghcr.io, and `imagetools inspect`. The first seventy-seven were built first and watched failing against an empty `lib.sh`; the fourteen the pull request's review added were watched failing against the earlier grammar and heading match, where the twelve rejections failed and the two `-rc` acceptances already passed. They pin the tag grammar (`v01.0.0`, `v1.0`, `latest` and build metadata refused; `-rc.0` and `-rc.10` accepted, and `-01`, `-.`, `-alpha..1`, `-alpha.1`, `-rc`, `-rc.` and `-rc.01` refused), the tag set (never `latest`, no floating tag for a prerelease), the `gleam.toml` reader (absent and duplicate lines fail), the changelog heading match (literal dots, no prefix match, and no heading without ` - ` and a `YYYY-MM-DD` date or with anything after the date), the three digest readers, the existence verdict (404 absent; 200 present; 401, 403, 301, 5xx, a refused connection, a timeout and a missing code all `unknown`), the moved verdict, and ancestry (a stub `git` for the four answers, then a throwaway repository with an annotated tag on a side branch before and after the merge).
+
+**The dry run ([registry.txt](../../.scratch/bootstrap/evidence/28/registry.txt)).** Parts 3 to 5, from the run the findings table cites:
+
+```text
+-- 3. one digest, three readings
+--metadata-file:           sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+Docker-Content-Digest:     sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+imagetools inspect:        sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+all three agree
+-- 4. the pre-push guard against this registry
+HEAD knarr:0.1.0: present (exit 1, http 200): the workflow would refuse to push
+HEAD knarr:9.9.9: absent (exit 0, http 404): the workflow would proceed
+HEAD against a closed port: unknown (exit 2, curl 7): the workflow would stop, not push
+-- 5. tags move, digests do not
+tag 0.1.0 now ->           sha256:239422b1c9c23c1e74a3b333fedeb902379060ae4a37bd72ace70640931a5d65
+tag sha-579555e still ->   sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b
+docker pull knarr@<first digest> after the tag moved: exit 0
+verdict: moved (exit 0)
+```
+
+The image in the dry run is a stand-in (`FROM scratch`, one file, knarr's labels), because the real image cannot be built on this host; none of the registry mechanics depends on what is in the image.
+
+**Not run here.** A push to ghcr.io, a `docker login`, a git tag, the `release` environment and its approval, the tag ruleset, the package's visibility change, a pull from a GKE node, the authenticated existence guard against ghcr.io (verified against `registry:2` and against public ghcr.io reads only; ticket 37 confirms that a push-scope token for a package that does not exist yet gives 404), an arm64 build in CI, attestations and cosign. The native amd64 image is built by CI, not here.
+
+## Consequences
+
+- **Ticket 36 builds the route:** the `release` environment first, then `release.yml` under `.github/workflows/` (live once merged, **authorization required** for every run), the guards in `scripts/release/` from `lib.sh`, `deploy/release/` from the overlay design, and the recipes and checker tests that keep base and overlay in step.
+- **Ticket 37 runs the first release, `v0.1.0`,** every step authorized by the maintainer: ruleset, tag push, approval, visibility, and a pull by digest from a machine that never built the image. It is the rehearsal of the pull path on the walking skeleton, a pre-MVP image, and records its digest as evidence.
+- **Ticket 40 publishes the MVP release** through the route 37 proved, once 31 and 32 have built the MVP clauses, and records the digest.
+- **Ticket 39 installs 40's release on GKE Standard** from the digest-pinned overlay and runs the production workload the MVP bar names.
+- **Ticket 38** turns on attestations, SBOM and provenance and prices arm64 for real, after the first release has proved the pull path.
+- **Every install pins a digest,** so a tag that moves cannot change a running cluster, and a release is published once: a fix is a new patch version.
+- **Ticket 12's `CHANGELOG.md` becomes a release input:** the workflow refuses a tag whose version has no heading.
+- **Ticket 14's Role verbs and RoleBinding go in the base,** where the overlay inherits them. Ticket 27 owns the base-image digest pins and any re-lock, including the arm64 one.
+
+## What would reopen this
+
+- **A second consumer wants values** (another namespace layout, resource sizes, a different image name): a Helm chart, or kustomize components, over the same base.
+- **A target cluster gets arm64 node pools:** the arm64 build in ticket 38, with the re-lock.
+- **GHCR gains an immutable-tag setting:** turn it on and keep the guard as a second line.
+- **The package has to be private:** GKE then needs a pull secret or Workload Identity Federation, and the overlay a `imagePullSecrets` patch.
+- **A backport is tagged after a newer minor once the major is above 0** (`v1.2.5` after `v1.3.0`): its run moves `1` back to the older line. Serializing the runs does not prevent that. Installs are unaffected, since none follows `X.Y` or `X`: every install pins a digest.
+- **The first release finds the existence guard reading `unknown`** for a package that does not exist yet: ticket 37 then adapts the guard to the token behaviour it observes, keeping `unknown` as a stop.
+
+## Related pages
+
+- [Project overview](../OVERVIEW.md), §1 and §9.15
+- [Decision 0007: Local cluster and test tiers](0007-local-cluster.md), for the kind loop the base serves
+- [Decision 0003: Tool manager](0003-tool-manager.md), for the pins the image build reads
+- [Evidence for this record](../../.scratch/bootstrap/evidence/28/README.md)
+- [Ticket 28](../../.scratch/bootstrap/issues/28-spike-release-and-packaging.md), with the hand-back notes for 36 to 40
+- [Deferred items](../DEFERRED.md), §8

@@ -30,7 +30,7 @@ For linked-worktree verification, hash all files in `git rev-parse --path-format
 
 ## GitHub verification
 
-[Recorded API results](ci.json) associate current `main` with [CI run 37745546445](https://github.com/steven-cutting/knarr/actions/runs/37745546445). Both `Repository gate` and aggregate `check` completed successfully on the same SHA. The [log excerpt](ci-excerpt.txt) shows all gate recipes, 13 Gleam tests, 285 checker tests and the unchanged-worktree success message on Ubuntu 24.04. It also records installation of the pinned Linux binaries. It does not show the standalone TLS/rebar3 probes from ticket 01.
+[Recorded API results](ci.json) associate `main` at the audited SHA with [CI run 37745546445](https://github.com/steven-cutting/knarr/actions/runs/37745546445). Both `Repository gate` and aggregate `check` completed successfully on the same SHA. The [log excerpt](ci-excerpt.txt) shows all gate recipes, 13 Gleam tests, 285 checker tests and the unchanged-worktree success message on Ubuntu 24.04. It also records installation of the pinned Linux binaries. It does not show the standalone TLS/rebar3 probes from ticket 01.
 
 The read-only calls were:
 
@@ -48,9 +48,9 @@ The audit workflow had zero runs. No workflow was dispatched. All GitHub observa
 
 ### Prepared branch-protection change
 
-[Protection before any change](protection.json) has `strict: false`, an empty required-check list, pull requests required with zero approvals, administrators exempt, and force pushes and deletions disabled. [The rulesets response](rulesets.json) is empty. Therefore the protection acceptance criterion is **not yet met**.
+[Protection before any change](protection.json) has `strict: false`, an empty required-check list, pull requests required with zero approvals, administrators exempt, and force pushes and deletions disabled. [The rulesets response](rulesets.json) is empty. At the time of the audit the protection acceptance criterion was therefore **not yet met**; the [read-back below](#branch-protection-read-back) records how it was met.
 
-The exact proposed mutation is:
+The exact mutation proposed at the time was:
 
 ```sh
 gh api --method PATCH repos/steven-cutting/knarr/branches/main/protection/required_status_checks \
@@ -67,7 +67,27 @@ source_matches=$(gh api repos/steven-cutting/knarr/branches/main/protection/requ
   test "$source_matches" = true
 ```
 
-Compare every other protection field against the fresh pre-change response, excluding only `required_status_checks.contexts` and `required_status_checks.checks`. Preserve `strict: false`, the administrator exemption and all other settings. Record the mutation and read-back before checking off 11's criterion or updating 05's pending status. No mutation has been made by this audit.
+Compare every other protection field against the fresh pre-change response, excluding only `required_status_checks.contexts` and `required_status_checks.checks`. Preserve `strict: false`, the administrator exemption and all other settings. Record the mutation and read-back before checking off 11's criterion or updating 05's pending status. This audit made no mutation.
+
+### Branch-protection read-back
+
+The maintainer applied the required check through GitHub's branch-protection settings page, not through this audit. The prepared `PATCH` above was never run, and no session observed the pre-change reread it called for; what was verified is the state afterwards. The read-only calls below ran at 2026-10-09T03:19Z, when GitHub's `main` was `c96e10632be947a4f293cef774cfbc127aac9c1d`, and the files retain their responses:
+
+```sh
+gh api repos/steven-cutting/knarr/branches/main/protection
+gh api repos/steven-cutting/knarr/branches/main/protection/required_status_checks
+gh api repos/steven-cutting/knarr/rulesets
+sh .scratch/bootstrap/evidence/04/state.sh check
+gh api 'repos/steven-cutting/knarr/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=3'
+gh api repos/steven-cutting/knarr/branches/main --jq .commit.sha
+```
+
+- **Required checks:** [the status-check response](required-status-checks-after.json) has `strict: false`, `contexts: ["check"]` and `checks: [{"context": "check", "app_id": 15368}]`, matching [the prepared payload](required-check.json). The app-identity assertion above evaluates to `true` against it. The `required_status_checks` object inside [the full protection response](protection-after.json) is identical.
+- **Everything else unchanged:** with `required_status_checks.contexts` and `required_status_checks.checks` removed from both, [the full protection response](protection-after.json) and [the pre-change response](protection.json) are identical. `strict` is still `false`, administrators are still exempt, and force pushes and deletions are still disabled. The rulesets response is still `[]`.
+- **04's script:** [`state.sh check`](state-after.txt) exited 0 with `strict=false checks=check admins=false` and zero rulesets. Its `main on GitHub is ahead with 84668a5…` line compares GitHub's `main` with the commit ticket 04 pushed; its `info remote main` line, `c96e106…`, is the current `main`.
+- **CI on current `main`:** [run 37877497805](https://github.com/steven-cutting/knarr/actions/runs/37877497805) completed successfully at `c96e106`.
+
+Administrators remain exempt by 04's decision, so `check` is required for pull requests but not for a direct push by the owner. The protection acceptance criterion is met.
 
 ### PR review disposition
 
@@ -91,9 +111,9 @@ The inventory covers hand-backs 01–09 and the evidence/decision caveats they r
 | 03 | Linux gate not run | Closed by current-main CI at the audited SHA. |
 | 03 | Cold initialization timing not measured | **Follow-up 35.** This run has an empty pixi cache but a reused Gleam cache. |
 | 03 | Maintainer's primary checkout hook not installed/exercised | **Follow-up 35.** Fresh-clone installation and linked-worktree non-installation are proven separately. |
-| 04 | Required `check` not added | **Pending authorization.** Exact request above; 05 remains the existing follow-up until the read-back succeeds. |
+| 04 | Required `check` not added | Closed by the [branch-protection read-back](#branch-protection-read-back): `check` from GitHub Actions app `15368` is the only required status check. |
 | 04 | One unidentified checker failure, followed by five passing runs | **Follow-up 35.** Passing current gates does not identify the intermittent failure. |
-| 05 | Required-check authorization pending | Same prepared request; no protection change inferred from a green CI job. |
+| 05 | Required-check authorization pending | Closed by the [branch-protection read-back](#branch-protection-read-back), not inferred from a green CI job. The maintainer applied the setting; this audit made no mutation. |
 | 05, 06 | Taplo fails under the restricted macOS agent sandbox | **Follow-up 35.** `toml-check` passed with local escalation and in the network-denying profile; that does not prove compatibility with the stricter agent sandbox. |
 | 06 | GitHub-hosted execution not claimed | Validator and shared setup closed by current-main CI. Hosted external-link audit has zero runs: **follow-up 35**. |
 | 07 | Only the macOS Allium download and real gate were observed | Linux installation, checksum check, `check-specs` and `analyse-specs` closed by current-main CI. The root still has zero behaviour clauses; no new obligation count is claimed. |
@@ -119,6 +139,6 @@ No high-severity defect was reported. Dispositions of its two medium and five lo
 6. **Hooks after the gate:** retain a third hash inventory and the unset `core.hooksPath` observation.
 7. **Taplo sandbox caveat:** add the limitation to the claim inventory and follow-up 35.
 
-The terminal-colour residue the reviewer mentioned was removed from the CI excerpt. Branch-protection execution remains pending authorization; neither the review nor a green gate authorizes it.
+The terminal-colour residue the reviewer mentioned was removed from the CI excerpt. Branch-protection execution was pending authorization at review time; neither the review nor a green gate authorized it. The maintainer later applied it, and the [read-back](#branch-protection-read-back) verifies the result.
 
 The merge from `main` renumbered this branch's verification follow-up from 30 to 35 because ticket 17 had allocated 30–34. The archived review retains the ticket numbers used at review time.

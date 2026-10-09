@@ -1,0 +1,14 @@
+{
+  "url": "https://api.github.com/repos/steven-cutting/knarr/branches/main/protection/required_status_checks",
+  "strict": false,
+  "contexts": [
+    "check"
+  ],
+  "contexts_url": "https://api.github.com/repos/steven-cutting/knarr/branches/main/protection/required_status_checks/contexts",
+  "checks": [
+    {
+      "context": "check",
+      "app_id": 15368
+    }
+  ]
+}

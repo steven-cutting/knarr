@@ -1,8 +1,80 @@
 -- allium: 3
 
--- Knarr root specification.
--- Behaviour clauses will be added by the elicitation tickets. Decision 0009
--- maps OVERVIEW §4–§9 onto the modules beside this file, each of which holds
--- only the open questions its owning ticket settles:
+-- Knarr root specification: the walking skeleton lives here.
+-- Decision 0009 maps OVERVIEW §4–§9 onto the modules beside this file,
+-- which hold the open questions their owning elicitation tickets settle:
 --   worker_contract, config, banding, reconcile, ownership, lifecycle, budget,
 --   safe_to_evict, k8s_client and observability.
+
+-- Walking skeleton only. Worker behaviour belongs to later tickets.
+
+value Request {
+    method: String
+    path: String
+}
+
+value Header {
+    name: String
+    value: String
+}
+
+value Response {
+    status: Integer
+    body: String
+    headers: List<Header>
+}
+
+contract Diagnostics {
+    respond: (request: Request, ready: Boolean) -> Response
+
+    @invariant Health
+        -- GET /healthz returns 200 with body "ok\n" while the listener is available.
+    @invariant Readiness
+        -- GET /readyz returns 200 after the supervision tree starts,
+        -- with body "ok\n", otherwise 503. A failed startup exits unsuccessfully.
+    @invariant Metrics
+        -- GET /metrics returns 200 and Prometheus text exposition including
+        -- knarr_startups_total, incremented once per application startup,
+        -- and the metrics library's available VM collectors.
+        -- Response headers include Content-Type with value
+        -- "text/plain; version=0.0.4; charset=utf-8".
+    @invariant Routing
+        -- Unknown paths return 404. Known paths with methods other than GET
+        -- return 405 with an Allow response header whose value is "GET".
+        -- Header names are case-insensitive.
+}
+
+contract Lifecycle {
+    start: () -> Boolean
+
+    @invariant Listening
+        -- The default listener binds 0.0.0.0 on port 8080. OTP application
+        -- configuration can override the bind address and port. Gate adapters
+        -- use loopback and OS-allocated ports. After a supervised restart the
+        -- listener binds the same configured port. Port 0 instead lets the OS
+        -- assign a port on each listener start, so a restart may change it.
+    @invariant Recovery
+        -- A crashed listener is restarted by supervision and serves requests
+        -- again without resetting the startup counter or duplicating metrics.
+        -- The root tolerates two restarts in five seconds. Exhausting this
+        -- tolerance stops the application and exits the VM unsuccessfully.
+    @invariant NoPodEffects
+        -- The skeleton never reads or changes Kubernetes objects.
+}
+
+entity Runtime {
+    response: Response
+}
+
+actor Operator {
+    identified_by: Runtime
+}
+
+surface Application {
+    facing operator: Operator
+    exposes:
+        operator.response
+    contracts:
+        fulfils Diagnostics
+        fulfils Lifecycle
+}

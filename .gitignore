@@ -48,3 +48,6 @@ ai_tmp/
 .claude/routines/.state/
 .claude/worktrees/
 .claude/checkpoints/
+
+# Per-worktree local clusters, including admin client keys.
+.cluster/

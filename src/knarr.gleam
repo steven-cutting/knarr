@@ -1,7 +1,7 @@
-//// knarr's entry point. The controller does nothing yet; this module exists so
-//// the foundation has something to build and test.
+//// The OTP application starts the supervised HTTP tree before main runs.
 
-import gleam/io
+@external(erlang, "application_ffi", "await_shutdown")
+fn await_shutdown() -> Nil
 
 /// The name the controller reports itself by.
 pub fn name() -> String {
@@ -9,5 +9,5 @@ pub fn name() -> String {
 }
 
 pub fn main() -> Nil {
-  io.println(name())
+  await_shutdown()
 }

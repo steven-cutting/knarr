@@ -33,7 +33,8 @@ Then run the gate:
 just check
 ```
 
-`just --list` shows every recipe in five groups: setup, develop, format, check and audit.
+`just --list` shows every recipe in six groups: setup, develop, format, check, audit and cluster.
+The [local cluster guide](docs/how-to/local-cluster.md) covers the walking skeleton.
 
 ## The gate
 

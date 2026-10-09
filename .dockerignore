@@ -1,0 +1,11 @@
+*
+!Dockerfile
+!pixi.toml
+!pixi.lock
+!gleam.toml
+!manifest.toml
+!src/
+!src/**
+!scripts/
+scripts/*
+!scripts/container-entrypoint.sh

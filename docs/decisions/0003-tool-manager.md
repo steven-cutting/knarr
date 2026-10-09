@@ -116,7 +116,7 @@ A tool conda-forge does not carry is downloaded from its upstream release into t
 | editorconfig-checker | 4.0.2 | release, linux-amd64 and darwin-all | GitHub asset digest and `checksums.txt` | 03, if 02 keeps it |
 | hadolint | 2.15.1 | release, linux-x86_64 and macos-arm64 | GitHub asset digest and `checksums.sha256` | 13 |
 | kubeconform | 0.8.0 | release, linux-amd64 and darwin-arm64 | GitHub asset digest and `CHECKSUMS` | 13 |
-| kwok, kwokctl | 0.8.0 | `kubernetes-sigs/kwok` release | GitHub asset digest (no checksum file) | 10 |
+| kwokctl | 0.8.0 | `kubernetes-sigs/kwok` release | GitHub asset digest (no checksum file) | 13, following 10 |
 | k3d | 5.9.0 | `k3d-io/k3d` release | GitHub asset digest and `checksums.txt` | 10, if it keeps k3d |
 | setup-envtest | 0.25.2 | `kubernetes-sigs/controller-runtime` v0.25.2 release assets | GitHub asset digest (no checksum file) | 10, if it keeps envtest |
 | Cluster Autoscaler | 1.35.2 or 1.36.1 | image only (see below) | registry digest | 15 |
@@ -137,7 +137,7 @@ Notes on individual tools:
   - `registry.k8s.io/autoscaling/cluster-autoscaler:v1.36.1@sha256:461388d03eb5b55db58941ee7a81d9a619dd15302b01cbab9f5a9946715994b4`
 
   If 15 needs a binary instead, the fallback is a source build with conda-forge's `go` in the `cluster` feature.
-- **No tool is dropped.** Each one in the ticket has a source above, or a conda-forge pin.
+- **Amended by ticket 13: the standalone `kwok` binary is not installed.** This bullet originally read "No tool is dropped. Each one in the ticket has a source above, or a conda-forge pin." Every tool ticket 01 investigated still has a source in its evidence. `tools.txt` installs only the tools a recipe uses, and the simulated cluster runs `kwokctl` with the kwok controller as an image.
 
 ### One owner per pin; prek never double-owns a tool
 
@@ -149,7 +149,7 @@ The OTP version has one owner: the `erlang` pin in `pixi.toml`, resolved in `pix
 
 - **pixi and contributors** get it from `pixi install --locked`.
 - **CI** gets it from the same lock through setup-pixi with `locked: true`. No workflow names an OTP version.
-- **Dockerfile build stage** installs the locked `default` environment, which supplies gleam and erlang. It then runs the `tools.txt` installer for rebar3, which comes from `.tools/bin` and not from pixi, and runs `gleam export erlang-shipment`. It also installs the locked `runtime` environment.
+- **Dockerfile build stage.** Amended by ticket 13: this bullet originally said the stage runs the `tools.txt` installer for rebar3. The stage installs the locked `default` environment, which supplies gleam and erlang. It fetches rebar3 into `.tools/bin` with Docker's checksum-verified `ADD`, then runs `gleam export erlang-shipment`. The pixi base has no curl, so this stage does not run the host `tools.txt` installer. `tools.txt` owns the rebar3 pin; the Dockerfile duplicates its linux-64 URL and sha256, and `test_build_fetches_rebar_without_curl_and_matches_tool_pin` in `scripts/checks/tests/test_image.py` rejects drift. A pin update changes both locations. The image build verifies the checksum; it does not perform the host installer's optional Sigstore verification. It also installs the locked `runtime` environment.
 - **Dockerfile runtime stage** copies the `runtime` environment from the build stage to the same absolute prefix (conda environments are not relocatable), and puts its `bin` on `PATH`. No `ARG`, tag or base image names an OTP version. The one solve group makes the runtime environment's erlang and openssl the same builds that Verify 1 tested.
 
 13 writes the Dockerfile. Its check that "the build and runtime stages use the same OTP major" runs `erl -noshell -eval 'io:put_chars(erlang:system_info(otp_release)), halt().'` in both stages and compares the output with `pixi.lock`.
@@ -264,7 +264,7 @@ There are two pin mechanisms: `pixi.lock` for conda packages and `tools.txt` for
 
 ## What would reopen this
 
-- **A tool reaches conda-forge.** If conda-forge packages rebar3, ripsecrets, editorconfig-checker, hadolint, kubeconform, kwok, k3d or setup-envtest, it moves from `tools.txt` into the manifest. That is a pin move, not a new decision.
+- **A tool reaches conda-forge.** If conda-forge packages rebar3, ripsecrets, editorconfig-checker, hadolint, kubeconform, kwokctl, k3d or setup-envtest, it moves from `tools.txt` into the manifest. That is a pin move, not a new decision.
 - **conda-forge's kubectl falls behind the cluster.** If its `kubernetes-client` stays more than one minor behind the cluster version 10 picks, kubectl moves to `.tools/bin`.
 - **The runtime environment is too large.** If 13 cannot meet its image-size target without pruning, and pruning cannot be verified, the runtime stage moves to an `erlang` base image. The fallback OTP check above then applies, and Verify 1 is rerun.
 - **Gleam gains a frozen manifest mode.** A flag that refuses to rewrite `manifest.toml` would replace the pre-check.

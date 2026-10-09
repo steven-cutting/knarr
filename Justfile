@@ -59,7 +59,7 @@ build: manifest-check
 [doc('Run the Gleam tests, snapshot tests included (refuses a drifted manifest.toml)')]
 test: manifest-check
     mkdir -p "{{ birdie_tmpdir }}"; rm -f "{{ birdie_tmpdir }}/knarr_referenced.txt" test/birdie_snapshots/*.new
-    before=$(cksum < manifest.toml); TMPDIR="{{ birdie_tmpdir }}" gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+    before=$(cksum < manifest.toml); ERL_FLAGS="${ERL_FLAGS:-} -knarr port 0 bind '\"127.0.0.1\"'" TMPDIR="{{ birdie_tmpdir }}" gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # `stale check` reads the list the last `just test` wrote: run without one, it
 # fails. It runs only if the tests pass, because a test that fails before it
@@ -93,13 +93,13 @@ snapshots-accept:
 [doc("Run a birdie command (reject, stale delete) with this worktree's TMPDIR")]
 birdie +arguments: manifest-check
     mkdir -p "{{ birdie_tmpdir }}"
-    before=$(cksum < manifest.toml); TMPDIR="{{ birdie_tmpdir }}" gleam run --no-print-progress -m birdie "$@"; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+    before=$(cksum < manifest.toml); ERL_FLAGS="${ERL_FLAGS:-} -knarr port 0 bind '\"127.0.0.1\"'" TMPDIR="{{ birdie_tmpdir }}" gleam run --no-print-progress -m birdie "$@"; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # The gate checkers' own tests (scripts/checks/tests/).
 [group('develop')]
 [group('check')]
 [doc("Run the gate checkers' own tests")]
-test-checkers:
+test-checkers: build
     python3 -m pytest
 
 # ----------------------------------------------------------------- format ---
@@ -164,10 +164,12 @@ format-check:
 
 # [tools.glinter] in gleam.toml sets what is linted and the rules. glinter
 # passes when it skips a file it cannot parse; the wrapper fails instead.
+# Build first: running a dependency module starts our OTP application without
+# compiling the application modules that its Erlang callback calls.
 [group('check')]
 [doc('Lint src/ and test/ with glinter, warnings as errors (refuses a drifted manifest.toml)')]
-lint-gleam: manifest-check
-    before=$(cksum < manifest.toml); sh scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+lint-gleam: build
+    before=$(cksum < manifest.toml); ERL_FLAGS="${ERL_FLAGS:-} -knarr port 0 bind '\"127.0.0.1\"'" sh scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
 # birdie has no check mode: `just test`, which runs just before this in the
 # gate, has already failed on a new or changed snapshot. Run on its own, after
@@ -226,4 +228,73 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check agents-check check-specs analyse-specs format-check lint-gleam build test snapshots-check test-checkers toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check agents-check check-specs analyse-specs format-check lint-gleam build test snapshots-check test-checkers packaging-check toml-check lint
+
+# --------------------------------------------------------------- cluster ---
+# Cluster effects are deliberately outside the offline repository gate.
+cluster_image := "knarr:" + `sh scripts/cluster-name.sh . name`
+
+[private]
+cluster-tools:
+    test -x .pixi/envs/cluster/bin/kind || { echo 'run pixi install --locked -e cluster' >&2; exit 2; }
+
+[group('cluster')]
+[doc('Create or reuse this worktree cluster (may download images)')]
+cluster-up: cluster-tools
+    python3 scripts/checks/cluster.py up "{{ justfile_directory() }}"
+
+[group('cluster')]
+[doc('Delete this worktree cluster and its local state')]
+cluster-down: cluster-tools
+    python3 scripts/checks/cluster.py down "{{ justfile_directory() }}"
+
+[group('cluster')]
+[doc('Wait for this worktree cluster node and default ServiceAccount')]
+cluster-ready: cluster-tools
+    python3 scripts/checks/cluster.py ready "{{ justfile_directory() }}"
+
+[group('cluster')]
+[doc('Build the linux/amd64 shipment image (needs network)')]
+image-build image=cluster_image:
+    docker build --platform linux/amd64 --tag "$1" .
+
+[group('cluster')]
+[doc('Load a local image into this worktree kind cluster')]
+image-load image=cluster_image: cluster-tools
+    python3 scripts/checks/cluster.py image-load "{{ justfile_directory() }}" "$1"
+
+[group('cluster')]
+[doc('Load and deploy the skeleton to this worktree kind cluster')]
+deploy image=cluster_image: cluster-tools
+    python3 scripts/checks/cluster.py deploy "{{ justfile_directory() }}" "$1"
+
+[group('cluster')]
+[doc('Check all three endpoints through a temporary loopback port forward')]
+smoke: cluster-tools
+    python3 scripts/checks/cluster.py smoke "{{ justfile_directory() }}"
+
+[group('cluster')]
+[doc('Print this worktree cluster pods, events and application logs')]
+cluster-diagnostics: cluster-tools
+    python3 scripts/checks/cluster.py diagnostics "{{ justfile_directory() }}"
+
+[group('setup')]
+[doc('Install the locked optional cluster environment (needs network)')]
+cluster-install:
+    pixi install --locked -e cluster
+
+[group('cluster')]
+[doc('Verify image OTP ownership and restricted runtime startup')]
+image-check image=cluster_image:
+    python3 scripts/checks/image.py "$1"
+
+[group('check')]
+[doc('Lint the image and validate base resources against pinned local schemas')]
+packaging-check:
+    hadolint Dockerfile
+    python3 scripts/checks/deployment.py
+
+[group('cluster')]
+[doc('Render kustomize and validate every resource against pinned local schemas')]
+deployment-check: cluster-tools
+    python3 scripts/checks/deployment.py --render

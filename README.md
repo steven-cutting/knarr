@@ -51,7 +51,9 @@ The pre-commit hook runs the read-only config, `.pre-commit-config.yaml`. `just 
 [CI](.github/workflows/ci.yml) runs `just check` on every pull request and
 every push to `main`, using the same locked environment and `just initialize`
 as contributors. Its aggregate `check` fails if any gate job fails, is cancelled,
-or is skipped. Configure `check` as the only required status check on `main`.
+or is skipped. `check` is the only required status check on `main`.
+Administrators are exempt, so it binds pull requests but not an owner's
+direct push.
 Add only required gate jobs to the aggregate's `needs` list. The initial kind
 and kwok jobs stay outside it; the kind smoke job must demonstrate stability
 for a stated period before becoming required (tickets 10 and 13).

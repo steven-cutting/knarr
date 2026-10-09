@@ -6,3 +6,5 @@
 !manifest.toml
 !src/
 !src/**
+!scripts/
+!scripts/container-entrypoint.sh

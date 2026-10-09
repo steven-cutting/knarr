@@ -13,6 +13,8 @@ def test_startup_failure_retains_logs_and_cleans_container(monkeypatch):
 
     def output(*arguments):
         commands.append((list(arguments), {}))
+        if arguments[-1] == "ulimit -Sn":
+            return "65536"
         if arguments[1:3] == ("image", "inspect"):
             return json.dumps([{"Config": {"User": "10001:10001"}}])
         if arguments[1] == "port":
@@ -34,16 +36,32 @@ def test_startup_failure_retains_logs_and_cleans_container(monkeypatch):
         image.main()
     detached = next(args for args, _ in commands if "--detach" in args)
     assert "--rm" not in detached
-    resources = json.loads((image.ROOT / "deploy/base/resources.json").read_text())
-    deployment = next(item for item in resources["items"] if item["kind"] == "Deployment")
-    memory = deployment["spec"]["template"]["spec"]["containers"][0]["resources"]["limits"][
-        "memory"
-    ]
-    budget = str(int(memory.removesuffix("Mi")) * 1024 * 1024)
-    assert f"--memory={budget}" in detached
-    assert f"--memory-swap={budget}" in detached
+    # The deployment's 256 MiB limit in bytes, independently calculated.
+    assert "--memory=268435456" in detached
+    assert "--memory-swap=268435456" in detached
     assert ["docker", "logs", "test-container"] in [args for args, _ in commands]
     assert commands[-1] == (["docker", "rm", "--force", "test-container"], {"check": False})
+
+
+def test_optional_stats_failure_does_not_fail_a_healthy_image(monkeypatch):
+    def output(*arguments):
+        if arguments[-1] == "ulimit -Sn":
+            return "65536"
+        if arguments[1:3] == ("image", "inspect"):
+            return json.dumps([{"Config": {"User": "10001:10001"}}])
+        if arguments[1] == "stats":
+            raise subprocess.CalledProcessError(1, arguments)
+        return "29"
+
+    monkeypatch.setattr(image, "output", output)
+    monkeypatch.setattr(image, "verify_running", lambda _: None)
+    monkeypatch.setattr(
+        image.subprocess,
+        "run",
+        lambda args, **_kwargs: subprocess.CompletedProcess(args, 1),
+    )
+    monkeypatch.setattr(image.sys, "argv", ["image.py", "knarr:test"])
+    image.main()
 
 
 def test_build_fetches_rebar_without_curl_and_matches_tool_pin():

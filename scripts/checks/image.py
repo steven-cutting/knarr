@@ -84,6 +84,18 @@ def main():
         f"--memory={budget}",
         f"--memory-swap={budget}",
     ]
+    descriptors = output(
+        *common,
+        "--rm",
+        "--ulimit=nofile=131072:131072",
+        "--entrypoint=/opt/knarr/container-entrypoint.sh",
+        image,
+        "sh",
+        "-c",
+        "ulimit -Sn",
+    )
+    if descriptors != "65536":
+        raise RuntimeError(f"container did not bound its descriptor limit: {descriptors}")
     build = output(*common, "--rm", "--entrypoint=cat", image, "/opt/build-otp")
     runtime = output(
         *common,
@@ -99,8 +111,16 @@ def main():
     container = output(*common, "--detach", "--publish=127.0.0.1::8080", image)
     try:
         verify_running(container)
-        usage = output("docker", "stats", "--no-stream", "--format={{.MemUsage}}", container)
-        print(f"image: memory usage / deployment limit: {usage}")
+        subprocess.run(
+            [
+                "docker",
+                "stats",
+                "--no-stream",
+                "--format=memory usage / limit: {{.MemUsage}}",
+                container,
+            ],
+            check=False,
+        )
         print(f"image: OTP {expected}, numeric user and read-only runtime verified")
     except Exception:
         subprocess.run(["docker", "inspect", "--format={{json .State}}", container], check=False)

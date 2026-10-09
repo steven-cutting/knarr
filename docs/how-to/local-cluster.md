@@ -62,6 +62,14 @@ uses a read-only root filesystem, a writable temporary volume, dropped
 capabilities, no privilege escalation and RuntimeDefault seccomp. The empty
 Role grants no Kubernetes permissions; token automount is disabled.
 
+Before starting Erlang, the container entrypoint caps the soft file-descriptor
+limit at 65,536, preserving any lower inherited limit. kind's containerd can
+inherit a near-unlimited ceiling, which causes excessive descriptor-table
+allocation before the application starts. The skeleton requests 64 MiB of
+memory and has a 256 MiB limit; `just image-check` enforces that same limit with
+swap disabled and verifies the descriptor cap. The printed memory reading is
+informational, not a peak measurement or a capacity guarantee for future work.
+
 The offline gate validates image lint, base resources against local Kubernetes
 schemas, and static security settings. `just deployment-check` validates the
 kustomize output with the optional cluster tools installed. Container checks separately prove both image stages use

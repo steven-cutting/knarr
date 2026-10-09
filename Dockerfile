@@ -16,9 +16,10 @@ WORKDIR /opt/knarr
 COPY --from=build /opt/knarr/.pixi/envs/runtime /opt/knarr/.pixi/envs/runtime
 COPY --from=build /opt/knarr/build/erlang-shipment /opt/knarr/shipment
 COPY --from=build /opt/build-otp /opt/build-otp
+COPY --chmod=0755 scripts/container-entrypoint.sh /opt/knarr/container-entrypoint.sh
 ENV PATH="/opt/knarr/.pixi/envs/runtime/bin:${PATH}" \
     ERL_CRASH_DUMP=/tmp/erl_crash.dump
 USER 10001:10001
 EXPOSE 8080
-ENTRYPOINT ["/opt/knarr/shipment/entrypoint.sh"]
+ENTRYPOINT ["/opt/knarr/container-entrypoint.sh", "/opt/knarr/shipment/entrypoint.sh"]
 CMD ["run"]

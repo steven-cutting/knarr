@@ -1,13 +1,12 @@
 -module(runtime_test_ffi).
--export([recover/1, occupied_port/1, local_port/0]).
+-export([recover/1, occupied_port/1]).
 
 recover({runtime, Root, State}) ->
   unlink(Root),
   try
     {ok, _} = application:ensure_all_started(inets),
     Port = atomics:get(State, 2),
-    [{127,0,0,1}] = [Address || Socket <- erlang:ports(),
-      {ok, {Address, SocketPort}} <- [try inet:sockname(Socket) catch _:_ -> error end], SocketPort =:= Port],
+    loopback_listener(Port),
     {200, <<"ok\n">>} = get(Port, "/healthz"),
     {200, <<"ok\n">>} = get(Port, "/readyz"),
     {200, Before} = get(Port, "/metrics"),
@@ -20,7 +19,8 @@ recover({runtime, Root, State}) ->
       [{_, NewChild, supervisor, _}] = supervisor:which_children(Root),
       true = is_pid(NewChild) andalso NewChild =/= Child,
       NewPort = atomics:get(State, 2),
-      true = NewPort =:= Port,
+      loopback_listener(NewPort),
+      {200, <<"ok\n">>} = get(NewPort, "/healthz"),
       {200, <<"ok\n">>} = get(NewPort, "/readyz"),
       {200, After} = get(NewPort, "/metrics"),
       true = binary:match(After, <<"knarr_startups_total 1\n">>) =/= nomatch,
@@ -30,6 +30,11 @@ recover({runtime, Root, State}) ->
   after
     gen_server:stop(Root, shutdown, 5000)
   end.
+
+loopback_listener(Port) ->
+  true = Port > 0,
+  [{127,0,0,1}] = [Address || Socket <- erlang:ports(),
+    {ok, {Address, SocketPort}} <- [try inet:sockname(Socket) catch _:_ -> error end], SocketPort =:= Port].
 
 get(Port, Path) ->
   Url = "http://127.0.0.1:" ++ integer_to_list(Port) ++ Path,
@@ -54,9 +59,3 @@ occupied_port(Start) ->
     receive {'EXIT', _, _} -> ok after 100 -> ok end,
     process_flag(trap_exit, Previous)
   end.
-
-local_port() ->
-  {ok, Socket} = gen_tcp:listen(0, [{ip, {127,0,0,1}}]),
-  {ok, {_, Port}} = inet:sockname(Socket),
-  gen_tcp:close(Socket),
-  Port.

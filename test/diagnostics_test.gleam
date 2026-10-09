@@ -1,6 +1,7 @@
 import gleam/http
 import gleam/http/request
 import gleam/http/response
+import gleam/list
 import gleeunit
 import gleeunit/should
 import knarr/diagnostics
@@ -25,13 +26,17 @@ pub fn readiness_test() -> Nil {
 pub fn routing_test() -> Nil {
   let unknown = request.new() |> request.set_path("/other")
   assert diagnostics.respond(unknown, True, no_collection).status == 404
-  let post =
-    request.new()
-    |> request.set_path("/healthz")
-    |> request.set_method(http.Post)
-  let response = diagnostics.respond(post, True, no_collection)
-  assert response.status == 405
-  assert response.get_header(response, "allow") == Ok("GET")
+  list.each(["/healthz", "/readyz", "/metrics"], fn(path) {
+    list.each([http.Post, http.Head, http.Options], fn(method) {
+      let req =
+        request.new()
+        |> request.set_path(path)
+        |> request.set_method(method)
+      let result = diagnostics.respond(req, True, no_collection)
+      assert result.status == 405
+      assert response.get_header(result, "allow") == Ok("GET")
+    })
+  })
 }
 
 pub fn exposition_test() -> Nil {

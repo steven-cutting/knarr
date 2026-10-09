@@ -56,7 +56,7 @@ maintainer considers making kind required.
 Verification so far:
 
 - 20 Gleam tests passed, including real local HTTP and killing the supervised
-  listener, then observing recovery on the same port with counter value one.
+  listener, then observing recovery on the OS-assigned port with counter value one.
   Occupied-port startup returns failure. Separate Erlang subprocess tests prove
   exit code 1 after startup failure or exhausted supervision and exit code 0
   on normal shutdown. Routing tests cover readiness before
@@ -69,7 +69,7 @@ Verification so far:
 - The rendered base passes strict kubeconform validation: three valid resources,
   none skipped. hadolint, actionlint and the documentation checks passed.
 - `just check-specs` reports no diagnostics; `just analyse-specs` no findings.
-  `just plan-spec docs/specs/knarr.allium` reports nine structural obligations.
+  `just plan-spec docs/specs/knarr.allium` reports eleven structural obligations.
   The diagnostic and lifecycle guarantees are prose contract invariants, tested
   explicitly; that structural count is not a claim of formal behaviour coverage.
 - The full `just check` passed with "All checks passed and the worktree is
@@ -116,8 +116,9 @@ still needs live validation. The
 reviewer's other live-run questions (image attestations, kwok reuse and cleanup)
 are likewise unverified. The version-tagged base images are not digest-pinned;
 locked package and tool inputs do not make the base OS immutable. The unused
-standalone kwok binary retains 01/10's pinned tool inventory for the integration
-tier. No registry publication or branch-protection change is part of this ticket.
+standalone kwok binary was initially retained from 01/10's tool inventory; the
+PR feedback follow-up below removes it from mandatory installation. No registry
+publication or branch-protection change is part of this ticket.
 
 The same Opus 5.5 reviewer checked the applied fixes in a focused follow-up at
 medium effort and reported no new definite, actionable bugs.
@@ -146,3 +147,38 @@ Shell tests cover lower, high and unlimited limits without requiring the host to
 raise its hard limit; Docker supplies the real high-limit integration test.
 Opus 5.5 reviewed the follow-up at medium effort; its entrypoint-wiring and
 host-limit portability findings are covered by these regressions.
+
+### PR feedback follow-up
+
+All five findings on PR 10 were valid and have local fixes:
+
+- The diagnostics response now models headers. Its contract specifies
+  `Allow: GET` for rejected methods and the Prometheus content type. The
+  routing test covers POST, HEAD and OPTIONS on all three known paths without
+  collecting metrics; existing exposition tests cover the content type.
+- The recovery test starts Mist on port zero, removing the released-socket
+  allocation race and the `local_port` FFI helper. The specification explicitly
+  permits a new OS-assigned port after restart. The helper verifies a positive
+  port, loopback binding and all three endpoints after child replacement,
+  preserving startup-counter and VM-metric assertions. Occupied-port startup
+  failure remains covered.
+- Mandatory downloads no longer include the unused standalone `kwok` binary.
+  `kwokctl` and its controller image remain. No installer change or new pin is
+  needed; the original tool investigation evidence is preserved.
+- Decision 0003 now documents Docker's checksum-verified rebar3 download,
+  `tools.txt` ownership and the existing URL/checksum regression check.
+- Decision 0007 distinguishes the tag-based experiment from the implemented
+  five digest-pinned image flags and documents the installed kwok tooling.
+
+Verification: changing the recovery test to port zero first produced 19 passing
+Gleam tests and one `RecoveryTimeout` failure under the old same-port assertion.
+After the helper fix, all 20 passed; `just format-check` and `just build` passed.
+All 310 checker/process tests and packaging validation also passed.
+The expanded header tests already pass against the existing HTTP implementation;
+this finding corrected its specification, not its runtime behavior.
+`just check-specs` and `just analyse-specs` report no diagnostics or findings.
+`just plan-spec docs/specs/knarr.allium` reports 11 structural obligations, up
+from nine because of the Header value. Prose contract invariants still require
+explicit behavioral tests; this count is not formal behavior coverage.
+The full offline gate remains the acceptance check for the follow-up. Later
+tickets inherit the same runtime interfaces and cluster commands.

@@ -5,8 +5,7 @@ import knarr/runtime
 fn recover(root: runtime.Runtime) -> Bool
 
 pub fn listener_recovers_and_preserves_metrics_test() -> Nil {
-  let started =
-    runtime.start(port: local_port(), bind: "127.0.0.1") |> should.be_ok
+  let started = runtime.start(port: 0, bind: "127.0.0.1") |> should.be_ok
   assert recover(started.data)
 }
 
@@ -16,6 +15,3 @@ fn occupied_port(start: fn(Int) -> result) -> Bool
 pub fn occupied_port_fails_startup_test() -> Nil {
   assert occupied_port(fn(port) { runtime.start(port: port, bind: "127.0.0.1") })
 }
-
-@external(erlang, "runtime_test_ffi", "local_port")
-fn local_port() -> Int

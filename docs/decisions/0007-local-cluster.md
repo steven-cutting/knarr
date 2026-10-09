@@ -75,13 +75,13 @@ These come from [pins.txt](../../.scratch/bootstrap/evidence/10/pins.txt). Each 
 | What | Pin |
 | --- | --- |
 | kind node image | `kindest/node:v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0`, the digest the kind v0.33.0 release notes publish, equal to the registry's |
-| kwok, kwokctl | 0.8.0, the binaries 0003 pinned (`tools.txt` lines below) |
-| kwok Kubernetes version | `KWOK_KUBE_VERSION=v1.35.5`. kwokctl then pulls `registry.k8s.io/kube-apiserver`, `kube-controller-manager` and `kube-scheduler` at `v1.35.5`, `etcd:3.6.10-0` and `kwok/kwok:v0.8.0`. Their digests are in pins.txt |
+| kwokctl | 0.8.0, installed from the checksum pins in `tools.txt`; the kwok controller runs as an image, so the standalone `kwok` binary is not installed |
+| kwok component images | `KWOK_KUBE_VERSION=v1.35.5` records the Kubernetes version. `KWOK_IMAGES` in `scripts/checks/cluster.py` pins the apiserver, controller-manager and scheduler at `v1.35.5`, etcd at `3.6.10-0` and kwok at `v0.8.0`, each with its digest from pins.txt |
 | kwok all-in-one cluster image | `registry.k8s.io/kwok/cluster:v0.8.0-k8s.v1.35.5@sha256:77483c585cf148b9689e9800b807e6e6e6cdc7a08363997ef144f0fde41df90a`, for a single-container kwok cluster when kwokctl is unavailable. Not used by the recipe |
 | Cluster Autoscaler (for 15) | `registry.k8s.io/autoscaling/cluster-autoscaler:v1.35.2@sha256:aac369dc283927a623deb1af54696efcc722ae79255aa07788422e495bab887d`, re-resolved and unchanged from 0003 |
 | kubectl | conda-forge 1.34.3 from the `cluster` environment, one minor behind the 1.35 servers, within kubectl's skew |
 
-The kind node image is pinned by digest in the recipe. kwokctl takes its component images by tag through `KWOK_KUBE_VERSION`. Its `--kube-apiserver-image` flags and the like would take digests, but that path is not exercised here (follow-up for 13).
+The kind node image is pinned by digest in the recipe. Ticket 10's experiment resolved kwok component images by tag through `KWOK_KUBE_VERSION`. Ticket 13's implemented recipe supplies all five digest-pinned images explicitly through `--kube-apiserver-image`, `--kube-controller-manager-image`, `--kube-scheduler-image`, `--etcd-image` and `--kwok-controller-image`. The Linux CI kwok readiness job exercised this path. The committed experiment transcripts retain the original tag-based invocation.
 
 ### Cluster Autoscaler's kwok provider
 

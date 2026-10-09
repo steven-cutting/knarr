@@ -29,7 +29,5 @@ kubeconform 0.8.0 linux-64 https://github.com/yannh/kubeconform/releases/downloa
 kubeconform 0.8.0 osx-arm64 https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-darwin-arm64.tar.gz f84f4dfbebf4a6b0b230385fa065a39ea35e02608c2b50d025dcf64775a69d67 kubeconform
 hadolint 2.15.1 linux-64 https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64 c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507 -
 hadolint 2.15.1 osx-arm64 https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-macos-arm64 5c09f3213f8e40406abe048233d985eebef336d4a6a20021be47fadb6cf480a2 -
-kwok 0.8.0 linux-64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwok-linux-amd64 f5a4385a2ae1b9dd7f8acae18e002a75c0ebba124ae9d7259aa8dadb50711f46 -
-kwok 0.8.0 osx-arm64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwok-darwin-arm64 69a064ec98d37844d9d742b5b28ff57825659a983ccc3e208daa6948b94d64ba -
 kwokctl 0.8.0 linux-64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwokctl-linux-amd64 d5743166c657283d6e827c7c4c20cacfd9009fd94830f06718ca7b2c7099461f -
 kwokctl 0.8.0 osx-arm64 https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwokctl-darwin-arm64 9323a59adb9c27854bd2a76652ad00258bcbb68acc40aba0dc21e362b67b7d6a -

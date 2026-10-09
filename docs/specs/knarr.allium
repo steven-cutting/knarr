@@ -13,9 +13,15 @@ value Request {
     path: String
 }
 
+value Header {
+    name: String
+    value: String
+}
+
 value Response {
     status: Integer
     body: String
+    headers: List<Header>
 }
 
 contract Diagnostics {
@@ -30,9 +36,12 @@ contract Diagnostics {
         -- GET /metrics returns 200 and Prometheus text exposition including
         -- knarr_startups_total, incremented once per application startup,
         -- and the metrics library's available VM collectors.
+        -- Response headers include Content-Type with value
+        -- "text/plain; version=0.0.4; charset=utf-8".
     @invariant Routing
         -- Unknown paths return 404. Known paths with methods other than GET
-        -- return 405 and advertise GET as the allowed method.
+        -- return 405 with an Allow response header whose value is "GET".
+        -- Header names are case-insensitive.
 }
 
 contract Lifecycle {
@@ -41,7 +50,8 @@ contract Lifecycle {
     @invariant Listening
         -- The default listener binds 0.0.0.0 on port 8080. OTP application
         -- configuration can override the bind address and port. Gate adapters
-        -- use loopback and OS-allocated ports.
+        -- use loopback and OS-allocated ports. Port 0 lets the OS assign a
+        -- port on each listener start, including after a supervised restart.
     @invariant Recovery
         -- A crashed listener is restarted by supervision and serves requests
         -- again without resetting the startup counter or duplicating metrics.

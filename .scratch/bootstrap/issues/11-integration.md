@@ -32,7 +32,7 @@ The [evidence and claim inventory](../evidence/11/README.md) record verification
 
 ### For later tickets
 
-- **05:** update its pending required-check status only after the authorized mutation and read-back confirm exactly `check` is required.
+- **05:** update its pending required-check status only after the authorized mutation and read-back confirm exactly `check` from GitHub Actions app `15368` is required.
 - **12:** the fresh-clone workflow is proven with the explicit Gleam-cache limitation. Link existing setup and testing documentation rather than copying this audit's commands into another owner page.
 - **13 and 14:** a native Linux green gate does not prove the standalone TLS or rebar3 probes. Coordinate those results with 35 before relying on them.
 - **35:** every open verification item has a source ticket and acceptance criteria; keep claims open until the named behaviour is actually observed.

@@ -1,5 +1,8 @@
 {
-  "contexts": [
-    "check"
+  "checks": [
+    {
+      "context": "check",
+      "app_id": 15368
+    }
   ]
 }

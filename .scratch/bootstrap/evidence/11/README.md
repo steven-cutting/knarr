@@ -53,11 +53,30 @@ The audit workflow had zero runs. No workflow was dispatched. All GitHub observa
 The exact proposed mutation is:
 
 ```sh
-gh api --method POST repos/steven-cutting/knarr/branches/main/protection/required_status_checks/contexts \
+gh api --method PATCH repos/steven-cutting/knarr/branches/main/protection/required_status_checks \
   --input .scratch/bootstrap/evidence/11/required-check.json
 ```
 
-[The payload](required-check.json) adds only `check`. This uses the narrow endpoint named by ticket 04 rather than replacing the full protection object. Before applying it, reread protection and require that the current contexts and checks are still empty; if settings changed, prepare a new request for review. After authorization and execution, run `sh .scratch/bootstrap/evidence/04/state.sh check`, reusing 04's tested projection and rulesets check, and retain the full protection response. Require exactly one `check` context and compare every other protection field against the fresh pre-change response. Preserve `strict: false`, the administrator exemption and all other settings. Record the mutation and read-back before checking off 11's criterion or updating 05's pending status. No mutation has been made by this audit.
+[The payload](required-check.json) requires only `check`, explicitly bound to GitHub Actions app `15368`. The [app observation](check-source.json) records the source of the audited check run. The [GitHub API documentation](https://docs.github.com/en/rest/branches/branch-protection#update-status-check-protection) supports `checks` entries with `context` and `app_id`; the status-check PATCH endpoint leaves unrelated protection settings untouched. Omitting `strict` preserves its current value.
+
+Before applying it, reread protection and require that the current contexts and checks are still empty; if settings changed, prepare a new request for review. After authorization and execution, run `sh .scratch/bootstrap/evidence/04/state.sh check`, reusing 04's tested projection and rulesets check, and retain the full protection response. That script checks names but not app identity, so also run this read-only assertion and require exit zero:
+
+```sh
+source_matches=$(gh api repos/steven-cutting/knarr/branches/main/protection/required_status_checks \
+  --jq '.contexts == ["check"] and .checks == [{"context":"check","app_id":15368}]') &&
+  test "$source_matches" = true
+```
+
+Compare every other protection field against the fresh pre-change response, excluding only `required_status_checks.contexts` and `required_status_checks.checks`. Preserve `strict: false`, the administrator exemption and all other settings. Record the mutation and read-back before checking off 11's criterion or updating 05's pending status. No mutation has been made by this audit.
+
+### PR review disposition
+
+[Copilot's finding](https://github.com/steven-cutting/knarr/pull/9#discussion_r4224228609) correctly identifies missing explicit source selection and verification in the prepared request. The API can infer the app from recent checks, so the claim that a bare context necessarily accepts any publisher is too strong. The revised payload removes that ambiguity and the read-back checks the source as well as the name. On 2026-10-08, a read-only query of the audited commit's check runs confirmed app `15368`, slug `github-actions`:
+
+```sh
+gh api repos/steven-cutting/knarr/commits/4f0eca5c342493c7830cf6be77791f2207956115/check-runs \
+  --jq '.check_runs[] | select(.name == "check") | {id,name,head_sha,html_url,app: {id: .app.id,slug: .app.slug}}'
+```
 
 ## Inventory of unverified claims
 

@@ -1,0 +1,140 @@
+test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
+python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check agents-check check-specs analyse-specs format-check lint-gleam build test snapshots-check test-checkers toml-check lint
+
+==> just lock-check
+pixi lock --check --offline --dry-run
+i Dry-run: lock file would not change
+
+==> just env-check
+python3 scripts/checks/env_check.py
+the default environment and .tools/bin match the pins (osx-arm64)
+
+==> just manifest-check
+python3 scripts/checks/manifest_check.py
+manifest.toml [requirements] matches gleam.toml
+
+==> just docs-check
+python3 scripts/checks/validate_docs.py
+Validated 20 pages and 23 canonical topics.
+
+==> just agents-check
+python3 scripts/checks/validate_agents.py
+Validated AGENTS.md, 2 adapters, 7 house skills, 7 vendored skills and 14 bridges.
+
+==> just check-specs
+python3 scripts/checks/run_allium.py check
+{
+  "command": "check",
+  "diagnostics": [],
+  "findings": [],
+  "spec_file": "docs/specs/knarr.allium"
+}
+allium check: 1 specifications, no diagnostics and no findings.
+
+==> just analyse-specs
+python3 scripts/checks/run_allium.py analyse
+{
+  "command": "analyse",
+  "diagnostics": [],
+  "findings": [],
+  "spec_file": "docs/specs/knarr.allium"
+}
+allium analyse: 1 specifications, no diagnostics and no findings.
+
+==> just format-check
+gleam format --check src test
+
+==> just lint-gleam
+python3 scripts/checks/manifest_check.py
+manifest.toml [requirements] matches gleam.toml
+before=$(cksum < manifest.toml); sh scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+No issues found.
+
+==> just build
+python3 scripts/checks/manifest_check.py
+manifest.toml [requirements] matches gleam.toml
+before=$(cksum < manifest.toml); gleam build --warnings-as-errors; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+  Compiling knarr
+   Compiled in 0.24s
+
+==> just test
+python3 scripts/checks/manifest_check.py
+manifest.toml [requirements] matches gleam.toml
+mkdir -p "<worktree>/build/birdie"; rm -f "<worktree>/build/birdie/knarr_referenced.txt" test/birdie_snapshots/*.new
+before=$(cksum < manifest.toml); TMPDIR="<worktree>/build/birdie" gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+   Compiled in 0.22s
+    Running knarr_test.main
+.............
+13 passed, no failures
+
+==> just snapshots-check
+[ -d test/birdie_snapshots ] || exit 0; pending=$(find test/birdie_snapshots -type f -name '*.new'); [ -z "$pending" ] || { printf '%s\n' "$pending" | sort >&2; echo 'pending snapshots: review them with just snapshots-review' >&2; exit 1; }
+python3 scripts/checks/manifest_check.py
+manifest.toml [requirements] matches gleam.toml
+mkdir -p "<worktree>/build/birdie"
+before=$(cksum < manifest.toml); TMPDIR="<worktree>/build/birdie" gleam run --no-print-progress -m birdie "$@"; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
+Checking stale snapshots...
+🐦‍⬛ Done!
+
+==> just test-checkers
+python3 -m pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.14.8, pytest-9.1.1, pluggy-1.6.0
+rootdir: <worktree>
+configfile: pytest.toml
+testpaths: scripts
+collected 285 items
+
+scripts/checks/tests/test_env_check.py ...............                   [  5%]
+scripts/checks/tests/test_hook_configs.py ........                       [  8%]
+scripts/checks/tests/test_install_hooks.py ...                           [  9%]
+scripts/checks/tests/test_install_tools.py ...........                   [ 12%]
+scripts/checks/tests/test_manifest_check.py ........                     [ 15%]
+scripts/checks/tests/test_project.py .........                           [ 18%]
+scripts/checks/tests/test_ripsecrets_redacted.py .............           [ 23%]
+scripts/checks/tests/test_run_allium.py ......................           [ 31%]
+scripts/checks/tests/test_run_glinter.py ..........                      [ 34%]
+scripts/checks/tests/test_run_project_check.py ..................        [ 41%]
+scripts/checks/tests/test_validate_agents.py ........................... [ 50%]
+...............................................................          [ 72%]
+scripts/checks/tests/test_validate_docs.py ............................. [ 82%]
+...............................................                          [ 99%]
+scripts/checks/tests/test_with_env.py ..                                 [100%]
+
+======================== 285 passed in 66.22s (0:01:06) ========================
+
+==> just toml-check
+taplo fmt --check
+ INFO taplo:format_files:load_config: found configuration file path="<worktree>/taplo.toml"
+ INFO taplo:format_files:collect_files: found files total=81 excluded=74 files=["<worktree>/_typos.toml", "<worktree>/checks.toml", "<worktree>/gleam.toml", "<worktree>/pixi.toml", "<worktree>/pytest.toml", "<worktree>/ruff.toml", "<worktree>/taplo.toml"] cwd="<worktree>"
+taplo lint
+ INFO taplo:load_config: found configuration file path="<worktree>/taplo.toml"
+ INFO taplo:lint_files:collect_files: found files total=81 excluded=74 files=["<worktree>/_typos.toml", "<worktree>/checks.toml", "<worktree>/gleam.toml", "<worktree>/pixi.toml", "<worktree>/pytest.toml", "<worktree>/ruff.toml", "<worktree>/taplo.toml"] cwd="<worktree>"
+
+==> just lint
+SKIP=gleam-format,taplo prek run --all-files
+check for added large files..............................................Passed
+check for case conflicts.................................................Passed
+check that executables have shebangs.................(no files to check)Skipped
+check json...............................................................Passed
+check for merge conflicts................................................Passed
+check toml...............................................................Passed
+check yaml...............................................................Passed
+detect private key.......................................................Passed
+gleam format check......................................................Skipped
+taplo format check and lint.............................................Skipped
+typos....................................................................Passed
+markdownlint.............................................................Passed
+lychee (offline, local links only).......................................Passed
+shellcheck...............................................................Passed
+editorconfig-checker.....................................................Passed
+ruff check...............................................................Passed
+ruff format check........................................................Passed
+actionlint...............................................................Passed
+ripsecrets (output redacted).............................................Passed
+
+==> just check-clean
+python3 scripts/checks/run_project_check.py clean "$1"
+The worktree matches the check baseline.
+
+All checks passed and the worktree is unchanged.

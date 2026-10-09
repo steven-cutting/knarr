@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-10-08T08:16:33.558277+00:00",
+  "scope": "Read-back after local gates; not a transcript of the pre-initialization assertions",
+  "pixi_cache_dir": "<worktree>/ai_tmp/integration/caches/pixi",
+  "clone_git_status_porcelain": "",
+  "clone_head": "4f0eca5c342493c7830cf6be77791f2207956115",
+  "linked_git_dir": "/Users/scutting/projects/knarr/.git/worktrees/11-integration",
+  "linked_common_dir": "/Users/scutting/projects/knarr/.git",
+  "core_hooksPath": {
+    "command": "git config --show-origin --get core.hooksPath",
+    "exit": 1,
+    "stdout": ""
+  },
+  "hook_hashes_after_linked_gate_match_before_initialize": true
+}

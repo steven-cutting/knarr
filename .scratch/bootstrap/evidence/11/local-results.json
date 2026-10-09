@@ -1,0 +1,64 @@
+{
+  "observed_at": "2026-10-08T08:05:20.763718+00:00",
+  "commit": "4f0eca5c342493c7830cf6be77791f2207956115",
+  "host": "Darwin arm64",
+  "pixi": "pixi 0.81.0",
+  "just": "just 1.51.0",
+  "fresh_clone": {
+    "command": "just initialize",
+    "exit": 0,
+    "seconds": 14.95,
+    "pixi_cache": "empty isolated PIXI_CACHE_DIR",
+    "gleam_cache": "existing user cache; not a fully cold run"
+  },
+  "clone_checks": [
+    {
+      "label": "clone-check",
+      "command": [
+        "just",
+        "check"
+      ],
+      "exit": 0,
+      "seconds": 91.067
+    },
+    {
+      "label": "offline-probe",
+      "command": [
+        "sandbox-exec",
+        "-p",
+        "(version 1)(allow default)(deny network*)",
+        "curl",
+        "-fsS",
+        "--max-time",
+        "10",
+        "https://github.com"
+      ],
+      "exit": 6,
+      "seconds": 0.018
+    },
+    {
+      "label": "clone-offline-check",
+      "command": [
+        "sandbox-exec",
+        "-p",
+        "(version 1)(allow default)(deny network*)",
+        "just",
+        "check"
+      ],
+      "exit": 0,
+      "seconds": 69.711
+    }
+  ],
+  "linked_initialize": {
+    "command": "just initialize",
+    "exit": 0,
+    "seconds": 0.238
+  },
+  "shared_hook_files": 15,
+  "shared_hook_hashes_unchanged": true,
+  "linked_check": {
+    "command": "just check",
+    "exit": 0,
+    "seconds": 93.423
+  }
+}

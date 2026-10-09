@@ -12,22 +12,23 @@
 
 **MVP critical path:** yes. The whole controller depends on this client, and S1 validates §9.2.
 
-**Status:** in-review, kind run pending in CI
+**Status:** done
 
-- [ ] TLS uses explicit ssl options: `verify_peer`, the SA `ca.crt` as `cacertfile`, and a hostname check that passes against the IP in `KUBERNETES_SERVICE_HOST` (IP-SAN). The OTP version is the one from 01.
-- [ ] A negative test with a wrong CA fails the handshake visibly. It must not fall back to an unverified connection.
-- [ ] The token is re-read from disk on a schedule and never cached for the life of the process. The proof uses a custom projected token volume with a short `expirationSeconds` (600, the minimum), because the API server extends the default token's expiry. Rotation alone proves nothing, since the old token stays valid until it expires. The same knarr process must keep succeeding after the original token's expiry time. Logs show the token file's hash changing. The token itself is never logged.
-- [ ] knarr LISTs pods in its namespace and PATCHes one annotation on one pod with a merge patch. The Role grants exactly the verbs used.
+- [x] TLS uses explicit ssl options: `verify_peer`, the SA `ca.crt` as `cacertfile`, and a hostname check that passes against the IP in `KUBERNETES_SERVICE_HOST` (IP-SAN). The OTP version is the one from 01.
+- [x] A negative test with a wrong CA fails the handshake visibly. It must not fall back to an unverified connection.
+- [x] The token is re-read from disk on a schedule and never cached for the life of the process. The proof uses a custom projected token volume with a short `expirationSeconds` (600, the minimum), because the API server extends the default token's expiry. Rotation alone proves nothing, since the old token stays valid until it expires. The same knarr process must keep succeeding after the original token's expiry time. Logs show the token file's hash changing. The token itself is never logged.
+- [x] knarr LISTs pods in its namespace and PATCHes one annotation on one pod with a merge patch. The Role grants exactly the verbs used.
 - [x] Request builders and response decoders are pure. `send` is injected. Unit tests use a closure fake and a birdie snapshot of each request.
 - [x] The findings confirm or amend the §9.2 decision in a decision record.
 - [x] Follow-ups are drafted: the client module's spec-then-build pair, and anything found about OTP or ssl.
 
 ## Hand-back notes
 
-The first four boxes stay unticked until the `cluster-s1` CI job has run: each
-names something only the pod on kind shows. What is proven locally, and
-where, is below; [Decision 0012](../../../docs/decisions/0012-in-cluster-client.md)
-holds the findings and marks the kind row pending.
+Every box is ticked. The first four rest on the `cluster-s1` CI job's run
+37906694255 on native linux/amd64, whose transcripts sit beside the evidence
+scripts as `s1-kind.txt`, `wrong-ca.txt` and `tls-native.txt`; the rest on
+the local gate. [Decision 0012](../../../docs/decisions/0012-in-cluster-client.md)
+holds the findings.
 
 ### What changed
 
@@ -55,8 +56,7 @@ holds the findings and marks the kind row pending.
   and `just deployment-check` render variants, and the RoleBinding schema is
   vendored with its sha256.
 - `.github/workflows/ci.yml`: the non-required `cluster-s1` job runs the
-  three evidence scripts. `ci.yml` runs on pull requests and pushes to main
-  only, so the job needs a pull request for this branch.
+  three evidence scripts on a pull request; pull request #15 ran it.
 - Docs: Decision 0012, its manifest and index entries, the testing reference,
   the local cluster guide and OVERVIEW §8 and §9.2 point at it. Tickets
   [36](36-k8s-client-spec-then-build.md) and [37](37-otp-ssl-findings.md)
@@ -89,20 +89,19 @@ holds the findings and marks the kind row pending.
 
 ### What later tickets need
 
-- **The maintainer, now:** open a pull request for this branch so
-  `cluster-s1` runs (a push alone triggers nothing), then copy its
-  `s1-kind.txt` and `wrong-ca.txt` beside the scripts, tick the first four
-  boxes and settle the pending row in Decision 0012. Before the run, read
-  the SNI and `+JMsingle` findings there. A local kind cluster already
-  accepted both variants server-side and gave `version.json`.
-  `cancel-in-progress` is on for pull requests, so a second push while the
-  job runs cancels it.
+- **From the kind run (s1-kind.txt, wrong-ca.txt):** the first token's `exp`
+  was 600 s after the pod started, kubelet rotated the file at +512 s, and
+  the first LIST and PATCH after the first expiry came 2 s after it, from one
+  process (`restartCount` 0, same UID). The token file is mode 0600 owned
+  by UID 10001, so no `fsGroup` is needed. The apiserver accepted the
+  IP-literal SNI OTP sends. The wrong-CA variant refused every cycle with
+  `unknown_ca`, nothing succeeded, and the pod stayed Ready.
 - **36:** the full module and the probe's removal, with the IPv6 bracketing
   the adapter does not do, and narrowing `cluster-s1` to a `paths:` filter
-  or a label once its transcripts are committed, so every pull request does
-  not pay its twenty runner-minutes.
+  or a label now that its transcripts are committed, so every pull request
+  does not pay its twenty runner-minutes.
 - **37:** the OTP findings listed there.
-- **35:** the CI `tls/run.sh` step is the native-Linux TLS evidence for the
-  default environment and `version.json` the captured `/version`; the
-  runtime environment's probe and the rebar3 probe stay open.
+- **35:** `tls-native.txt` is the native-Linux TLS evidence for the default
+  environment and `version.json` the captured `/version`; the runtime
+  environment's probe and the rebar3 probe stay open.
 - **22:** `Verbs` and the §9.10 question change with the write mode.

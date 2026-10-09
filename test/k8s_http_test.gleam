@@ -1,8 +1,10 @@
 //// The TLS transport against a loopback responder whose CA and server
-//// certificate are built in memory (`public_key:pkix_test_data/1`), so no key
+//// certificates are built in memory (`public_key:pkix_test_data/1`), so no key
 //// is committed. The server certificate carries an IP subjectAltName for
 //// 127.0.0.1, and the client connects to the string "127.0.0.1", the form
-//// KUBERNETES_SERVICE_HOST takes.
+//// KUBERNETES_SERVICE_HOST takes. A second listener serves a certificate
+//// from the same CA whose only subjectAltName is a DNS name, so the hostname
+//// check is what refuses it; a third chain is an unrelated CA.
 
 import gleam/erlang/process.{type Pid}
 import gleam/http
@@ -11,10 +13,18 @@ import gleam/http/response
 import gleeunit/should
 import knarr/k8s_http.{Tls}
 
-/// A loopback TLS responder: its port, the file holding its CA and the file
-/// holding an unrelated CA.
+/// A loopback TLS responder: its port, the port serving a same-CA certificate
+/// without the IP subjectAltName, the file holding its CA and the file holding
+/// an unrelated CA.
 pub type Responder {
-  Responder(port: Int, ca_file: String, other_ca_file: String, acceptor: Pid)
+  Responder(
+    port: Int,
+    wrong_host_port: Int,
+    ca_file: String,
+    other_ca_file: String,
+    acceptor: Pid,
+    wrong_host_acceptor: Pid,
+  )
 }
 
 @external(erlang, "k8s_http_test_ffi", "start_responder")
@@ -53,6 +63,17 @@ pub fn send_refuses_a_wrong_ca_with_no_fallback_test() -> Nil {
   stop_responder(responder)
 
   assert result == Error(k8s_http.TlsAlert("unknown_ca"))
+}
+
+pub fn send_refuses_a_same_ca_certificate_without_the_ip_san_test() -> Nil {
+  // The certificate chains to the configured CA, so only the hostname check
+  // can refuse it: its single subjectAltName is a DNS name, not 127.0.0.1.
+  let responder = start_responder()
+  let result =
+    get(responder.wrong_host_port) |> k8s_http.send(Tls(responder.ca_file))
+  stop_responder(responder)
+
+  assert result == Error(k8s_http.TlsAlert("bad_certificate"))
 }
 
 pub fn send_reports_a_closed_port_test() -> Nil {

@@ -180,8 +180,10 @@ fn patch(
   }
 }
 
-/// NoPatchWhileTerminating: the pod is patched only when the list shows it
-/// and shows no deletionTimestamp on it.
+/// NoPatchWhileTerminating: the pod is patched only when the most recent
+/// list shows it and shows no deletionTimestamp on it. The patch that follows
+/// is unconditional, so a deletionTimestamp set between that list and the
+/// patch is not seen; closing that window is the §9.10 open question.
 pub fn should_patch(pods pods: List(Pod), pod_name pod_name: String) -> Bool {
   list.any(pods, fn(pod) {
     pod.name == pod_name && pod.deletion_timestamp == None

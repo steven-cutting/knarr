@@ -2,36 +2,49 @@
 -export([start_responder/0, stop_responder/1, closed_port/0, count_lines/2]).
 -include_lib("public_key/include/public_key.hrl").
 
-%% A loopback TLS responder. Its CA and leaf come from
+%% A loopback TLS responder. Its CA and leaves come from
 %% public_key:pkix_test_data/1, in memory; only the CA PEMs are written, under
-%% build/, so the client can be given a cacertfile. The leaf carries an
+%% build/, so the client can be given a cacertfile. The main leaf carries an
 %% iPAddress subjectAltName for 127.0.0.1, which the https hostname check
-%% matches a string IP host against.
+%% matches a string IP host against. A second listener serves a leaf signed
+%% by the same CA key whose only subjectAltName is a DNS name, so the CA
+%% check passes and the hostname check is the one that refuses it. A third
+%% chain is an unrelated CA.
 start_responder() ->
   {ok, _} = application:ensure_all_started(ssl),
   {ok, _} = application:ensure_all_started(inets),
   Dir = filename:join(["build", "k8s_http_test", integer_to_list(erlang:unique_integer([positive]))]),
   ok = filelib:ensure_path(Dir),
-  Server = chain(),
-  Other = chain(),
+  RootKey = public_key:generate_key({rsa, 2048, 65537}),
+  Server = chain(RootKey, {iPAddress, <<127, 0, 0, 1>>}),
+  WrongHost = chain(RootKey, {dNSName, "kubernetes.default.svc"}),
+  Other = chain(public_key:generate_key({rsa, 2048, 65537}), {iPAddress, <<127, 0, 0, 1>>}),
   CaFile = write_ca(Dir, "ca.pem", Server),
   OtherCaFile = write_ca(Dir, "other-ca.pem", Other),
-  {ok, Listen} = ssl:listen(0, [{ip, {127, 0, 0, 1}}, {reuseaddr, true}, {active, false}, binary,
-                                {cert, proplists:get_value(cert, Server)},
-                                {key, proplists:get_value(key, Server)}]),
-  {ok, {_, Port}} = ssl:sockname(Listen),
-  Acceptor = spawn(fun() -> accept(Listen) end),
-  {responder, Port, unicode:characters_to_binary(CaFile), unicode:characters_to_binary(OtherCaFile), Acceptor}.
+  {Port, Acceptor} = listen(Server),
+  {WrongHostPort, WrongHostAcceptor} = listen(WrongHost),
+  {responder, Port, WrongHostPort, unicode:characters_to_binary(CaFile),
+    unicode:characters_to_binary(OtherCaFile), Acceptor, WrongHostAcceptor}.
 
-stop_responder({responder, _, _, _, Acceptor}) ->
+stop_responder({responder, _, _, _, _, Acceptor, WrongHostAcceptor}) ->
   exit(Acceptor, kill),
+  exit(WrongHostAcceptor, kill),
   nil.
 
-chain() ->
-  San = #'Extension'{extnID = ?'id-ce-subjectAltName',
-    extnValue = [{iPAddress, <<127, 0, 0, 1>>}], critical = false},
-  public_key:pkix_test_data(#{root => [{key, {rsa, 2048, 65537}}], intermediates => [],
-    peer => [{key, {rsa, 2048, 65537}}, {extensions, [San]}]}).
+%% One CA key can sign several chains: pkix_test_data/1 takes the root key as
+%% a value, so two chains built from the same RootKey share a CA.
+chain(RootKey, San) ->
+  Extension = #'Extension'{extnID = ?'id-ce-subjectAltName',
+    extnValue = [San], critical = false},
+  public_key:pkix_test_data(#{root => [{key, RootKey}], intermediates => [],
+    peer => [{key, {rsa, 2048, 65537}}, {extensions, [Extension]}]}).
+
+listen(Conf) ->
+  {ok, Listen} = ssl:listen(0, [{ip, {127, 0, 0, 1}}, {reuseaddr, true}, {active, false}, binary,
+                                {cert, proplists:get_value(cert, Conf)},
+                                {key, proplists:get_value(key, Conf)}]),
+  {ok, {_, Port}} = ssl:sockname(Listen),
+  {Port, spawn(fun() -> accept(Listen) end)}.
 
 write_ca(Dir, Name, Conf) ->
   CaCerts = lists:usort(proplists:get_value(cacerts, Conf)),

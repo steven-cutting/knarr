@@ -65,11 +65,12 @@ holds the findings.
 ### What was verified
 
 - `just check` ends with "All checks passed and the worktree is unchanged."
-  55 Gleam tests pass: builders and decoders by value, a fixed-seed property,
+  56 Gleam tests pass: builders and decoders by value, a fixed-seed property,
   closure fakes, two accepted snapshots (`pod list request sent by
   list_pods`, `merge patch request sent by patch_annotation`, both with the
-  token `test-token`), the JWT tests, the loopback TLS test (right CA, wrong
-  CA refused with `unknown_ca`, closed port, one content-type header, an
+  token `test-token`), the JWT tests, the loopback TLS tests (right CA, wrong
+  CA refused with `unknown_ca`, a same-CA certificate with only a DNS SAN
+  refused with `bad_certificate`, closed port, one content-type header, an
   unsupported method as a value) and the probe tests (token re-read between
   ticks, a missing token or namespace file skips the cycle, a failing send leaves the process
   alive, the sub-supervisor restarts the probe while the listener pid is

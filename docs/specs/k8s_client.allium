@@ -50,7 +50,10 @@ contract Client {
         -- annotations on one pod. The Role grants exactly list and patch on
         -- pods, no other verb and no other resource.
     @invariant NoPatchWhileTerminating
-        -- A pod whose deletion_timestamp is set is never patched.
+        -- A pod is not patched when the most recent list shows its
+        -- deletion_timestamp set. Closing the window between that list and
+        -- the patch needs a write precondition, which is the §9.10 open
+        -- question.
 }
 
 ------------------------------------------------------------

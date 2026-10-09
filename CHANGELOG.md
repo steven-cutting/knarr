@@ -9,3 +9,4 @@ Notable changes to Knarr are recorded here. This file follows [Keep a Changelog]
 - A supervised walking skeleton with health, readiness and Prometheus metrics endpoints, plus local Kubernetes test resources.
 - Pinned repository tools, an offline quality gate and CI, Allium specifications, and the contributor handbook.
 - Contribution instructions for the ticket and worktree workflow, private security reporting with support for current `main`, and this changelog.
+- A release workflow: a pushed version tag publishes the image to `ghcr.io/steven-cutting/knarr` once the maintainer approves the `release` environment, and `deploy/release` installs it pinned by digest.

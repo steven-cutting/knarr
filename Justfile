@@ -12,9 +12,9 @@ export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":"
 export PYTHONDONTWRITEBYTECODE := "1"
 
 # Any recipe may write ignored paths, such as build/ and the <title>.new a
-# failing snapshot test leaves. Four recipes change tracked files on purpose:
-# `fix`, `snapshots-review`, `snapshots-accept`, and `birdie` running
-# `accept`, `reject` or `stale delete`. None is in the check group, and
+# failing snapshot test leaves. Five recipes change tracked files on purpose:
+# `fix`, `snapshots-review`, `snapshots-accept`, `release-pin`, and `birdie`
+# running `accept`, `reject` or `stale delete`. None is in the check group, and
 # `just check` proves its recipes change nothing Git can see.
 
 # birdie keeps the list of snapshots a test run referenced in $TMPDIR, named by
@@ -304,3 +304,13 @@ packaging-check:
 [doc('Render kustomize and validate every resource against pinned local schemas')]
 deployment-check: cluster-tools
     python3 scripts/checks/deployment.py --render
+
+# ---------------------------------------------------------------- release ---
+
+# Writes deploy/release/kustomization.yaml, a tracked file, so it is outside the
+# check group. Ticket 37 runs it with the digest release.yml prints in its run
+# summary; it fails unless the overlay then renders exactly that reference.
+[group('release')]
+[doc('Pin the release overlay to an image digest and print the rendered reference (edits a tracked file)')]
+release-pin digest: cluster-tools
+    sh scripts/release/pin-digest.sh "$1"

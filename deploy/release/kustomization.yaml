@@ -1,0 +1,22 @@
+# The release overlay (Decision 0012): deploy/base with the published image,
+# pinned by digest, and the pull policy IfNotPresent (the base's Never is for
+# images loaded into kind). It changes nothing else. RBAC is the base's: one
+# install per namespace (OVERVIEW §9.18), and the Role's verbs and the
+# RoleBinding belong in the base. `just deployment-check` renders both and
+# fails on any other difference.
+# The digest is a placeholder of the right shape until the first release;
+# `just release-pin sha256:<64 hex>` replaces it with the digest release.yml
+# prints in its run summary.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+images:
+  - name: knarr
+    newName: ghcr.io/steven-cutting/knarr
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+patches:
+  - path: pull-policy.yaml
+    target:
+      kind: Deployment
+      name: knarr

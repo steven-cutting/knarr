@@ -8,7 +8,9 @@ compiler, OTP or lint rules. This compares, without running pixi:
 - the packages pixi.lock pins for the default environment, on the platform pixi
     installed it for, with the package records in that environment's conda-meta/;
 - each of that platform's tools.txt lines with the pin install-tools.sh recorded
-    beside the binary in .tools/bin/.pins/.
+    beside the binary in .tools/bin/.pins/, and each pin recorded there with a
+    line that still names the tool for that platform (ticket 13 left a removed
+    pin to 27).
 
 No YAML parser is pinned, so pixi.lock is read line by line. The reader knows
 lock version 7 and `- conda:` entries only, and refuses anything else rather
@@ -108,6 +110,7 @@ def _tool_drift(project: Path, platform: str) -> list[str]:
         _refuse(f"{pins} is missing")
     tools = project / ".tools" / "bin"
     drift = []
+    named = set()
     for line in pins.read_text(encoding="utf-8").splitlines():
         fields = line.split()
         if not fields or fields[0].startswith("#"):
@@ -117,11 +120,20 @@ def _tool_drift(project: Path, platform: str) -> list[str]:
         name, version, pinned_for = fields[:3]
         if pinned_for != platform:
             continue
+        named.add(name)
         stamp = tools / ".pins" / name
         recorded = stamp.read_text(encoding="utf-8").split() if stamp.is_file() else []
         if not os.access(tools / name, os.X_OK) or recorded != fields:
             have = recorded[1] if len(recorded) > 1 else "nothing"
             drift.append(f"  {name}: tools.txt pins {version}, .tools/bin holds {have}")
+    # A stamp is what install-tools.sh left beside a binary it installed, so a
+    # stamp no line names is a tool whose pin was removed.
+    stamps = tools / ".pins"
+    for stamp in sorted(stamps.iterdir()) if stamps.is_dir() else []:
+        if stamp.is_file() and stamp.name not in named:
+            recorded = stamp.read_text(encoding="utf-8").split()
+            have = recorded[1] if len(recorded) > 1 else "an unreadable pin"
+            drift.append(f"  {stamp.name}: tools.txt pins nothing, .tools/bin holds {have}")
     return drift
 
 

@@ -38,6 +38,11 @@ kustomize = "==5.8.2"
 tilt = "==0.37.8"
 kubernetes-helm = "==4.3.0"
 
+# The image scan the audit workflow runs (Decision 0013). Kept out of the
+# default environment like the cluster tools; grype brings no dependencies.
+[feature.audit.dependencies]
+grype = "==0.120.1"
+
 # One solve group: every environment gets the same erlang build and the same
 # openssl, so what the default environment proves about TLS holds for the
 # runtime image.
@@ -45,3 +50,4 @@ kubernetes-helm = "==4.3.0"
 default = { features = ["otp"], solve-group = "default" }
 cluster = { features = ["otp", "cluster"], solve-group = "default" }
 runtime = { features = ["otp"], no-default-feature = true, solve-group = "default" }
+audit = { features = ["audit"], no-default-feature = true, solve-group = "default" }

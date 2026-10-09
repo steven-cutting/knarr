@@ -5,6 +5,10 @@ inputs:
     description: Install the optional cluster environment
     default: "false"
     required: false
+  audit:
+    description: Install the optional audit environment (grype)
+    default: "false"
+    required: false
 runs:
   using: composite
   steps:
@@ -21,4 +25,7 @@ runs:
       shell: bash
     - if: inputs.cluster == 'true'
       run: just cluster-install
+      shell: bash
+    - if: inputs.audit == 'true'
+      run: just audit-install
       shell: bash

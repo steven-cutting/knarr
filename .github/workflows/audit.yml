@@ -1,7 +1,7 @@
 name: Audit
 
-# Remote availability is independent of a commit. This workflow is separate
-# from the required gate.
+# Remote availability and published advisories change without a commit. This
+# workflow is separate from the required gate.
 on:
   schedule:
     # Mondays at 06:00 UTC.
@@ -29,3 +29,36 @@ jobs:
       - run: just links-audit
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+  # OSV.dev's advisories for the hex packages manifest.toml locks and for the
+  # OTP release pixi.toml pins (Decision 0013).
+  hex-advisories:
+    name: Hex advisories
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: just hex-audit
+
+  # grype over the image the Dockerfile builds, the same linux/amd64 build the
+  # kind smoke job runs. It never pushes the image.
+  image-scan:
+    name: Image scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          audit: "true"
+      - run: just image-build
+      - run: just image-scan

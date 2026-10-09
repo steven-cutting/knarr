@@ -3,8 +3,11 @@
 # 0003, "Escape hatch"). Each download is refused unless its sha256 matches the
 # pin; a refused download never replaces an installed binary. An installed pin
 # is recorded beside the binary, so a rerun with unchanged pins skips the
-# download and works offline. rebar3's Sigstore bundle is verified as well when
-# gh is installed and authenticated; without gh the sha256 is the check.
+# download and works offline. A tool installed here whose lines are gone is
+# removed with its record, so a dropped pin leaves nothing on PATH; a binary
+# with no record was never installed here and is left alone. rebar3's Sigstore
+# bundle is verified as well when gh is installed and authenticated; without gh
+# the sha256 is the check.
 # Usage: sh scripts/install-tools.sh <tools.txt> <bin-dir>
 set -eu
 pins=${1:?usage: install-tools.sh <tools.txt> <bin-dir>}
@@ -73,3 +76,11 @@ while read -r name version platform url want member; do
   printf '%s\n' "$line" > "$stamps/$name"
   printf 'ok   %s %s installed (sha256 matches the pin)\n' "$name" "$version"
 done < "$tmp/pins"
+
+for stamp in "$stamps"/*; do
+  [ -f "$stamp" ] || continue
+  name=${stamp##*/}
+  awk -v name="$name" -v host="$host" '$1 == name && $3 == host { found = 1 } END { exit !found }' "$tmp/pins" && continue
+  rm -f "${bin:?}/$name" "$stamp"
+  printf 'ok   removed %s (tools.txt no longer pins it for %s)\n' "$name" "$host"
+done

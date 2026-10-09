@@ -226,3 +226,22 @@ def test_a_malformed_tools_line_is_refused(project: Path) -> None:
     result = check(project)
     assert result.returncode == 2
     assert "broken" in result.stderr
+
+
+def test_a_tool_tools_txt_no_longer_pins_fails(project: Path) -> None:
+    # Dropping a tool's lines leaves its binary on PATH until something
+    # removes it; install-tools.sh does, from the stamp it left.
+    (project / "tools.txt").write_text("# name version platform url sha256 member\n")
+    result = check(project)
+    assert result.returncode == 1
+    assert "fake: tools.txt pins nothing, .tools/bin holds 1.0" in result.stdout
+    assert "just initialize" in result.stdout
+
+
+def test_a_tool_pinned_only_for_another_platform_fails(project: Path) -> None:
+    (project / "tools.txt").write_text(
+        f"fake 2.0 linux-64 https://example.invalid/fake-2.0 {DIGEST} fake\n"
+    )
+    result = check(project)
+    assert result.returncode == 1
+    assert "fake: tools.txt pins nothing, .tools/bin holds 1.0" in result.stdout

@@ -129,7 +129,7 @@ The image in the dry run is a stand-in (`FROM scratch`, one file, knarr's labels
 - **A target cluster gets arm64 node pools:** the arm64 build in ticket 38, with the re-lock.
 - **GHCR gains an immutable-tag setting:** turn it on and keep the guard as a second line.
 - **The package has to be private:** GKE then needs a pull secret or Workload Identity Federation, and the overlay a `imagePullSecrets` patch.
-- **A backport is tagged after a newer minor once the major is above 0** (`v1.2.5` after `v1.3.0`): its run moves `1` back to the older line. Serializing the runs does not prevent that; a backport then has to skip the `X` tag. Installs are unaffected, since none follows `X.Y` or `X`: every install pins a digest.
+- **A backport is tagged after a newer minor once the major is above 0** (`v1.2.5` after `v1.3.0`): its run moves `1` back to the older line. Serializing the runs does not prevent that. Installs are unaffected, since none follows `X.Y` or `X`: every install pins a digest.
 - **The first release finds the existence guard reading `unknown`** for a package that does not exist yet: ticket 37 then adapts the guard to the token behaviour it observes, keeping `unknown` as a stop.
 
 ## Related pages

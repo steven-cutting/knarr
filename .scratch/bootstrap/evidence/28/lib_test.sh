@@ -30,7 +30,8 @@ status() { rc=0; "$@" > /dev/null 2>&1 || rc=$?; echo "$rc"; }
 said() { rc=0; out=$("$@" 2> /dev/null) || rc=$?; printf '%s; exit %s\n' "$out" "$rc"; } # output and status
 lines() { printf '%s\n' "$@"; } # one argument per line, for multi-line expectations
 
-# version_of_tag: a SemVer tag with a leading v, or nothing and exit 1
+# version_of_tag: a SemVer tag with a leading v and, for a prerelease, only
+# -rc.N; anything else is nothing and exit 1
 eq 'version_of_tag: v0.1.0 is 0.1.0' "$(said version_of_tag v0.1.0)" '0.1.0; exit 0'
 eq 'version_of_tag: v0.1.0-rc.1 keeps its prerelease' "$(said version_of_tag v0.1.0-rc.1)" '0.1.0-rc.1; exit 0'
 eq 'version_of_tag: v1.2.3 is 1.2.3' "$(said version_of_tag v1.2.3)" '1.2.3; exit 0'
@@ -40,6 +41,15 @@ eq 'version_of_tag: latest is not a version' "$(said version_of_tag latest)" '; 
 eq 'version_of_tag: v01.0.0 has a leading zero' "$(said version_of_tag v01.0.0)" '; exit 1'
 eq 'version_of_tag: build metadata cannot be an image tag' "$(said version_of_tag v1.0.0+build.1)" '; exit 1'
 eq 'version_of_tag: an empty tag' "$(said version_of_tag '')" '; exit 1'
+eq 'version_of_tag: v1.0.0-rc.0 is a prerelease' "$(said version_of_tag v1.0.0-rc.0)" '1.0.0-rc.0; exit 0'
+eq 'version_of_tag: v1.0.0-rc.10 is a prerelease' "$(said version_of_tag v1.0.0-rc.10)" '1.0.0-rc.10; exit 0'
+eq 'version_of_tag: v1.2.3-01 has a leading zero' "$(said version_of_tag v1.2.3-01)" '; exit 1'
+eq 'version_of_tag: v1.2.3-. has an empty identifier' "$(said version_of_tag v1.2.3-.)" '; exit 1'
+eq 'version_of_tag: v1.2.3-alpha..1 has an empty identifier' "$(said version_of_tag v1.2.3-alpha..1)" '; exit 1'
+eq 'version_of_tag: v1.2.3-alpha.1 is not an rc' "$(said version_of_tag v1.2.3-alpha.1)" '; exit 1'
+eq 'version_of_tag: v1.2.3-rc has no number' "$(said version_of_tag v1.2.3-rc)" '; exit 1'
+eq 'version_of_tag: v1.2.3-rc. has an empty number' "$(said version_of_tag v1.2.3-rc.)" '; exit 1'
+eq 'version_of_tag: v1.2.3-rc.01 has a leading zero' "$(said version_of_tag v1.2.3-rc.01)" '; exit 1'
 
 # tags_for <tag> <sha>: the image tags one release pushes, one per line
 eq 'tags_for: v0.1.0 gets 0.1.0, 0.1 and the short sha' \
@@ -71,7 +81,8 @@ eq 'tag_matches_version: v0.1.0-rc.1 does not match 0.1.0' "$(status tag_matches
 eq 'tag_matches_version: a malformed tag is 2, not a mismatch' "$(status tag_matches_version 0.1.0 0.1.0)" 2
 eq 'tag_matches_version: an empty version is 2' "$(status tag_matches_version v0.1.0 '')" 2
 
-# changelog_has_version <version>: CHANGELOG.md on stdin, Keep a Changelog headings
+# changelog_has_version <version>: CHANGELOG.md on stdin, exactly the Keep a
+# Changelog release heading "## [<version>] - YYYY-MM-DD"
 changelog='# Changelog
 
 ## [Unreleased]
@@ -86,6 +97,11 @@ eq 'changelog_has_version: Unreleased alone is not a release' "$(printf '## [Unr
 eq 'changelog_has_version: a longer version is not a prefix match' "$(printf '## [0.1.01] - 2026-10-20\n' | status changelog_has_version 0.1.0)" 1
 eq 'changelog_has_version: dots are literal' "$(printf '## [0x1x0] - 2026-10-20\n' | status changelog_has_version 0.1.0)" 1
 eq 'changelog_has_version: a prerelease heading' "$(printf '## [0.2.0-rc.1] - 2026-11-01\n' | status changelog_has_version 0.2.0-rc.1)" 0
+eq 'changelog_has_version: a heading with no date' "$(printf '## [0.1.0]\n' | status changelog_has_version 0.1.0)" 1
+eq 'changelog_has_version: a draft suffix' "$(printf '## [0.1.0] - 2026-10-20 draft\n' | status changelog_has_version 0.1.0)" 1
+eq 'changelog_has_version: a date without leading zeros' "$(printf '## [0.1.0] - 2026-1-5\n' | status changelog_has_version 0.1.0)" 1
+eq 'changelog_has_version: a [YANKED] suffix' "$(printf '## [0.1.0] - 2026-10-20 [YANKED]\n' | status changelog_has_version 0.1.0)" 1
+eq 'changelog_has_version: no " - " before the date' "$(printf '## [0.1.0] 2026-10-20\n' | status changelog_has_version 0.1.0)" 1
 
 # One digest, three readings. The canned text is from the probe run against
 # registry:2 (HEAD with the manifest Accept header) and buildx 0.33.

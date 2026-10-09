@@ -16,12 +16,18 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-*"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
 
 permissions: {}
 
+# One group for the whole repository, not one per tag: two release runs never
+# overlap, so a slower older run cannot push X.Y or X after a newer one and
+# move them backward. GitHub keeps one pending run per group, so a third tag
+# pushed while one run is in progress and another waits cancels the waiting
+# run; the maintainer re-runs it from the Actions page, since the tag ruleset
+# stops the tag being pushed again.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 env:
@@ -58,7 +64,7 @@ jobs:
             echo "::error::tag $TAG is $verdict of origin/main: release only what main carries"; exit 1
           }
           if ! changelog_has_version "$version" < CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no '## [$version]' heading"; exit 1
+            echo "::error::CHANGELOG.md has no '## [$version] - YYYY-MM-DD' heading"; exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag $TAG: version $version, an ancestor of origin/main, in the changelog"

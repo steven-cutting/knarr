@@ -10,7 +10,7 @@
 
 **From 17:** [Decision 0009](../../../docs/decisions/0009-allium-objective-map.md), map rows marked guidance.
 
-**From 28:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md): a release is installed with `kubectl apply -k` on the digest-pinned overlay 36 adds, one install per namespace, with the digest from 37's hand-back.
+**From 28:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md): a release is installed with `kubectl apply -k` on the digest-pinned overlay 36 adds, one install per namespace, with the digest from the release run's summary (40's hand-back records the MVP's).
 
 **MVP critical path:** no. The MVP runs without them; users need them to adopt it.
 

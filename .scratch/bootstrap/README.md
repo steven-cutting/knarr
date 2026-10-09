@@ -44,6 +44,7 @@ flowchart TD
     T37["37 First release: v0.1.0"]:::human
     T38["38 Attestations, SBOM, arm64"]:::offpath
     T39["39 GKE production rollout"]:::human
+    T40["40 MVP release"]:::human
 
     T01 --> T02
     T01 --> T03
@@ -114,9 +115,13 @@ flowchart TD
     T36 --> T37
     T36 --> T38
     T37 --> T38
+    T31 --> T40
+    T32 --> T40
+    T37 --> T40
     T31 --> T39
     T32 --> T39
-    T37 --> T39
+    T33 --> T39
+    T40 --> T39
     GKE --> T39
 
     classDef human stroke:#d97706,stroke-width:2px,stroke-dasharray:5 5
@@ -143,8 +148,9 @@ A wave is the earliest point a ticket can start if every lane runs in parallel: 
 | 7 | [20](issues/20-elicit-cost-mapping.md), [29](issues/29-fake-worker-fixture.md), [30](issues/30-elicit-observability.md), [36](issues/36-release-workflow-and-overlay.md) |
 | 8 | [21](issues/21-elicit-unknown-unreachable-policy.md), [23](issues/23-elicit-cleanup-staleness-restart.md), [37](issues/37-first-release-v0-1-0.md) |
 | 9 | [31](issues/31-spec-then-build-reconcile-core.md), [32](issues/32-spec-then-build-ownership-lifecycle.md), [34](issues/34-user-guides.md), [38](issues/38-attestations-sbom-arm64.md) |
-| 10 | [33](issues/33-keda-harness-success-criterion.md), [39](issues/39-gke-production-rollout.md) |
+| 10 | [33](issues/33-keda-harness-success-criterion.md), [40](issues/40-mvp-release.md) |
+| 11 | [39](issues/39-gke-production-rollout.md) |
 
-The longest chains are eleven tickets: 01, 02, 03, 06 or 07, 09, 17, 18, 20, 21 or 23, then 31 or 32, then 33 or 39. Tickets 30 to 34 are the follow-ups ticket 17 drafted; 31 to 34 are round 2. Tickets 36 to 39 are the follow-ups ticket 28 drafted, all round 2; 37 and 39 also wait for a maintainer session, and 39 for GKE Standard access.
+The longest chains are twelve tickets: 01, 02, 03, 06 or 07, 09, 17, 18, 20, 21 or 23, then 31 or 32, then 33 or 40, then 39. Tickets 30 to 34 are the follow-ups ticket 17 drafted; 31 to 34 are round 2. Tickets 36 to 40 are the follow-ups ticket 28 drafted, all round 2; 37, 39 and 40 also wait for a maintainer session, and 39 for GKE Standard access.
 
 When a ticket's **Blocked by** line changes, update both the diagram and this table.

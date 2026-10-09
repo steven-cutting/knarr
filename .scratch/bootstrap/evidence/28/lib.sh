@@ -4,16 +4,19 @@
 # exercised live in registry.sh and ghcr-probe.sh. Ticket 36 moves the guards
 # to scripts/release/ for the real workflow.
 #
-#   version_of_tag <tag>       v0.1.0 -> 0.1.0; a non-SemVer tag fails (1)
+#   version_of_tag <tag>       v0.1.0 -> 0.1.0; the one prerelease form is
+#                              -rc.N (N without a leading zero); anything else
+#                              fails (1)
 #   tags_for <tag> <sha>       the image tags one release pushes, one per line:
 #                              X.Y.Z, X.Y, X (major > 0 only), sha-<7>; a
-#                              prerelease gets only X.Y.Z-pre and sha-<7>;
+#                              prerelease gets only X.Y.Z-rc.N and sha-<7>;
 #                              never latest
 #   toml_version               gleam.toml on stdin: its one top-level version
 #   tag_matches_version <tag> <version>
 #                              0 match, 1 mismatch, 2 malformed
 #   changelog_has_version <version>
-#                              CHANGELOG.md on stdin: a "## [<version>]" heading
+#                              CHANGELOG.md on stdin: a line that is exactly
+#                              "## [<version>] - YYYY-MM-DD"
 #   digest_of_headers          `curl -sI` output on stdin: Docker-Content-Digest
 #   digest_of_metadata         buildx --metadata-file JSON on stdin
 #   digest_of_inspect          `buildx imagetools inspect` output on stdin
@@ -58,7 +61,7 @@ work_dir() { # path: the scripts' one work-directory rule
 sha256_of() { if command -v sha256sum > /dev/null; then sha256sum; else shasum -a 256; fi | cut -d' ' -f1; }
 
 version_of_tag() { # tag
-  printf '%s\n' "${1:-}" | grep -qE '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$' || return 1
+  printf '%s\n' "${1:-}" | grep -qE '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.(0|[1-9][0-9]*))?$' || return 1
   printf '%s\n' "${1#v}"
 }
 
@@ -90,7 +93,13 @@ tag_matches_version() { # tag, version
 }
 
 changelog_has_version() { # version; CHANGELOG.md on stdin
-  awk -v v="$1" 'index($0, "## [" v "]") == 1 { found = 1 } END { exit !found }'
+  # The literal prefix through index (dots are not wildcards), then a date and
+  # nothing after it. The digit classes are spelled out: mawk and BSD awk
+  # disagree on {4} intervals.
+  awk -v v="$1" '
+    BEGIN { p = "## [" v "] - " }
+    index($0, p) == 1 && substr($0, length(p) + 1) ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ { found = 1 }
+    END { exit !found }'
 }
 
 digest_of_headers() { # `curl -sI` output on stdin

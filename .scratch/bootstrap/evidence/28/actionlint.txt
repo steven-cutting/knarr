@@ -1,7 +1,7 @@
-date: 2026-10-09T05:09Z
+date: 2026-10-09T06:30Z
 actionlint 1.7.12, shellcheck 0.11.0
 release.yml: no findings
 "Authorization required" marks in release.yml: 2
 permissions at the top level: permissions: {}
-triggers: -"v[0-9]+.[0-9]+.[0-9]+" -"v[0-9]+.[0-9]+.[0-9]+-*" 
+triggers: -"v[0-9]+.[0-9]+.[0-9]+" -"v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+" 
 every action (2 uses) is pinned to a full commit SHA with a version comment: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 

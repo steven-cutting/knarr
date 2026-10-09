@@ -7,6 +7,15 @@ ok   version_of_tag: latest is not a version
 ok   version_of_tag: v01.0.0 has a leading zero
 ok   version_of_tag: build metadata cannot be an image tag
 ok   version_of_tag: an empty tag
+ok   version_of_tag: v1.0.0-rc.0 is a prerelease
+ok   version_of_tag: v1.0.0-rc.10 is a prerelease
+ok   version_of_tag: v1.2.3-01 has a leading zero
+ok   version_of_tag: v1.2.3-. has an empty identifier
+ok   version_of_tag: v1.2.3-alpha..1 has an empty identifier
+ok   version_of_tag: v1.2.3-alpha.1 is not an rc
+ok   version_of_tag: v1.2.3-rc has no number
+ok   version_of_tag: v1.2.3-rc. has an empty number
+ok   version_of_tag: v1.2.3-rc.01 has a leading zero
 ok   tags_for: v0.1.0 gets 0.1.0, 0.1 and the short sha
 ok   tags_for: v1.2.3 also gets the major
 ok   tags_for: a prerelease gets no floating tag
@@ -28,6 +37,11 @@ ok   changelog_has_version: Unreleased alone is not a release
 ok   changelog_has_version: a longer version is not a prefix match
 ok   changelog_has_version: dots are literal
 ok   changelog_has_version: a prerelease heading
+ok   changelog_has_version: a heading with no date
+ok   changelog_has_version: a draft suffix
+ok   changelog_has_version: a date without leading zeros
+ok   changelog_has_version: a [YANKED] suffix
+ok   changelog_has_version: no " - " before the date
 ok   digest_of_headers: Docker-Content-Digest, CRLF stripped
 ok   digest_of_headers: the header name is case-insensitive (ghcr.io sends lower case)
 ok   digest_of_headers: no digest header is a failure
@@ -75,4 +89,4 @@ ok   throwaway: once merged it is ancestor, 0
 ok   throwaway: the tag object itself is peeled to its commit
 ok   throwaway: a missing tag is unknown, 2
 ok   throwaway: a missing base is unknown, 2
-77 passed, 0 failed
+91 passed, 0 failed

@@ -1,12 +1,12 @@
 ---
-title: "Decision 0012: In-cluster Kubernetes client"
+title: "Decision 0013: In-cluster Kubernetes client"
 kind: "decision"
 audience: [maintainer, agent]
 canonical_for: [decision_in_cluster_client]
 requires: []
 ---
 
-# Decision 0012: In-cluster Kubernetes client
+# Decision 0013: In-cluster Kubernetes client
 
 ## Context
 
@@ -23,7 +23,7 @@ Option (A) stands, with these specifics, which the `Client` contract in [k8s_cli
 - **Token re-read every cycle.** The probe reads the projected token file on every tick and never keeps it beyond the request. A failed read is logged and that cycle makes no request. The token is never logged; a change is logged as the first twelve hex characters of the file's sha256 and the JWT's `exp` claim.
 - **Verbs.** The Role grants `list` and `patch` on `pods` and nothing else; a RoleBinding binds it to the `knarr` ServiceAccount. Automount stays off at both levels; a projected volume supplies the token with `expirationSeconds: 600`, the minimum, so expiry can be observed, plus `kube-root-ca.crt` and the namespace through the downward API.
 - **NoPatchWhileTerminating.** A pod is not patched when the most recent LIST shows `deletionTimestamp` set. The probe decides that in a pure function with its own test. The PATCH itself is unconditional, so a `deletionTimestamp` set in the window between the LIST and the PATCH is not seen; the `resourceVersion` precondition or JSON Patch `test` that closes it is the §9.10 open question, which ticket 22 owns.
-- **The probe is scaffolding.** `s1_probe` runs under its own supervisor (three restarts a minute) as a second child of the root, so its exhaustion counts as one root restart against the Recovery clause's two in five seconds. It is off unless `-knarr s1_probe true` is in `ERL_FLAGS`, which the Deployment sets and the gate does not. Ticket 36 replaces it with the real client module.
+- **The probe is scaffolding.** `s1_probe` runs under its own supervisor (three restarts a minute) as a second child of the root, so its exhaustion counts as one root restart against the Recovery clause's two in five seconds. It is off unless `-knarr s1_probe true` is in `ERL_FLAGS`, which the Deployment sets and the gate does not. Ticket 41 replaces it with the real client module.
 
 ## Findings
 
@@ -49,17 +49,17 @@ Each row names the transcript that shows it. The first group is local evidence; 
 
 **Local probes.** [tls/run.sh](../../.scratch/bootstrap/evidence/14/tls/run.sh) runs the eight ssl, httpc and `pkix_test_data` cases; its transcript is [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt). [emulation.txt](../../.scratch/bootstrap/evidence/14/emulation.txt) is the hand-run record of the ARM-host attempt. A local kind cluster (kindest/node v1.35.8) accepted both deployment variants with `kubectl apply --dry-run=server`, has the `kube-root-ca.crt` ConfigMap the projected volume reads, and gave the [version.json](../../.scratch/bootstrap/evidence/14/version.json) ticket 35's fixture item asks for: `major`, `minor` and `gitVersion` are strings, as the 08 fixture assumes.
 
-**Kind run, in CI.** The `cluster-s1` job in `ci.yml` is non-required and runs on a pull request. Run 37906694255 on pull request #15 (ubuntu-24.04, native linux/amd64, Docker 28.0.4, kindest/node v1.35.8) passed every check: [tls/run.sh](../../.scratch/bootstrap/evidence/14/tls/run.sh) ([tls-native.txt](../../.scratch/bootstrap/evidence/14/tls-native.txt)), then [s1-kind.sh](../../.scratch/bootstrap/evidence/14/s1-kind.sh) ([s1-kind.txt](../../.scratch/bootstrap/evidence/14/s1-kind.txt)), which deploys the base and reads the pod's log with [s1_logs.py](../../.scratch/bootstrap/evidence/14/s1_logs.py) until it shows the first token's hash and an `exp` about 600 s after the pod started, a changed hash, and a LIST and PATCH after that `exp`, with `restartCount` 0 and the same pod UID, then [wrong-ca.sh](../../.scratch/bootstrap/evidence/14/wrong-ca.sh) ([wrong-ca.txt](../../.scratch/bootstrap/evidence/14/wrong-ca.txt)), which deploys the `wrong-ca` variant and requires `unknown_ca` on every cycle, no success and a Ready pod. The transcripts are the job's log with the runner preamble and BuildKit progress removed. Its `tls/run.sh` step also covers ticket 35's native-Linux TLS row for the default environment; the runtime environment and the rebar3 probe stay open there. The job runs on every pull request; now that the transcripts are committed it should be narrowed to the paths it proves or a label, which ticket 36 carries.
+**Kind run, in CI.** The `cluster-s1` job in `ci.yml` is non-required and runs on a pull request. Run 37906694255 on pull request #15 (ubuntu-24.04, native linux/amd64, Docker 28.0.4, kindest/node v1.35.8) passed every check: [tls/run.sh](../../.scratch/bootstrap/evidence/14/tls/run.sh) ([tls-native.txt](../../.scratch/bootstrap/evidence/14/tls-native.txt)), then [s1-kind.sh](../../.scratch/bootstrap/evidence/14/s1-kind.sh) ([s1-kind.txt](../../.scratch/bootstrap/evidence/14/s1-kind.txt)), which deploys the base and reads the pod's log with [s1_logs.py](../../.scratch/bootstrap/evidence/14/s1_logs.py) until it shows the first token's hash and an `exp` about 600 s after the pod started, a changed hash, and a LIST and PATCH after that `exp`, with `restartCount` 0 and the same pod UID, then [wrong-ca.sh](../../.scratch/bootstrap/evidence/14/wrong-ca.sh) ([wrong-ca.txt](../../.scratch/bootstrap/evidence/14/wrong-ca.txt)), which deploys the `wrong-ca` variant and requires `unknown_ca` on every cycle, no success and a Ready pod. The transcripts are the job's log with the runner preamble and BuildKit progress removed. Its `tls/run.sh` step also covers ticket 35's native-Linux TLS row for the default environment; the runtime environment and the rebar3 probe stay open there. The job runs on every pull request; now that the transcripts are committed it should be narrowed to the paths it proves or a label, which ticket 41 carries.
 
 **Not run here.** Anything against a cluster other than kind. IPv6 service addresses: `KUBERNETES_SERVICE_HOST` would need bracketing in the URL, which the adapter does not do.
 
 ## Consequences
 
-- **§9.2 is validated**, and the `k8s_client` module has a contract to build against (ticket 36).
+- **§9.2 is validated**, and the `k8s_client` module has a contract to build against (ticket 41).
 - **`gleam_json` is a runtime dependency** and `inets` and `ssl` are extra applications of the release.
 - **The Role is no longer empty**, so the local cluster guide and the deployment checks describe real permissions, and a change to the verbs is a change to the `Verbs` invariant first.
 - **A second root child exists when the probe is on.** The skeleton's one-child supervision tests still hold because the gate runs with the probe off; the probe's own supervisor isolates its restarts.
-- **Ticket 37** records what was learned about OTP: the IP-literal SNI, the Rosetta JIT flag, the httpc error shapes, and that a gleam_otp actor does not answer `gen_server:stop`.
+- **Ticket 42** records what was learned about OTP: the IP-literal SNI, the Rosetta JIT flag, the httpc error shapes, and that a gleam_otp actor does not answer `gen_server:stop`.
 
 ## What would reopen this
 

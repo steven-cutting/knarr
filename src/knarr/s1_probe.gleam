@@ -2,7 +2,7 @@
 //// the projected token from disk, lists the pods in its own namespace and
 //// merge-patches the `knarr.io/s1-probe` annotation on its own pod, through
 //// the k8s_client contract. It is the scaffolding that proved VerifiedTls,
-//// TokenReload and Verbs on a cluster, and ticket 36 removes it when the
+//// TokenReload and Verbs on a cluster, and ticket 41 removes it when the
 //// reconciler takes over. Every outcome is a logged value; nothing here
 //// panics on a `Result`.
 

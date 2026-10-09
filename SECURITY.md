@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Knarr is pre-MVP and has no supported published releases yet. Security fixes target current `main`; older revisions are not maintained. The supported-release policy will be established with the release work in [ticket 28](.scratch/bootstrap/issues/28-spike-release-and-packaging.md).
+Knarr is pre-MVP and has no supported published releases yet. Security fixes target current `main`; older revisions are not maintained. [Decision 0012](docs/decisions/0012-release-and-packaging.md) decides how releases are versioned and published; it does not yet say which releases receive security fixes.
 
 | Version | Security support |
 | --- | --- |

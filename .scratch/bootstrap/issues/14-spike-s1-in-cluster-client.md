@@ -27,7 +27,7 @@
 Every box is ticked. The first four rest on the `cluster-s1` CI job's run
 37906694255 on native linux/amd64, whose transcripts sit beside the evidence
 scripts as `s1-kind.txt`, `wrong-ca.txt` and `tls-native.txt`; the rest on
-the local gate. [Decision 0012](../../../docs/decisions/0012-in-cluster-client.md)
+the local gate. [Decision 0013](../../../docs/decisions/0013-in-cluster-client.md)
 holds the findings.
 
 ### What changed
@@ -57,9 +57,9 @@ holds the findings.
   vendored with its sha256.
 - `.github/workflows/ci.yml`: the non-required `cluster-s1` job runs the
   three evidence scripts on a pull request; pull request #15 ran it.
-- Docs: Decision 0012, its manifest and index entries, the testing reference,
+- Docs: Decision 0013, its manifest and index entries, the testing reference,
   the local cluster guide and OVERVIEW §8 and §9.2 point at it. Tickets
-  [36](36-k8s-client-spec-then-build.md) and [37](37-otp-ssl-findings.md)
+  [41](41-k8s-client-spec-then-build.md) and [42](42-otp-ssl-findings.md)
   are drafted and in the bootstrap README.
 
 ### What was verified
@@ -97,11 +97,11 @@ holds the findings.
   by UID 10001, so no `fsGroup` is needed. The apiserver accepted the
   IP-literal SNI OTP sends. The wrong-CA variant refused every cycle with
   `unknown_ca`, nothing succeeded, and the pod stayed Ready.
-- **36:** the full module and the probe's removal, with the IPv6 bracketing
+- **41:** the full module and the probe's removal, with the IPv6 bracketing
   the adapter does not do, and narrowing `cluster-s1` to a `paths:` filter
   or a label now that its transcripts are committed, so every pull request
   does not pay its twenty runner-minutes.
-- **37:** the OTP findings listed there.
+- **42:** the OTP findings listed there.
 - **35:** `tls-native.txt` is the native-Linux TLS evidence for the default
   environment and `version.json` the captured `/version`; the runtime
   environment's probe and the rebar3 probe stay open.

@@ -1,0 +1,40 @@
+date: 2026-10-09T05:09Z
+ghcr                 http 200   197093 bytes  sha256 324619248aee  https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+access               http 200   352996 bytes  sha256 d9f975817679  https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility
+environments         http 200   327443 bytes  sha256 73388243b91b  https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments
+manage-environments  http 200   356734 bytes  sha256 2401d782a4ee  https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+rulesets             http 200   310886 bytes  sha256 3269fc4e9b8a  https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+runners              http 200   432276 bytes  sha256 9fdb3eeaff1b  https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+attest-action        http 200     4116 bytes  sha256 6024bf1006cc  https://raw.githubusercontent.com/actions/attest-build-provenance/main/action.yml
+attestations         http 200   373797 bytes  sha256 bd31b9259d22  https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations
+gh-attestation       http 200   110557 bytes  sha256 890e47c3de86  https://cli.github.com/manual/gh_attestation_verify
+buildkit             http 200   557055 bytes  sha256 6d2f274f61d4  https://docs.docker.com/build/metadata/attestations/
+cosign               http 200    63687 bytes  sha256 89e0c734b3d2  https://docs.sigstore.dev/cosign/signing/overview/
+keepachangelog       http 200    26341 bytes  sha256 1fa308fcf150  https://keepachangelog.com/en/1.1.0/
+semver               http 200    31121 bytes  sha256 f9d4b8b1a5e9  https://semver.org/spec/v2.0.0.html
+kustomize            http 200    69373 bytes  sha256 111123d38336  https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/images/
+--
+found       ghcr                 "GITHUB_TOKEN to publish packages associated with the workflow repository": a workflow logs in to ghcr.io with its own token
+found       ghcr                 "docker login ghcr.io -u USERNAME --password-stdin": the login command the workflow uses
+found       ghcr                 "the image is not linked to a repository by default": a CLI push is not linked; a workflow push with GITHUB_TOKEN is
+not found   ghcr                 "immutable" (expected; as of 2026-10-09): GHCR has no immutable-tag setting: immutability comes from digest pins and the pre-push guard
+found       access               "public packages allow anonymous access and can be pulled without authentication": GKE pulls a public package with no pull secret
+found       access               "the package automatically inherits the access permissions (but not the visibility) of the linked repository": a new package is not public because the repository is: 37 makes it public by hand
+found       environments         "Only one of the required reviewers needs to approve the job for it to proceed": one maintainer approves the release job
+found       environments         "required reviewers are only available for public repositories": on GitHub Free, which fits: knarr is public
+found       manage-environments  "Prevent self-review": the setting a single maintainer must leave off, or the release deadlocks
+found       rulesets             "only users with bypass permissions can push to branches or tags whose name matches the pattern you specify": a tag ruleset can stop a v* tag from moving
+found       rulesets             "only users with bypass permissions can delete branches or tags whose name matches the pattern you specify": and from being deleted
+found       runners              "ubuntu-24.04-arm": an arm64 runner label exists for a later arm64 build job
+found       runners              "Use of the standard GitHub-hosted runners is free and unlimited on public repositories": the arm64 job would cost nothing in minutes
+found       attest-action        "push-to-registry": the action can attach the attestation to the image in the registry
+found       attest-action        "subject-digest": it takes the digest the build printed
+found       attestations         "artifact attestations are only available for public repositories": on GitHub Free, which fits
+found       gh-attestation       "oci://": gh attestation verify takes an image URI, as scripts/install-tools.sh already does for rebar3
+found       buildkit             "Provenance attestations with the mode=min level are added to images by default": why the workflow sets --provenance=false explicitly
+found       buildkit             "opt out of attestations with --provenance=false --sbom=false": the opt-out the workflow uses
+found       cosign               "Keyless signing associates identities, rather than keys": what cosign keyless would add; deferred
+found       keepachangelog       "Unreleased": the heading the CHANGELOG keeps at the top
+found       semver               "Given a version number MAJOR.MINOR.PATCH, increment the": the versioning scheme
+found       kustomize            "digest for images": the kustomization images field pins by digest
+-- 22 phrases found, 0 not found, 1 expected not found, 0 unexpected

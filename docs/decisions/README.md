@@ -21,6 +21,7 @@ These records explain accepted choices and the evidence or source material behin
 9. [0009: The Allium objective map](0009-allium-objective-map.md), settled by ticket 17.
 10. [0010: Prometheus metrics](0010-metrics.md), settled by ticket 13.
 11. [0011: Report-only source coverage](0011-coverage.md), settled by ticket 26.
-12. [0012: In-cluster Kubernetes client](0012-in-cluster-client.md), settled by ticket 14.
+12. [0012: Release and packaging](0012-release-and-packaging.md), settled by ticket 28.
+13. [0013: In-cluster Kubernetes client](0013-in-cluster-client.md), settled by ticket 14.
 
 Read the [project direction](../project/README.md) for proposals and open questions. A later change to an accepted choice should amend or supersede its record explicitly, preserving enough context for a reader to understand why the choice changed.

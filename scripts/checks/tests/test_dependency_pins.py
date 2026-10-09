@@ -179,14 +179,35 @@ def test_the_pixi_version_agrees_everywhere_it_is_written() -> None:
     assert len(set(versions.values())) == 1, versions
 
 
-@pytest.mark.parametrize("path", ["pixi.toml", ".github/actions/setup/action.yml", "README.md"])
-def test_each_pixi_version_without_a_manager_of_its_own_is_matched(path: str) -> None:
-    # setup-pixi's pixi-version input and the Dockerfile's FROM have native
-    # managers; these three would otherwise be left behind when they move.
+@pytest.mark.parametrize(
+    ("path", "sites"),
+    [("pixi.toml", 1), (".github/actions/setup/action.yml", 2), ("README.md", 1)],
+)
+def test_every_pixi_version_but_the_build_stage_is_read_against_the_image_tags(
+    path: str, sites: int
+) -> None:
+    # The Dockerfile's FROM has the dockerfile manager. The floor, the cache key
+    # and the README have no manager of their own, and setup-pixi's input is
+    # read here too, because its native reading proposes nothing (renovate.txt).
     version = next(iter(set(pixi_versions().values())))
-    assert dependencies(path) == [
-        {"depName": "ghcr.io/prefix-dev/pixi", "datasource": "docker", "currentValue": version}
-    ]
+    assert (
+        dependencies(path)
+        == [
+            {"depName": "ghcr.io/prefix-dev/pixi", "datasource": "docker", "currentValue": version}
+        ]
+        * sites
+    )
+
+
+def test_setup_pixis_native_reading_of_the_pixi_version_is_off() -> None:
+    native = {
+        "manager": "github-actions",
+        "packageName": "prefix-dev/pixi",
+        "packageFile": ".github/actions/setup/action.yml",
+        "depType": "uses-with",
+        "datasource": "github-releases",
+    }
+    assert effective(native).get("enabled") is False
 
 
 def test_the_dev_dependencies_use_the_spelling_renovate_reads() -> None:
@@ -246,13 +267,6 @@ LOCAL_CLUSTER = [
     for d in dependencies("scripts/checks/cluster.py")
 ]
 PIXI = [
-    {
-        "manager": "github-actions",
-        "packageName": "prefix-dev/pixi",
-        "packageFile": ".github/actions/setup/action.yml",
-        "depType": "uses-with",
-        "datasource": "github-releases",
-    },
     {
         "manager": "dockerfile",
         "packageName": "ghcr.io/prefix-dev/pixi",

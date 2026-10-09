@@ -55,16 +55,28 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "Renovate reads setup-pixi's pixi-version input natively, as prefix-dev/pixi on GitHub releases, but proposed no update from 0.80.0 when 0.81.0 was out (Decision 0013); the pixi regex manager reads the input instead.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "uses-with"
+      ],
+      "matchPackageNames": [
+        "prefix-dev/pixi"
+      ],
+      "enabled": false
+    },
+    {
       "description": "The pixi version, written in five places (the floor, setup-pixi's input, the cache key, the build stage's FROM and the README), moves in one pull request; scripts/checks/tests/test_dependency_pins.py fails until all five agree.",
       "matchPackageNames": [
-        "prefix-dev/pixi",
         "ghcr.io/prefix-dev/pixi"
       ],
       "groupName": "pixi",
       "dependencyDashboardApproval": true
     },
     {
-      "description": "The floor, the cache key and the README name a pixi version, not an image, so docker:pinDigests has no digest to add there.",
+      "description": "The floor, setup-pixi's input, the cache key and the README name a pixi version, not an image, so docker:pinDigests has no digest to add there.",
       "matchManagers": [
         "custom.regex"
       ],
@@ -122,7 +134,7 @@
     },
     {
       "customType": "regex",
-      "description": "The pixi version where no native manager reads it: the floor in pixi.toml, the setup action's cache key, and the README's prerequisite. Read against the pixi image's tags, so all three move with the Dockerfile's FROM; the pixi group keeps them in one pull request.",
+      "description": "The pixi version outside the Dockerfile: the floor in pixi.toml, setup-pixi's input and the cache key in the setup action, and the README's prerequisite. Read against the pixi image's tags, so all four move with the build stage's FROM; the pixi group keeps the five in one pull request.",
       "managerFilePatterns": [
         "/^pixi\\.toml$/",
         "/^\\.github/actions/setup/action\\.yml$/",
@@ -130,6 +142,7 @@
       ],
       "matchStrings": [
         "requires-pixi = \">=(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
+        "pixi-version: v(?<currentValue>\\d+\\.\\d+\\.\\d+)",
         "cache-key: knarr-pixi-v(?<currentValue>\\d+\\.\\d+\\.\\d+)-",
         "\\[pixi\\]\\(https://pixi\\.sh\\) (?<currentValue>\\d+\\.\\d+\\.\\d+) or later"
       ],

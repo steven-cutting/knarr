@@ -101,6 +101,32 @@ def smoke(state):
                 forward.wait()
 
 
+def render(state, image, variant):
+    """Write the base, pointed at the local image and marked with its ID so a rebuilt
+    image rolls out, to .cluster/render/base/, and a variant beside it, where its
+    kustomization's `../base` resolves. Returns the directory to build."""
+    render_root = state / "render"
+    base = render_root / "base"
+    if base.exists():
+        shutil.rmtree(base)
+    base.mkdir(parents=True)
+    data = json.loads((ROOT / "deploy/base/resources.json").read_text())
+    deployment = next(item for item in data["items"] if item["kind"] == "Deployment")
+    deployment["spec"]["template"]["spec"]["containers"][0]["image"] = image
+    deployment["spec"]["template"]["metadata"].setdefault("annotations", {})[
+        "knarr.dev/local-image-id"
+    ] = output("docker", "image", "inspect", "--format={{.Id}}", image)
+    (base / "resources.json").write_text(json.dumps(data))
+    shutil.copyfile(ROOT / "deploy/base/kustomization.yaml", base / "kustomization.yaml")
+    if variant == "base":
+        return base
+    target = render_root / variant
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(ROOT / "deploy" / variant, target)
+    return target
+
+
 def main():
     action, checkout = sys.argv[1:3]
     checkout = Path(checkout).resolve()
@@ -124,6 +150,9 @@ def main():
     os.environ["KWOK_WORKDIR"] = str(state / "kwok")
     os.environ["KWOK_KUBE_VERSION"] = "v1.35.5"
     image = sys.argv[3] if len(sys.argv) > 3 else f"knarr:{name}"
+    variant = sys.argv[4] if len(sys.argv) > 4 else "base"
+    if not (ROOT / "deploy" / variant / "kustomization.yaml").is_file():
+        raise ValueError(f"unknown deployment variant: {variant}")
     if action == "down":
         run(
             "kind" if runner == "kind" else "kwokctl",
@@ -198,17 +227,7 @@ def main():
         run("kind", "load", "docker-image", image, "--name", name)
     elif action == "deploy":
         run("kind", "load", "docker-image", image, "--name", name)
-        render = state / "render"
-        render.mkdir(parents=True, exist_ok=True)
-        data = json.loads((ROOT / "deploy/base/resources.json").read_text())
-        deployment = next(item for item in data["items"] if item["kind"] == "Deployment")
-        deployment["spec"]["template"]["spec"]["containers"][0]["image"] = image
-        deployment["spec"]["template"]["metadata"].setdefault("annotations", {})[
-            "knarr.dev/local-image-id"
-        ] = output("docker", "image", "inspect", "--format={{.Id}}", image)
-        (render / "resources.json").write_text(json.dumps(data))
-        shutil.copyfile(ROOT / "deploy/base/kustomization.yaml", render / "kustomization.yaml")
-        rendered = output("kustomize", "build", str(render))
+        rendered = output("kustomize", "build", str(render(state, image, variant)))
         run("kubectl", "apply", "-f", "-", input=rendered)
         run("kubectl", "rollout", "status", "deployment/knarr", "--timeout=120s")
     elif action == "smoke":

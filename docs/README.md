@@ -24,3 +24,4 @@ The [overview](OVERVIEW.md) remains a draft direction, not a behavioural specifi
 
 - [Run the walking skeleton locally](how-to/local-cluster.md).
 - [Decision 0010: Prometheus metrics](decisions/0010-metrics.md).
+- [Decision 0011: In-cluster Kubernetes client](decisions/0011-in-cluster-client.md).

@@ -307,6 +307,19 @@
       "requires": []
     },
     {
+      "path": "decisions/0011-in-cluster-client.md",
+      "title": "Decision 0011: In-cluster Kubernetes client",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_in_cluster_client"
+      ],
+      "requires": []
+    },
+    {
       "path": "how-to/local-cluster.md",
       "title": "Run the walking skeleton locally",
       "kind": "how-to",

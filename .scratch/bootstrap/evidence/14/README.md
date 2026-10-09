@@ -10,7 +10,7 @@ Each script exits non-zero on an unexpected result and prints `ok` or `FAIL` per
 sh .scratch/bootstrap/evidence/14/run-all.sh "$(pwd)" "$(mktemp -d)"
 ```
 
-This needs network and Docker on a host that can build the linux/amd64 image, and about 20 minutes, most of it waiting for the projected token to rotate and the first one to expire. It rewrites `tls.txt`, `s1-kind.txt`, `wrong-ca.txt` and `version.json` and ends by deleting the worktree's kind cluster. `emulation.txt` is not part of it: it is the hand-run record of the ARM-host attempt.
+This needs network and Docker on a host that can build the linux/amd64 image, and about 20 minutes, most of it waiting for the projected token to rotate and the first one to expire. It rewrites `tls.txt`, `s1-kind.txt`, `wrong-ca.txt` and `version.json` (the committed one is from the local kind cluster, so a CI rerun replaces its `platform`) and ends by deleting the worktree's kind cluster. `emulation.txt` is not part of it: it is the hand-run record of the ARM-host attempt.
 
 ## Scripts
 
@@ -21,8 +21,9 @@ This needs network and Docker on a host that can build the linux/amd64 image, an
 | [s1-kind.sh](s1-kind.sh) `<worktree> <dir>` with [s1_logs.py](s1_logs.py) | `s1-kind.txt` (from the CI job) | Builds, checks and deploys the base to the worktree's kind cluster; captures `/version` into `version.json` and checks its field types against the 08 fixture; shows the token mount as UID 10001 sees it; then reads the pod's log until it holds the first token's hash with an `exp` about 600 s after the pod started, a changed hash, and a LIST and PATCH after that `exp`, from one process (`restartCount` 0, same UID), and the `knarr.io/s1-probe` annotation on the pod |
 | [wrong-ca.sh](wrong-ca.sh) `<worktree> <dir>` | `wrong-ca.txt` (from the CI job) | Creates the `knarr-wrong-ca` ConfigMap from 01's `ca-b`, deploys the `wrong-ca` variant, requires `tls_alert unknown_ca` on every cycle, no LIST or PATCH success and a Ready pod with `restartCount` 0, then redeploys the base |
 | [run-all.sh](run-all.sh) `<worktree> <root>` | | The three scripts in order, then `just cluster-down` |
+| (hand run, pre-flight) | [version.json](version.json) | `kubectl get --raw /version` from this worktree's kind cluster (kindest/node v1.35.8, linux/arm64), captured on 2026-10-09: `major`, `minor` and `gitVersion` are strings, as the 08 fixture in `test/sans_io_example_test.gleam` assumes, and `minor` carries no suffix on kind. The same local cluster accepted both variants with `kubectl apply --dry-run=server` and the scripts' jsonpath forms |
 
 ## Notes
 
 - **CI is the source of the kind transcripts.** The `cluster-s1` job runs the same three scripts on a pull request; its log is copied here as `s1-kind.txt` and `wrong-ca.txt` with `version.json` once a run has passed. Until then the Decision's last finding is marked pending.
-- **Ticket 35.** The CI `tls/run.sh` step is native-Linux TLS evidence for the default environment, and `version.json` is the captured `/version` its fixture item asks for. The runtime environment's TLS probe and the rebar3 probe are not run here.
+- **Ticket 35.** The CI `tls/run.sh` step is native-Linux TLS evidence for the default environment, and [version.json](version.json) is the captured `/version` its fixture item asks for, from the kind version ticket 10 chose; the managed-cluster `minor` suffix claim is not established by it. The runtime environment's TLS probe and the rebar3 probe are not run here.

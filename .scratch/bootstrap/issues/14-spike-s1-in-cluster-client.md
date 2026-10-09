@@ -91,12 +91,16 @@ holds the findings and marks the kind row pending.
 
 - **The maintainer, now:** open a pull request for this branch so
   `cluster-s1` runs (a push alone triggers nothing), then copy its
-  `s1-kind.txt`, `wrong-ca.txt` and `version.json` beside the scripts, tick
-  the first four boxes and settle the pending row in Decision 0011.
+  `s1-kind.txt` and `wrong-ca.txt` beside the scripts, tick the first four
+  boxes and settle the pending row in Decision 0011. Before the run, read
+  the SNI and `+JMsingle` findings there. A local kind cluster already
+  accepted both variants server-side and gave `version.json`.
   `cancel-in-progress` is on for pull requests, so a second push while the
   job runs cancels it.
 - **36:** the full module and the probe's removal, with the IPv6 bracketing
-  the adapter does not do.
+  the adapter does not do, and narrowing `cluster-s1` to a `paths:` filter
+  or a label once its transcripts are committed, so every pull request does
+  not pay its twenty runner-minutes.
 - **37:** the OTP findings listed there.
 - **35:** the CI `tls/run.sh` step is the native-Linux TLS evidence for the
   default environment and `version.json` the captured `/version`; the

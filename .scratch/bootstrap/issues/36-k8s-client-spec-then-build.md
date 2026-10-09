@@ -17,3 +17,4 @@
 - [ ] An IPv6 `KUBERNETES_SERVICE_HOST` is bracketed in the URL, or the clause states that only IPv4 service addresses are supported.
 - [ ] The S1 probe is removed once the reconciler calls the client, together with its `ERL_FLAGS` switch and the probe wording in `NoPodEffects`; the Role grants exactly what the client uses.
 - [ ] Decision 0011 is amended where the full module departs from the spike's findings.
+- [ ] The `cluster-s1` CI job is narrowed to the paths it proves, or gated by a label, once its transcripts sit beside the evidence scripts.

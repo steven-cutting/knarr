@@ -9,7 +9,8 @@ exclude: >-
     pixi\.lock$|
     manifest\.toml$|
     \.scratch/bootstrap/evidence/|
-    \.agents/skills/(allium|distill|elicit|propagate|tend|weed|witness)/
+    \.agents/skills/(allium|distill|elicit|propagate|tend|weed|witness)/|
+    scripts/schemas/kubernetes/
   )
 repos:
   - repo: builtin

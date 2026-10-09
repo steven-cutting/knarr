@@ -15,3 +15,8 @@ manifest.toml linguist-generated=true
 .agents/skills/tend/** linguist-vendored=true
 .agents/skills/weed/** linguist-vendored=true
 .agents/skills/witness/** linguist-vendored=true
+
+# Upstream Kubernetes JSON schemas, vendored byte for byte at the revision
+# sources.json names (ticket 13). Plain text, so a schema update is a readable
+# diff; never edited here.
+scripts/schemas/kubernetes/*.json linguist-vendored=true

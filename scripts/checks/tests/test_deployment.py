@@ -1,7 +1,12 @@
 """Deployment guarantees, independent of a running cluster."""
 
 import json
+import shutil
 from pathlib import Path
+
+import pytest
+
+import deployment
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -24,3 +29,19 @@ def test_restricted_skeleton():
     assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
     assert container["livenessProbe"]["httpGet"]["path"] == "/healthz"
     assert container["imagePullPolicy"] == "Never"
+
+
+def test_vendored_schemas_are_plain_upstream_json():
+    provenance = json.loads((deployment.SCHEMAS / "sources.json").read_text())
+    for name, hashes in provenance["files"].items():
+        assert set(hashes) == {"sha256"}
+        json.loads((deployment.SCHEMAS / name).read_text())
+    deployment.verify()
+
+
+def test_changed_schema_is_refused(tmp_path):
+    shutil.copytree(deployment.SCHEMAS, tmp_path, dirs_exist_ok=True)
+    with (tmp_path / "role-rbac-v1.json").open("ab") as schema:
+        schema.write(b" ")
+    with pytest.raises(ValueError, match=r"role-rbac-v1\.json"):
+        deployment.verify(tmp_path)

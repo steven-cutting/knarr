@@ -43,7 +43,7 @@ recovery. The skeleton makes no Kubernetes API calls.
 The image uses the locked pixi default and runtime environments and a production
 Erlang shipment, with numeric UID/GID 10001. The local deployment supplies a
 read-only root, writable `/tmp`, probes and an empty Role. Kubernetes schemas
-are vendored at a recorded upstream revision, with compressed and original
+are vendored as plain upstream JSON at a recorded upstream revision, with their
 checksums and the upstream license. Validation has no remote schema fallback.
 
 The cluster recipes promote 10's naming seam. They isolate kubeconfig and kwok
@@ -246,3 +246,20 @@ and `just format-check` and `just build` passed. `just check-specs` and
 obligations. `just docs-check` validated 23 pages, and all 310 checker and
 process tests passed. The full `just check` passed with "All checks passed and
 the worktree is unchanged."
+
+### Plain schemas
+
+The Kubernetes schemas were committed gzipped, with no recorded reason beyond
+size, which made them the repository's only binary files. They are now the
+upstream JSON, byte for byte, so a schema update is a readable diff.
+`sources.json` keeps the upstream sha256 and drops the compressed one, and
+`deployment.py` verifies the files in place instead of unpacking them to a
+temporary directory. The upstream text has no final newline and trips the
+spelling check, so the layout and spelling hooks and the fix config skip
+`scripts/schemas/kubernetes/`, as they skip the vendored skills.
+
+Verification: two new checker tests, one that the vendored schemas are plain
+JSON matching their recorded sha256 and one that a changed schema is refused,
+failed before the change and pass after it. `just packaging-check` and
+`just deployment-check` each validated three resources with none skipped, and
+the fix config left the schemas unchanged.

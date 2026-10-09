@@ -1,0 +1,21 @@
+# Ticket 28: the designed release overlay, kept under evidence until ticket 36
+# moves it to deploy/release/. It changes two things in deploy/base and nothing
+# else: the image is the published one, pinned by digest, and the pull policy is
+# IfNotPresent (the base's Never is for images loaded into kind). RBAC is the
+# base's: one install per namespace (OVERVIEW §9.18); the Role's verbs and the
+# RoleBinding are ticket 14's and belong in the base.
+# The digest below is a placeholder of the right shape; a release replaces it
+# with the digest release.yml prints. overlay-render.sh renders both.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../deploy/base
+images:
+  - name: knarr
+    newName: ghcr.io/steven-cutting/knarr
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+patches:
+  - path: pull-policy.yaml
+    target:
+      kind: Deployment
+      name: knarr

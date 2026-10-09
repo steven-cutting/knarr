@@ -1,0 +1,22 @@
+date: 2026-10-09T05:08Z
+-- anonymous reads of https://ghcr.io/v2/steven-cutting/knarr
+GET /v2/: 401 {"errors":[{"code":"UNAUTHORIZED","message":"authentication required"}]}
+GET /v2/steven-cutting/knarr/tags/list: 401 {"errors":[{"code":"UNAUTHORIZED","message":"authentication required"}]}
+GET /token?scope=repository:steven-cutting/knarr:pull: 403 {"errors":[{"code":"DENIED","message":"requested access to the resource is denied"}]}
+guard, anonymous HEAD /v2/steven-cutting/knarr/manifests/0.1.0: unknown (exit 2, http 401)
+-- the guard's three verdicts against ghcr.io, with the control package prefix-dev/pixi
+HEAD prefix-dev/pixi:0.81.0: present (exit 1, http 200)
+  Docker-Content-Digest: sha256:788ae451641666e2d1f79d3dbe35392dfc7e9b394b16a3acb75c347f3badb2ab
+HEAD prefix-dev/pixi:no-such-tag-28: absent (exit 0, http 404)
+HEAD prefix-dev/pixi:0.81.0 with a bad token: unknown (exit 2, http 403)
+HEAD against a closed port: unknown (exit 2, curl 7)
+-- repository steven-cutting/knarr through gh (read only)
+visibility: public; default branch: main; merge methods: merge=true squash=true rebase=true; delete branch on merge: true
+environments: 1: copilot
+rulesets: none
+main protection: required checks ["check"]; enforce_admins false; required approving reviews 0
+tags: 0; releases: 0
+token scopes: admin:public_key, gist, read:org, repo, workflow
+GET /user/packages?package_type=container: {"message":"You need at least read:packages scope to list packages.","documentation_url":"https://docs.github.com/rest/p
+gleam.toml version: 0.1.0
+CHANGELOG.md: absent (ticket 12 creates it)

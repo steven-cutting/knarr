@@ -1,0 +1,78 @@
+ok   version_of_tag: v0.1.0 is 0.1.0
+ok   version_of_tag: v0.1.0-rc.1 keeps its prerelease
+ok   version_of_tag: v1.2.3 is 1.2.3
+ok   version_of_tag: 0.1.0 has no v
+ok   version_of_tag: v1.0 has two parts
+ok   version_of_tag: latest is not a version
+ok   version_of_tag: v01.0.0 has a leading zero
+ok   version_of_tag: build metadata cannot be an image tag
+ok   version_of_tag: an empty tag
+ok   tags_for: v0.1.0 gets 0.1.0, 0.1 and the short sha
+ok   tags_for: v1.2.3 also gets the major
+ok   tags_for: a prerelease gets no floating tag
+ok   tags_for: a 7-character sha is accepted as it is
+ok   tags_for: never latest
+ok   tags_for: a malformed tag is refused
+ok   tags_for: a short sha is refused
+ok   toml_version: reads the top-level version
+ok   toml_version: no version line is a failure
+ok   toml_version: two version lines are a failure
+ok   toml_version: an indented or commented line does not count
+ok   tag_matches_version: v0.1.0 matches 0.1.0
+ok   tag_matches_version: v0.1.0 does not match 0.2.0
+ok   tag_matches_version: v0.1.0-rc.1 does not match 0.1.0
+ok   tag_matches_version: a malformed tag is 2, not a mismatch
+ok   tag_matches_version: an empty version is 2
+ok   changelog_has_version: finds the released heading
+ok   changelog_has_version: Unreleased alone is not a release
+ok   changelog_has_version: a longer version is not a prefix match
+ok   changelog_has_version: dots are literal
+ok   changelog_has_version: a prerelease heading
+ok   digest_of_headers: Docker-Content-Digest, CRLF stripped
+ok   digest_of_headers: the header name is case-insensitive (ghcr.io sends lower case)
+ok   digest_of_headers: no digest header is a failure
+ok   digest_of_headers: a malformed digest is a failure
+ok   digest_of_metadata: containerimage.digest, not the config digest
+ok   digest_of_metadata: compact JSON
+ok   digest_of_metadata: no digest is a failure
+ok   digest_of_inspect: the Digest line
+ok   digest_of_inspect: no Digest line is a failure
+ok   tag_exists_verdict: 404 is absent, 0
+ok   tag_exists_verdict: 200 is present, 1 (refuse to push)
+ok   tag_exists_verdict: 401 is unknown, 2
+ok   tag_exists_verdict: 403 is unknown, 2 (ghcr.io answers denied for absent and private alike)
+ok   tag_exists_verdict: 500 is unknown, 2
+ok   tag_exists_verdict: 301 is unknown, 2
+ok   tag_exists_verdict: a failed connection (curl 7, code 000) is unknown, 2
+ok   tag_exists_verdict: a timeout (curl 28) is unknown, 2
+ok   tag_exists_verdict: no code at all is unknown, 2
+ok   tag_moved_verdict: different digests and the old one still pulls: moved
+ok   tag_moved_verdict: the same digest: unchanged
+ok   tag_moved_verdict: the old digest no longer pulls: unclear, 1
+ok   tag_moved_verdict: unchanged but the pull failed: unclear, 1
+ok   tag_moved_verdict: a malformed digest: unclear, 1
+ok   tag_moved_verdict: an empty new digest: unclear, 1
+ok   iso_seconds: a GitHub timestamp
+ok   iso_seconds: 15's reference time
+ok   iso_seconds: a timestamp without Z is refused
+ok   step_seconds: completedAt minus startedAt
+ok   step_seconds: a null completedAt (an unfinished job) fails, not a negative number
+ok   step_seconds: a null startedAt fails
+ok   median: odd count
+ok   median: even count averages the middle two
+ok   median: one value
+ok   median: unsorted input with blank lines
+ok   median: nothing is a failure
+ok   work_dir: creates a missing directory and prints its absolute path
+ok   work_dir: accepts an empty directory
+ok   work_dir: refuses a non-empty directory with exit 2
+ok   ancestor_verdict: an ancestor is ancestor, 0
+ok   ancestor_verdict: not an ancestor is not-ancestor, 1
+ok   ancestor_verdict: an unknown ref is unknown, 2
+ok   ancestor_verdict: a failed merge-base is unknown, 2, not "not an ancestor"
+ok   throwaway: an annotated tag on an unmerged branch is not-ancestor, 1
+ok   throwaway: once merged it is ancestor, 0
+ok   throwaway: the tag object itself is peeled to its commit
+ok   throwaway: a missing tag is unknown, 2
+ok   throwaway: a missing base is unknown, 2
+77 passed, 0 failed

@@ -1,0 +1,16 @@
+date: 2026-10-09T05:08Z
+runner: ubuntu-24.04 (ci.yml); job: Kind smoke; step: Run just image-build
+run          created               event         branch                       job        job s step s
+37883130323  2026-10-09T04:16:55Z  pull_request  12-maintainer-docs           success      102     19
+37880184171  2026-10-09T03:38:14Z  push          main                         success      104     20
+37880051472  2026-10-09T03:36:28Z  pull_request  finish_confirm_5_and_11      success      102     20
+37877497805  2026-10-09T03:03:27Z  push          main                         success      103     19
+37876453302  2026-10-09T02:50:18Z  pull_request  13-walking-skeleton          success      106     21
+37872966808  2026-10-09T02:06:16Z  pull_request  13-walking-skeleton          success      105     20
+37865420942  2026-10-09T00:33:53Z  pull_request  13-walking-skeleton          success      113     23
+37864990449  2026-10-09T00:28:52Z  pull_request  13-walking-skeleton          success      102     20
+37864115019  2026-10-09T00:18:40Z  pull_request  13-walking-skeleton          failure      237     24
+37863847598  2026-10-09T00:15:36Z  push          main                         no such job
+37863495979  2026-10-09T00:11:33Z  pull_request  13-walking-skeleton          failure      221     21
+37863186001  2026-10-09T00:08:05Z  pull_request  11-integration               no such job
+image-build steps that succeeded: 10 (in jobs that passed or failed later); min 19 s, median 20 s, max 24 s

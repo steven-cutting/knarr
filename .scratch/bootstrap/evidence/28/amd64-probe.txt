@@ -1,0 +1,11 @@
+date: 2026-10-09T05:09Z
+host: Darwin arm64; docker 29.4.0 linux/arm64; linux/amd64 is emulated here, so no time below is a CI number
+the emulated amd64 build failed after 13 s (9 cached layers) at: [build 10/10] RUN gleam export erlang-shipment     && erl -noshell -eval 'io:put_chars(erlang:system_info(otp_
+the failure (build.log):
+  {prim_tty,init,1,[{file,"prim_tty.erl"},{line,220}]},
+  {prim_tty,tty_create,1,[{file,"prim_tty.erl"},{line,1378}]},
+  **  [{erlang,nif_error,[undef],[{error_info,#{module => erl_erts_errors}}]},
+  11.85 Crash dump is being written to: erl_crash.dump...Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,
+  12.02 There was a problem when running the shell command `rebar3`.
+  Crash dump is being written to: erl_crash.dump...Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,[norma
+finding: the BEAM does not start under this host's amd64 emulation (the kernel's user process fails in prim_tty), so the image is built natively in CI only (ci-durations.txt)

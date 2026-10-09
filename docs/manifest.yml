@@ -307,6 +307,19 @@
       "requires": []
     },
     {
+      "path": "decisions/0011-release-and-packaging.md",
+      "title": "Decision 0011: Release and packaging",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_release_and_packaging"
+      ],
+      "requires": []
+    },
+    {
       "path": "how-to/local-cluster.md",
       "title": "Run the walking skeleton locally",
       "kind": "how-to",

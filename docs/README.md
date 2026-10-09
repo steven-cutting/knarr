@@ -24,3 +24,4 @@ The [overview](OVERVIEW.md) remains a draft direction, not a behavioural specifi
 
 - [Run the walking skeleton locally](how-to/local-cluster.md).
 - [Decision 0010: Prometheus metrics](decisions/0010-metrics.md).
+- [Decision 0011: Release and packaging](decisions/0011-release-and-packaging.md).

@@ -1,0 +1,21 @@
+# 38: Attestations, SBOM, provenance and the arm64 image
+
+**Context:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md) adopts GitHub artifact attestations for later, turns BuildKit's SBOM and provenance off for the first release because they change the pushed object from one manifest to an index, defers cosign, and prices arm64: `linux-aarch64` in the lock, one more build job on an `ubuntu-24.04-arm` runner, and an `imagetools create` to merge. Each of these changes the digest an install pins, so they come after 37 has proved the plain pull path.
+
+**What to build:** On the live workflow from 36, after 37's first release: `actions/attest-build-provenance` on the publish job with `push-to-registry`, `--provenance=mode=min --sbom=true` on the build, `gh attestation verify oci://…` in the install guide and in a checker, and the overlay pinning the index digest. Then, with 27, the arm64 lane: `linux-aarch64` in `pixi.toml` and a re-lock, an arm64 build job, and the merged index, if a target node pool needs it.
+
+**Non-goals:** cosign keyless signing, unless a consumer asks for a Sigstore signature. The native arm64 runtime verification on real hardware beyond what CI's arm runner shows (13 left it unverified).
+
+**Blocked by:** 36, 37
+
+**From 28:** [Decision 0011](../../../docs/decisions/0011-release-and-packaging.md), "cosign, SBOM and build provenance" and "Architectures"; [registry.txt](../evidence/28/registry.txt) part 2 for what an attested push looks like; [arm64-probe.txt](../evidence/28/arm64-probe.txt) for the arm64 cost.
+
+**MVP critical path:** no. The MVP pulls a plain amd64 manifest.
+
+**Status:** ready-for-agent, round 2
+
+- [ ] The publish job gains `id-token: write` and `attestations: write` and nothing else; `actions/attest-build-provenance` is pinned by SHA and attests the pushed digest with `push-to-registry: true`.
+- [ ] `gh attestation verify oci://ghcr.io/steven-cutting/knarr@<digest> --repo steven-cutting/knarr` passes on the next release, and the install guide shows the command.
+- [ ] With `--provenance=mode=min --sbom=true`, the overlay pins the index digest, `imagetools inspect` shows the attestation manifest, and the install guide says which digest to pin.
+- [ ] arm64, only if a target node pool needs it: `linux-aarch64` added and the lock re-solved with 27's process, an `ubuntu-24.04-arm` build job, `imagetools create` merging the two manifests under the release tags, and the kind-on-arm64 runtime smoke 13 could not run.
+- [ ] The hand-back records the extra time each change adds to the release run, and `CHANGELOG.md` says which release first carried attestations.

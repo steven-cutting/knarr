@@ -56,4 +56,4 @@ FAIL -noinput alone: the same prim_tty undef
 ok   ERL_FLAGS='+JMsingle true' (JIT single-mapped code pages): erl starts under Rosetta and reports OTP 29
 ok   ERL_FLAGS='+JMsingle true' with -noinput
 
-Verdict: the gate in the plan ('the image cannot be built or run locally') is met on the build side. The committed Dockerfile is unchanged, so the kind proof runs in CI (the non-required cluster-s1 job). The +JMsingle finding goes to Decision 0011 and the OTP findings follow-up.
+Verdict: the gate in the plan ('the image cannot be built or run locally') is met on the build side. The committed Dockerfile is unchanged, so the kind proof runs in CI (the non-required cluster-s1 job). The +JMsingle finding goes to Decision 0012 and the OTP findings follow-up.

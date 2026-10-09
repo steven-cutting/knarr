@@ -261,7 +261,8 @@
       "canonical_for": [
         "testing_toolkit",
         "snapshot_workflow",
-        "sans_io_pattern"
+        "sans_io_pattern",
+        "coverage_workflow"
       ],
       "requires": []
     },
@@ -307,19 +308,6 @@
       "requires": []
     },
     {
-      "path": "decisions/0011-in-cluster-client.md",
-      "title": "Decision 0011: In-cluster Kubernetes client",
-      "kind": "decision",
-      "audience": [
-        "maintainer",
-        "agent"
-      ],
-      "canonical_for": [
-        "decision_in_cluster_client"
-      ],
-      "requires": []
-    },
-    {
       "path": "how-to/local-cluster.md",
       "title": "Run the walking skeleton locally",
       "kind": "how-to",
@@ -330,6 +318,32 @@
       ],
       "canonical_for": [
         "local_cluster_loop"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0011-coverage.md",
+      "title": "Decision 0011: Report-only source coverage",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_coverage"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0012-in-cluster-client.md",
+      "title": "Decision 0012: In-cluster Kubernetes client",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_in_cluster_client"
       ],
       "requires": []
     }

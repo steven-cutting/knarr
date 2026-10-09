@@ -61,6 +61,12 @@ test: manifest-check
     mkdir -p "{{ birdie_tmpdir }}"; rm -f "{{ birdie_tmpdir }}/knarr_referenced.txt" test/birdie_snapshots/*.new
     before=$(cksum < manifest.toml); ERL_FLAGS="${ERL_FLAGS:-} -knarr port 0 bind '\"127.0.0.1\"'" TMPDIR="{{ birdie_tmpdir }}" gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
+# Report only, outside the gate. The boot hook and reports stay under build/.
+[group('develop')]
+[doc('Run the Gleam tests with source-line coverage (no floor; reports under build/coverage)')]
+coverage:
+    python3 scripts/checks/coverage.py
+
 # `stale check` reads the list the last `just test` wrote: run without one, it
 # fails. It runs only if the tests pass, because a test that fails before it
 # snaps leaves its snapshot unreferenced, and so falsely stale. Neither command

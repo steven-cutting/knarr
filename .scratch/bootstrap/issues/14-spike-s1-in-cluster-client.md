@@ -26,7 +26,7 @@
 
 The first four boxes stay unticked until the `cluster-s1` CI job has run: each
 names something only the pod on kind shows. What is proven locally, and
-where, is below; [Decision 0011](../../../docs/decisions/0011-in-cluster-client.md)
+where, is below; [Decision 0012](../../../docs/decisions/0012-in-cluster-client.md)
 holds the findings and marks the kind row pending.
 
 ### What changed
@@ -57,7 +57,7 @@ holds the findings and marks the kind row pending.
 - `.github/workflows/ci.yml`: the non-required `cluster-s1` job runs the
   three evidence scripts. `ci.yml` runs on pull requests and pushes to main
   only, so the job needs a pull request for this branch.
-- Docs: Decision 0011, its manifest and index entries, the testing reference,
+- Docs: Decision 0012, its manifest and index entries, the testing reference,
   the local cluster guide and OVERVIEW §8 and §9.2 point at it. Tickets
   [36](36-k8s-client-spec-then-build.md) and [37](37-otp-ssl-findings.md)
   are drafted and in the bootstrap README.
@@ -92,7 +92,7 @@ holds the findings and marks the kind row pending.
 - **The maintainer, now:** open a pull request for this branch so
   `cluster-s1` runs (a push alone triggers nothing), then copy its
   `s1-kind.txt` and `wrong-ca.txt` beside the scripts, tick the first four
-  boxes and settle the pending row in Decision 0011. Before the run, read
+  boxes and settle the pending row in Decision 0012. Before the run, read
   the SNI and `+JMsingle` findings there. A local kind cluster already
   accepted both variants server-side and gave `version.json`.
   `cancel-in-progress` is on for pull requests, so a second push while the

@@ -1,6 +1,6 @@
 # Ticket 14 evidence
 
-Evidence for [Decision 0011: In-cluster Kubernetes client](../../../../docs/decisions/0011-in-cluster-client.md). The local transcripts were gathered on 2026-10-09 (UTC) on an Apple M5 Pro (Darwin arm64) with the pinned toolchain: Gleam 1.19.0, OTP 29 (erts 17.1) and OpenSSL 3.6.5 from the pixi default environment, OrbStack 2.2.3 with its Docker engine 29.4. The kind transcripts come from the `cluster-s1` CI job on native linux/amd64, because the committed Dockerfile cannot build on this host ([emulation.txt](emulation.txt)).
+Evidence for [Decision 0012: In-cluster Kubernetes client](../../../../docs/decisions/0012-in-cluster-client.md). The local transcripts were gathered on 2026-10-09 (UTC) on an Apple M5 Pro (Darwin arm64) with the pinned toolchain: Gleam 1.19.0, OTP 29 (erts 17.1) and OpenSSL 3.6.5 from the pixi default environment, OrbStack 2.2.3 with its Docker engine 29.4. The kind transcripts come from the `cluster-s1` CI job on native linux/amd64, because the committed Dockerfile cannot build on this host ([emulation.txt](emulation.txt)).
 
 Each script exits non-zero on an unexpected result and prints `ok` or `FAIL` per case. Nothing printed holds a token: the kind transcript shows the token file's sha256 prefix and the JWT's `exp` claim only.
 

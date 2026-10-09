@@ -20,6 +20,7 @@ These records explain accepted choices and the evidence or source material behin
 8. [0008: safe-to-evict on upstream Cluster Autoscaler](0008-safe-to-evict-on-upstream-ca.md), settled by ticket 15.
 9. [0009: The Allium objective map](0009-allium-objective-map.md), settled by ticket 17.
 10. [0010: Prometheus metrics](0010-metrics.md), settled by ticket 13.
-11. [0011: In-cluster Kubernetes client](0011-in-cluster-client.md), settled by ticket 14.
+11. [0011: Report-only source coverage](0011-coverage.md), settled by ticket 26.
+12. [0012: In-cluster Kubernetes client](0012-in-cluster-client.md), settled by ticket 14.
 
 Read the [project direction](../project/README.md) for proposals and open questions. A later change to an accepted choice should amend or supersede its record explicitly, preserving enough context for a reader to understand why the choice changed.

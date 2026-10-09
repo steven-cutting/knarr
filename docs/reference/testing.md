@@ -2,13 +2,13 @@
 title: "Testing"
 kind: "reference"
 audience: ["contributor", "maintainer", "agent"]
-canonical_for: ["testing_toolkit", "snapshot_workflow", "sans_io_pattern"]
+canonical_for: ["testing_toolkit", "snapshot_workflow", "sans_io_pattern", "coverage_workflow"]
 requires: []
 ---
 
 # Testing
 
-This page covers knarr's unit tests: the tools, the snapshot workflow, and the sans-IO pattern every Kubernetes and worker call follows. All of it runs in `just check`. The cluster tiers belong to [Decision 0007](../decisions/0007-local-cluster.md#tiers), which [ticket 10](../../.scratch/bootstrap/issues/10-spike-local-cluster.md) settled.
+This page covers knarr's unit tests: the tools, the snapshot workflow, and the sans-IO pattern every Kubernetes and worker call follows. The unit suite runs in `just check`; the optional coverage command is described below. The cluster tiers belong to [Decision 0007](../decisions/0007-local-cluster.md#tiers), which [ticket 10](../../.scratch/bootstrap/issues/10-spike-local-cluster.md) settled.
 
 ## Tiers known so far
 
@@ -54,6 +54,41 @@ use version <- qcheck.run(config, versions)
 **glinter.** `[tools.glinter]` in `gleam.toml` lints `src/` and `test/`, with warnings as errors. Test functions declare `-> Nil`, because `missing_type_annotation` applies to them too. `unused_exports` is off for `*_test.gleam` files only: gleeunit finds those functions by name, so no module ever imports them. Helper modules in `test/` keep the rule. glinter skips a file it cannot read or parse, a directory it cannot read, and a `gleam.toml` it cannot parse, and still exits 0. So `just lint-gleam` runs it through `scripts/checks/run_glinter.sh`, which fails on any such report.
 
 **Compiler warnings.** `just build` runs `gleam build --warnings-as-errors`, which compiles `test/` as well as `src/`. A warning in test code therefore fails the gate. `gleam test` alone only prints it.
+
+## Coverage reports
+
+Run `just coverage` for source-line coverage of application startup and the
+existing Gleam test suite. It builds with warnings as errors, preserves the
+snapshot workflow, and prints each production source file's covered and total
+executable lines plus uncovered line numbers. Gleam and Erlang FFI have separate
+totals. A module that is never called still counts; one with no executable lines
+shows `n/a`. Tests, dependencies and compiler-generated entrypoints do not count.
+
+When collection and report generation complete, the command prints the fresh
+directory under `build/coverage/` containing `coverage.txt` and `coverage.json`.
+The JSON lists source-relative paths,
+languages, covered and uncovered line numbers, per-file counts, separate totals,
+and the test command's exit code. Failed tests still produce useful reports when
+collection completes, but the command exits nonzero. Cache or build failures
+create no run directory. Missing instrumentation or incomplete collection can
+leave an unfinished directory without reports; its path is not printed. These
+failures return nonzero even if the test entrypoint exits zero; an old report
+cannot satisfy a new run.
+
+The command is **report only**, outside `just check`, with no percentage floor.
+Its command tests run in the checker suite. Cached packages and the pinned local
+toolchain are required; missing or stale cache inventory is refused before Gleam
+can fetch. Initialization needs separate network authorization. Runtime artifacts
+are ignored, and local HTTP tests use loopback. The command neither accepts
+snapshots nor rewrites source files.
+
+Coverage describes execution, not correctness. External declarations can report
+uncalled generated Gleam wrappers even when their Erlang functions execute.
+Alternatives on the same physical line share one result. Checker subprocesses,
+cluster tests, and shutdown after collection are outside this report. See
+[Decision 0011](../decisions/0011-coverage.md) for the measured limitations and
+the reason for deferring a floor. A snapshot contributes execution counts but
+still proves no clause.
 
 ## Snapshots
 
@@ -117,7 +152,7 @@ Run birdie's other commands through `just birdie`, for example `just birdie stal
 
 1. **A pure builder** takes values and returns a `Request(String)`.
 2. **A pure decoder** takes a `Response(String)` and returns a typed result. Every way it can fail is a named error.
-3. **A function that does the I/O** only through a `send` it is given, of type `fn(Request(String)) -> Result(Response(String), e)`. Production passes `k8s_http.send(_, k8s_http.Tls(ca_file))`, the verified-TLS adapter from [Decision 0011](../decisions/0011-in-cluster-client.md); `gleam_httpc` is not used because it cannot carry a CA file. A test passes a closure.
+3. **A function that does the I/O** only through a `send` it is given, of type `fn(Request(String)) -> Result(Response(String), e)`. Production passes `k8s_http.send(_, k8s_http.Tls(ca_file))`, the verified-TLS adapter from [Decision 0012](../decisions/0012-in-cluster-client.md); `gleam_httpc` is not used because it cannot carry a CA file. A test passes a closure.
 
 The builder and the decoder are tested by value. The I/O function is tested with a closure fake. The fake asserts the request it was handed and returns a canned response. A second fake returns `Error(_)`, to test the failure path. To snapshot the outgoing request, take the picture inside the fake: it then shows exactly what the function sent, not a request the test built again.
 

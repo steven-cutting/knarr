@@ -7,7 +7,7 @@
 -- and list on Deployments and ReplicaSets, and the patch content types and
 -- preconditions the write mode needs (§9.10) are later tickets' clauses.
 -- Owner: spike S1 (ticket 14) settled the TLS, token and verb questions in
--- Decision 0011; ticket 36 builds the full module from this contract and
+-- Decision 0012; ticket 36 builds the full module from this contract and
 -- ticket 22 amends it with what the write mode needs.
 
 value Target {

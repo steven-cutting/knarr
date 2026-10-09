@@ -1,6 +1,6 @@
 # 36: Spec-then-build: the k8s_client module
 
-**Context:** Spike S1 ([14](14-spike-s1-in-cluster-client.md)) settled TLS, token reload and the verbs in [Decision 0011](../../../docs/decisions/0011-in-cluster-client.md) and left `docs/specs/k8s_client.allium` with a `Client` contract covering list and patch on pods. OVERVIEW §8 also needs get on pods and get and list on Deployments and ReplicaSets, and ticket 22 decides the write mode whose patch preconditions §9.10 asks about. The S1 probe loop in `src/knarr/s1_probe.gleam` is scaffolding that proved the path; the reconciler ([31](31-spec-then-build-reconcile-core.md)) is its real caller.
+**Context:** Spike S1 ([14](14-spike-s1-in-cluster-client.md)) settled TLS, token reload and the verbs in [Decision 0012](../../../docs/decisions/0012-in-cluster-client.md) and left `docs/specs/k8s_client.allium` with a `Client` contract covering list and patch on pods. OVERVIEW §8 also needs get on pods and get and list on Deployments and ReplicaSets, and ticket 22 decides the write mode whose patch preconditions §9.10 asks about. The S1 probe loop in `src/knarr/s1_probe.gleam` is scaffolding that proved the path; the reconciler ([31](31-spec-then-build-reconcile-core.md)) is its real caller.
 
 **What to build:** The full `k8s_client` module, specification first: the remaining operations and their Role verbs, pagination of a LIST, the error vocabulary callers branch on (RBAC refusal, conflict, not found, transport), and the patch content type and preconditions 22 chooses. Then the code, keeping the sans-IO shape 14 established, and the removal of `s1_probe` once 31 has a caller for the client, with the `NoPodEffects` clause and the Deployment's `ERL_FLAGS` updated in the same change.
 
@@ -16,5 +16,5 @@
 - [ ] Builders and decoders for each operation are pure, tested by value and snapshot as in [the testing reference](../../../docs/reference/testing.md); `send` stays injected.
 - [ ] An IPv6 `KUBERNETES_SERVICE_HOST` is bracketed in the URL, or the clause states that only IPv4 service addresses are supported.
 - [ ] The S1 probe is removed once the reconciler calls the client, together with its `ERL_FLAGS` switch and the probe wording in `NoPodEffects`; the Role grants exactly what the client uses.
-- [ ] Decision 0011 is amended where the full module departs from the spike's findings.
+- [ ] Decision 0012 is amended where the full module departs from the spike's findings.
 - [ ] The `cluster-s1` CI job is narrowed to the paths it proves, or gated by a label, once its transcripts sit beside the evidence scripts.

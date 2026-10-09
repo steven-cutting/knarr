@@ -1,6 +1,6 @@
 # 37: OTP and ssl findings from spike S1
 
-**Context:** Spike S1 ([14](14-spike-s1-in-cluster-client.md)) recorded behaviour of OTP 29's `ssl`, `httpc` and runtime that is not knarr behaviour but that a later change could trip over. [Decision 0011](../../../docs/decisions/0011-in-cluster-client.md) names them; this ticket is where each is either closed as accepted or turned into a code or documentation change.
+**Context:** Spike S1 ([14](14-spike-s1-in-cluster-client.md)) recorded behaviour of OTP 29's `ssl`, `httpc` and runtime that is not knarr behaviour but that a later change could trip over. [Decision 0012](../../../docs/decisions/0012-in-cluster-client.md) names them; this ticket is where each is either closed as accepted or turned into a code or documentation change.
 
 **What to build:** A short note per finding under `docs/reference/` or in the owning decision record, each with a decision: keep as is, change the code, or watch the OTP pin.
 

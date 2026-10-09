@@ -1,12 +1,12 @@
 ---
-title: "Decision 0011: In-cluster Kubernetes client"
+title: "Decision 0012: In-cluster Kubernetes client"
 kind: "decision"
 audience: [maintainer, agent]
 canonical_for: [decision_in_cluster_client]
 requires: []
 ---
 
-# Decision 0011: In-cluster Kubernetes client
+# Decision 0012: In-cluster Kubernetes client
 
 ## Context
 

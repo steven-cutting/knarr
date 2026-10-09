@@ -64,13 +64,16 @@ executable lines plus uncovered line numbers. Gleam and Erlang FFI have separate
 totals. A module that is never called still counts; one with no executable lines
 shows `n/a`. Tests, dependencies and compiler-generated entrypoints do not count.
 
-Each invocation prints a fresh directory under `build/coverage/` containing
-`coverage.txt` and `coverage.json`. The JSON lists source-relative paths,
+When collection and report generation complete, the command prints the fresh
+directory under `build/coverage/` containing `coverage.txt` and `coverage.json`.
+The JSON lists source-relative paths,
 languages, covered and uncovered line numbers, per-file counts, separate totals,
-and the test command's exit code. Reports from failed tests are still useful,
-but the command exits nonzero. Missing instrumentation or incomplete collection
-also fails, even if the test entrypoint exits zero; an old report cannot satisfy
-a new run.
+and the test command's exit code. Failed tests still produce useful reports when
+collection completes, but the command exits nonzero. Cache or build failures
+create no run directory. Missing instrumentation or incomplete collection can
+leave an unfinished directory without reports; its path is not printed. These
+failures return nonzero even if the test entrypoint exits zero; an old report
+cannot satisfy a new run.
 
 The command is **report only**, outside `just check`, with no percentage floor.
 Its command tests run in the checker suite. Cached packages and the pinned local

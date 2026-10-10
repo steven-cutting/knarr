@@ -1,6 +1,6 @@
 # 31: Spec-then-build: discovery, the reconcile loop and the emitted cost
 
-**Context:** OVERVIEW §4 and §6 decide the shape of knarr's loop, and no elicitation ticket's acceptance checks name those decided behaviours. [Decision 0009](../../../docs/decisions/0009-allium-objective-map.md) lists them and assigns them here, in the `config`, `reconcile` and `banding` modules, next to the clauses that 19, 20 and 21 elicit. Those tickets draft their own spec-then-build follow-ups; they amend this ticket rather than duplicate it.
+**Context:** OVERVIEW §4 and §6 decide the shape of knarr's loop, and no elicitation ticket's acceptance checks name those decided behaviours. [Decision 0009](../../../docs/decisions/0009-allium-objective-map.md) lists them and assigns them here, in the `config`, `reconcile` and `cost_mapping` modules, next to the clauses that 19, 20 and 21 elicit. Those tickets draft their own spec-then-build follow-ups; they amend this ticket rather than duplicate it.
 
 **What to build:** Clauses for each decided behaviour below, written with the `tend` skill without a live session because OVERVIEW already decides them, then tests derived with `propagate` and the controller code that passes them, in the order the `gleam-change` skill sets.
 
@@ -16,9 +16,10 @@
 
 - [ ] Discovery is a periodic LIST scoped to knarr's namespace and the opt-in selector, with one install per namespace (§4.1, §9.18). Its cadence is 24's.
 - [ ] Every pod with a pod IP is polled, whatever its phase or readiness (worker_contract `Discovery`). The pod IP and Ready condition are the `Pod` fields [41](41-k8s-client-spec-then-build.md) adds, and 41's probe removal waits for this ticket's caller, so the two land together.
-- [ ] The readiness warning per worker_contract `ReadinessWarning`: a gauge of pods NotReady whose last valid reading maps above 20's lowest band, and a log line on entry, named as 30 decides.
-- [ ] The desired annotation state is the cost band, the opt-in `safe-to-evict` value and the ownership marker (§4.3). How the band is computed is 20's.
-- [ ] A patch is made only when the desired state differs from the last applied state, which covers a band change, the first annotation, startup repair, cleanup and a `safe-to-evict` flip (§4.4).
+- [ ] The readiness warning per worker_contract `ReadinessWarning`: a gauge of pods NotReady whose last valid reading maps to a value above 0 under cost_mapping, and a log line on entry, named as 30 decides.
+- [ ] The desired annotation state is the mapped cost value (cost_mapping `map`), the opt-in `safe-to-evict` value and the ownership marker (§4.3). How the value is computed is 20's.
+- [ ] The `CostMapping` contract (`map`, `render`, `due`) has a test per invariant: `Continuous`, `Sign`, `Absent`, `Drained`, `Clamp`, `Canonical`, `ChangeThreshold` and `Pure`, by value for cost 0 (absent), cost 0 while draining (`-1`), a positive cost while draining (unchanged), a cost above 2147483647 (clamped), `render` of 1, 2147483647 and `-1` (canonical, no plus sign or leading zero) and of 0 (no string), and `due` at the threshold's boundary on both sides, at equality, with either side 0 or `-1`, and with `min_change_percent` 0. The default 10 and the per-Deployment override flow through config (19).
+- [ ] A patch is made only when the desired state differs from the last applied state, which covers a cost change `due` under cost_mapping, the first annotation, startup repair, cleanup and a `safe-to-evict` flip (§4.4). The baseline `due` compares against is the last applied value.
 - [ ] A throttled change stays pending and is not dropped (§4.4).
 - [ ] No patch is made once a pod has `deletionTimestamp` set; polling it may continue (§4.5).
 - [ ] The emitted `pod-deletion-cost` is a canonical signed decimal int32 string, never a form such as `"+5"` or `"007"` (§6).

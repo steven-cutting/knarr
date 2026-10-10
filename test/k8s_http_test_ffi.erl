@@ -9,7 +9,8 @@
 %% matches a string IP host against. A second listener serves a leaf signed
 %% by the same CA key whose only subjectAltName is a DNS name, so the CA
 %% check passes and the hostname check is the one that refuses it. A third
-%% chain is an unrelated CA.
+%% chain is an unrelated CA. Each connection serves one request; serve/1 says
+%% what each path answers, /sni among them.
 start_responder() ->
   {ok, _} = application:ensure_all_started(ssl),
   {ok, _} = application:ensure_all_started(inets),
@@ -46,6 +47,10 @@ listen(Conf) ->
   {ok, {_, Port}} = ssl:sockname(Listen),
   {Port, spawn(fun() -> accept(Listen) end)}.
 
+%% On OTP 29, pkix_test_data/1 returns the root twice in cacerts when
+%% intermediates is [] (evidence/14/tls.txt: "cacerts entries: 2, distinct:
+%% 1"). lists:usort writes it once, which stays right if a later pin stops
+%% repeating it.
 write_ca(Dir, Name, Conf) ->
   CaCerts = lists:usort(proplists:get_value(cacerts, Conf)),
   Path = filename:join(Dir, Name),
@@ -59,7 +64,8 @@ accept(Listen) ->
   end.
 
 %% One request per connection. /echo answers with the request head it
-%% received, one lower-cased "name: value" line per header; any other path
+%% received, one lower-cased "name: value" line per header; /sni answers with
+%% the server_name the client sent, or none when it sent none; any other path
 %% answers an empty pod list.
 serve(Transport) ->
   case ssl:handshake(Transport, 5000) of
@@ -69,6 +75,7 @@ serve(Transport) ->
         {ok, Path, Head} ->
           Body = case Path of
             <<"/echo">> -> Head;
+            <<"/sni">> -> sni(Socket);
             _ -> <<"{\"kind\":\"PodList\",\"items\":[]}">>
           end,
           ok = ssl:send(Socket, [<<"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: ">>,
@@ -91,6 +98,16 @@ read_head(Socket, Path, Lines) ->
 
 name(Name) when is_atom(Name) -> atom_to_binary(Name);
 name(Name) -> Name.
+
+%% Any answer other than a name or its absence is rendered, so a failing
+%% test shows what the pin returned instead of reading as no SNI.
+sni(Socket) ->
+  case ssl:connection_information(Socket, [sni_hostname]) of
+    {ok, [{sni_hostname, Host}]} when is_list(Host) -> unicode:characters_to_binary(Host);
+    {ok, [{sni_hostname, undefined}]} -> <<"none">>;
+    {ok, []} -> <<"none">>;
+    Other -> unicode:characters_to_binary(io_lib:format("~0p", [Other]))
+  end.
 
 closed_port() ->
   {ok, Socket} = gen_tcp:listen(0, [{ip, {127, 0, 0, 1}}]),

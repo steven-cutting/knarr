@@ -4,7 +4,9 @@
 //// 127.0.0.1, and the client connects to the string "127.0.0.1", the form
 //// KUBERNETES_SERVICE_HOST takes. A second listener serves a certificate
 //// from the same CA whose only subjectAltName is a DNS name, so the hostname
-//// check is what refuses it; a third chain is an unrelated CA.
+//// check is what refuses it; a third chain is an unrelated CA. The responder
+//// answers `/sni` with the server_name it received, so a test can watch what
+//// the OTP pin sends for an IP host.
 
 import gleam/erlang/process.{type Pid}
 import gleam/http
@@ -82,6 +84,22 @@ pub fn send_reports_a_closed_port_test() -> Nil {
   stop_responder(responder)
 
   assert result == Error(k8s_http.ConnectFailed("econnrefused"))
+}
+
+pub fn send_sends_the_ip_literal_as_sni_on_this_pin_test() -> Nil {
+  // OTP 29 sends a string IP host as the server_name, although RFC 6066 §3
+  // does not permit an IP literal in HostName. Decision 0013 keeps the
+  // default, because disabling SNI also disables the hostname check on this
+  // pin; if this fails, the pin has moved and 0013's SNI row reopens.
+  let responder = start_responder()
+  let response =
+    get(responder.port)
+    |> request.set_path("/sni")
+    |> k8s_http.send(Tls(responder.ca_file))
+    |> should.be_ok
+  stop_responder(responder)
+
+  assert response.body == "127.0.0.1"
 }
 
 pub fn send_passes_content_type_as_httpc_own_argument_test() -> Nil {

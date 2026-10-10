@@ -190,9 +190,9 @@
         <text x="335" y="67" text-anchor="middle" font-weight="600">the cost itself</text>
         <text x="585" y="67" text-anchor="middle" font-weight="600">the cost itself</text>
         <line x1="40" y1="96" x2="680" y2="96" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
-        <text x="360" y="116" text-anchor="middle" class="mut">value written to pod-deletion-cost</text>
+        <text x="300" y="116" text-anchor="middle" class="mut">annotation value</text>
         <line x1="460" y1="40" x2="460" y2="132" stroke="currentColor" stroke-dasharray="3 3"/>
-        <text x="460" y="150" text-anchor="middle">last written value, ±10% is not written</text>
+        <text x="460" y="150" text-anchor="middle">last applied value: less than 10% away is not written</text>
       </g>
     </svg></div>
     <figcaption>The shaded zone is the change threshold: a new cost replaces the written one only when it differs by at least 10% of the written value (configurable per workload). A move to or from <code>0</code> or <code>-1</code> always writes. Any write still waits for the per-pod interval and the global QPS budget.</figcaption>
@@ -205,14 +205,14 @@
     <svg viewBox="0 0 480 110" role="img" aria-label="Drained pods at minus one sit left of zero, idle and unannotated pods share the point zero, and busy pods sit right of zero at their own cost.">
       <g font-size="12" fill="currentColor">
         <line x1="16" y1="62" x2="464" y2="62" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="200" y1="54" x2="200" y2="70" stroke="currentColor" stroke-width="1.5"/>
-        <text x="200" y="86" text-anchor="middle">0</text>
-        <circle cx="80" cy="40" r="7" class="kn"/>
-        <text x="80" y="24" text-anchor="middle">drained, -1 (Knarr)</text>
-        <circle cx="200" cy="40" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
-        <text x="200" y="24" text-anchor="middle">idle and unannotated</text>
-        <circle cx="380" cy="40" r="7" class="kn"/>
-        <text x="380" y="24" text-anchor="middle">busy, its cost (Knarr)</text>
+        <line x1="215" y1="54" x2="215" y2="70" stroke="currentColor" stroke-width="1.5"/>
+        <text x="215" y="86" text-anchor="middle">0</text>
+        <circle cx="70" cy="40" r="7" class="kn"/>
+        <text x="70" y="24" text-anchor="middle">drained, -1 (Knarr)</text>
+        <circle cx="215" cy="40" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="215" y="24" text-anchor="middle">idle and unannotated</text>
+        <circle cx="390" cy="40" r="7" class="kn"/>
+        <text x="390" y="24" text-anchor="middle">busy, its cost (Knarr)</text>
         <text x="16" y="104" class="mut">← deleted first</text>
       </g>
     </svg>

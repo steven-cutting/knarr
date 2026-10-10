@@ -38,8 +38,8 @@ contract CostMapping {
     @invariant Continuous
         -- There are no bands and no quantization. The annotation carries the
         -- worker's cost itself: map returns a positive cost unchanged,
-        -- draining or not, up to the clamp. knarr never overrides the
-        -- worker's cost and applies no floor.
+        -- draining or not, up to the clamp. knarr never overrides a
+        -- positive cost and applies no floor.
     @invariant Sign
         -- Idle is 0 and busy is above 0. Lower is deleted first, so among
         -- pods of one ReplicaSet that tie on the earlier ranking steps a
@@ -51,9 +51,9 @@ contract CostMapping {
         -- An absent annotation means 0 and is the neutral value. A cost of 0
         -- that is not draining maps to 0, and 0 is spelled by removing the
         -- annotation: render returns null for it and the string "0" is
-        -- never written. Removal, the neutral fallback (reconcile, ticket
-        -- 21) and cleanup (lifecycle, ticket 23) are one operation: the
-        -- same removal of the same annotation.
+        -- never written. For pod-deletion-cost, removal, the neutral
+        -- fallback (reconcile, ticket 21) and cleanup (lifecycle, ticket 23)
+        -- are one operation: the same removal of the same annotation.
     @invariant Drained
         -- A reading whose worker_contract draining is true and whose cost is
         -- 0 maps to -1, which is deleted before every idle and unannotated
@@ -69,11 +69,12 @@ contract CostMapping {
         -- at all. What reaches the pod is that string or the removal,
         -- nothing else.
     @invariant ChangeThreshold
-        -- due is the only damping. The baseline is the last written value,
-        -- never the last reading, so slow drift accumulates and is written
-        -- once it adds up. due is false when next equals written: there is
-        -- nothing to write. It is true whenever written or next is 0 or -1.
-        -- When both are above 0 it is true exactly when the absolute
+        -- due is the only damping. written is the last applied value, the
+        -- one a successful patch or removal left on the pod, never the last
+        -- reading, so slow drift accumulates and is written once it adds up.
+        -- due is false when next equals written: there is nothing to write.
+        -- Otherwise it is true whenever written or next is 0 or -1. When
+        -- both are above 0 and differ it is true exactly when the absolute
         -- difference between next and written, multiplied by 100, is at
         -- least min_change_percent multiplied by written, in integers with
         -- no rounding. min_change_percent is 0 to 100; 0 disables the
@@ -83,9 +84,10 @@ contract CostMapping {
     @invariant Pure
         -- map, render and due are functions of their arguments alone: the
         -- same arguments give the same results, and none reads state, time
-        -- or the pod, or makes a request. Which pod state feeds map, the
-        -- patch and the removal are reconcile's (ticket 31); whether a due
-        -- write may go now is budget's (ticket 24).
+        -- or the pod, or makes a request. Which pod state feeds map, which
+        -- value stands as written, the patch and the removal are reconcile's
+        -- (ticket 31); whether a due write may go now is budget's (ticket
+        -- 24).
 }
 
 ------------------------------------------------------------

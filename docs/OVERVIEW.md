@@ -240,7 +240,7 @@ Readiness also controls Service routing, so the right guidance depends on the ki
 | false | low | no | Not accepting; low remaining interruption cost (possibly fully drained) | `-1` when the cost is `0`, below every idle and unannotated pod; otherwise the cost as is. Preferred victim |
 | any | any | yes | Being terminated | No patches; the worker's graceful shutdown applies |
 
-Knarr never overrides the worker's cost. A floor for draining pods was a candidate for §9.5 and was rejected.
+Knarr never overrides a positive cost. A floor for draining pods was a candidate for §9.5 and was rejected.
 
 ### Unreachable, invalid or absent endpoints
 
@@ -517,7 +517,7 @@ flowchart LR
    - **4a. Endpoint shape:** path, port, schema, field types, versioning, timeouts.
    - **4b. Discovery, auth and network:** how Knarr finds the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies.
 5. **Cost mapping:** sign convention, clamp, the drained value, the canonical string, the change threshold, and how `cost` and `accepting` combine (see the §5 drain states). Settled in [cost_mapping.allium](specs/cost_mapping.allium): no bands and no hysteresis.
-6. **Unknown/unreachable policy:** how long to keep the last value (in polls and in time), the neutral value, and how to detect an absent contract. Depends on 5.
+6. **Unknown/unreachable policy:** how long to keep the last value (in polls and in time) before the removal §9.5 fixes as neutral, and how to detect an absent contract. Depends on 5.
 7. **Readiness interaction:** how to document it, and whether Knarr warns on "high cost while NotReady". Settled in [worker_contract.allium](specs/worker_contract.allium).
 8. **Poll interval, concurrency and write budget:** numeric defaults and a v1 scale target (pods, Deployments, interval), LIST cadence, limits per Deployment and per cluster, and the expected API write rate.
 9. **`safe-to-evict` policy:** the threshold; removing the annotation vs writing `"true"` (matters for local-storage pods); how to avoid pinning nodes. Depends on S2.

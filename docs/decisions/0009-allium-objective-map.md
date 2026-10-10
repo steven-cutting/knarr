@@ -89,7 +89,7 @@ Each row names one behaviour, its module, its class and its owner. Where the ove
 | The readiness trade-off page | §5, §9.7 | none | open | 34 |
 | `accepting: false` matters only for a drain the worker starts itself | §5 | `worker_contract` | decided | 18 |
 | A terminating pod gets no patches; the worker's graceful shutdown applies | §5 | `reconcile` | decided | 31 |
-| Candidate handling per drain state, including a floor for draining pods | §5, §9.5 | `cost_mapping` | open | 20 |
+| Candidate handling per drain state, including a floor for draining pods | §5, §9.5 | `cost_mapping` | settled as no floor by 20 | 20 |
 | knarr does not override the worker's cost by default | §5 | `cost_mapping` | decided | 20 |
 | Never treat missing data as busy; keep any fallback bounded | §5 | `reconcile` | decided | 21 |
 | Transient failure: keep the last value for bounded polls and time, then neutral | §5, §9.6 | `reconcile` | open | 21 |

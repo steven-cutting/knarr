@@ -3,17 +3,61 @@
 -- Module: k8s_client.
 -- Scope: the in-cluster API boundary (§8, §9.2). Verified TLS with the
 -- service-account CA and an IP-SAN hostname check, token reload from disk,
--- get, list and patch on pods, get and list on Deployments and ReplicaSets, the
--- minimum namespaced Role, and the patch content types and preconditions the
--- write mode needs (§9.10).
--- Owner: spike S1 (ticket 14) drafts this module's spec-then-build pair; ticket
--- 22 amends it with what the write mode needs. Blocked on S1.
+-- and the two verbs spike S1 proved: list and patch on pods. Get on pods, get
+-- and list on Deployments and ReplicaSets, and the patch content types and
+-- preconditions the write mode needs (§9.10) are later tickets' clauses.
+-- Owner: spike S1 (ticket 14) settled the TLS, token and verb questions in
+-- Decision 0013; ticket 41 builds the full module from this contract and
+-- ticket 22 amends it with what the write mode needs.
+
+value Target {
+    host: String
+    port: Integer
+}
+
+value Annotation {
+    key: String
+    value: String
+}
+
+-- A pod as the client reads it: its annotations are a key-value map, here
+-- the list of its pairs, and an absent map reads as empty.
+value Pod {
+    name: String
+    annotations: List<Annotation>
+    deletion_timestamp: Timestamp?
+}
+
+contract Client {
+    list_pods: (target: Target, namespace: String) -> List<Pod>
+    patch_annotation: (target: Target, namespace: String, pod_name: String, annotation: Annotation) -> Pod
+
+    @invariant VerifiedTls
+        -- Every request to the apiserver verifies the peer (verify_peer)
+        -- against the service-account ca.crt alone, with an https hostname
+        -- check. An IP-literal host, the form KUBERNETES_SERVICE_HOST takes,
+        -- is checked against the certificate's IP subjectAltName. There is no
+        -- unverified fallback: a handshake that fails is reported as a value
+        -- and the request is not sent.
+    @invariant TokenReload
+        -- The bearer token and the namespace are read from their projected
+        -- files on every cycle, never cached for the life of the process. A
+        -- failed read of either is logged and that cycle makes no request.
+        -- The token itself is never logged; a change of its file is logged
+        -- as the file's sha256 and the token's expiry claim.
+    @invariant Verbs
+        -- The client lists pods in its own namespace and merge-patches
+        -- annotations on one pod. The Role grants exactly list and patch on
+        -- pods, no other verb and no other resource.
+    @invariant NoPatchWhileTerminating
+        -- A pod is not patched when the most recent list shows its
+        -- deletion_timestamp set. Closing the window between that list and
+        -- the patch needs a write precondition, which is the §9.10 open
+        -- question.
+}
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question "§9.2 TLS: the exact ssl options, and whether hostname verification against the IP in KUBERNETES_SERVICE_HOST works (spike S1, ticket 14)."
-open question "§9.2 Tokens: how often the projected service-account token is re-read, and what happens when the read fails (ticket 14)."
-open question "§9.2 Verbs: the exact verbs on pods, deployments, replicasets and events the Role grants, to be confirmed by what the client uses (§8 RBAC, ticket 14)."
 open question "§9.10 Patch support: the patch content types and preconditions the client must support once ticket 22 chooses the write mode."

@@ -346,6 +346,19 @@
         "decision_coverage"
       ],
       "requires": []
+    },
+    {
+      "path": "decisions/0013-in-cluster-client.md",
+      "title": "Decision 0013: In-cluster Kubernetes client",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_in_cluster_client"
+      ],
+      "requires": []
     }
   ]
 }

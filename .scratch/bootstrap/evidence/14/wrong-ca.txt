@@ -1,0 +1,43 @@
+# Transcript of the cluster-s1 job, run 37906694255 on ubuntu-24.04 (native linux/amd64),
+# https://github.com/steven-cutting/knarr/actions/runs/37906694255/job/113741757594
+# The runner's environment preamble and BuildKit progress lines are removed.
+date: 2026-10-09T08:55Z
+host: Linux x86_64
+commit: ac72150
+configmap/knarr-wrong-ca created
+test -x .pixi/envs/cluster/bin/kind || { echo 'run pixi install --locked -e cluster' >&2; exit 2; }
+python3 scripts/checks/cluster.py deploy "/home/runner/work/knarr/knarr" "$1" "$2"
+Image: "knarr:knarr-12fc945d" with ID "sha256:0bdf0cad8232c13f6bb80363306fddd760029f5dac437de65d0117bf9026218f" found to be already present on all nodes.
+serviceaccount/knarr unchanged
+role.rbac.authorization.k8s.io/knarr unchanged
+rolebinding.rbac.authorization.k8s.io/knarr unchanged
+deployment.apps/knarr configured
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 of 1 updated replicas are available...
+deployment "knarr" successfully rolled out
+pod knarr-848ccbc5fd-zzdtr
+KNARR_CA_FILE=/etc/knarr/wrong-ca/ca.crt
+--- the probe lines ---
+2026-10-09T08:55:38.302684207Z s1_probe event=token_changed token_sha256=... jwt_exp=1791536707
+2026-10-09T08:55:38.408182664Z s1_probe event=list_pods_failed error=tls_alert unknown_ca
+2026-10-09T08:56:08.414125777Z s1_probe event=list_pods_failed error=tls_alert unknown_ca
+ok   2 cycles refused the handshake with unknown_ca
+ok   no LIST or PATCH succeeded: there is no unverified fallback
+ok   pod Ready with restartCount 0: the failure is a value, not a crash
+wrong-ca: all checks passed
+test -x .pixi/envs/cluster/bin/kind || { echo 'run pixi install --locked -e cluster' >&2; exit 2; }
+python3 scripts/checks/cluster.py deploy "/home/runner/work/knarr/knarr" "$1" "$2"
+Image: "knarr:knarr-12fc945d" with ID "sha256:0bdf0cad8232c13f6bb80363306fddd760029f5dac437de65d0117bf9026218f" found to be already present on all nodes.
+serviceaccount/knarr unchanged
+role.rbac.authorization.k8s.io/knarr unchanged
+rolebinding.rbac.authorization.k8s.io/knarr unchanged
+deployment.apps/knarr configured
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 of 1 updated replicas are available...
+deployment "knarr" successfully rolled out
+configmap "knarr-wrong-ca" deleted from default namespace

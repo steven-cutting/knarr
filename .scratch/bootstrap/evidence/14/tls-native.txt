@@ -1,0 +1,37 @@
+# Transcript of the cluster-s1 job, run 37906694255 on ubuntu-24.04 (native linux/amd64),
+# https://github.com/steven-cutting/knarr/actions/runs/37906694255/job/113741757594
+# The runner's environment preamble and BuildKit progress lines are removed.
+date: 2026-10-09T08:43Z
+host: Linux x86_64
+openssl: OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)
+escript: /home/runner/work/knarr/knarr/.pixi/envs/default/bin/escript
+server.pem: OK
+server-dns.pem: OK
+X509v3 Subject Alternative Name: 
+    DNS:localhost, IP Address:127.0.0.1
+otp_release 29, erts 17.1
+crypto:info_lib() [{<<"OpenSSL">>,810549376,<<"OpenSSL 3.6.5 29 Sep 2026">>}]
+ok   ssl string IP, right CA (IP SAN)                     want ok           got {ok,[{protocol,'tlsv1.3'}]}
+ok   ssl string IP, wrong CA (ca-b)                       want unknown_ca   got {error,{tls_alert,{unknown_ca,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}
+ok   ssl string IP, cert has no IP SAN                    want hostname     got {error,{tls_alert,{bad_certificate,"TLS client: In state wait_cert_cr at ssl_handshake.erl:2312 generated CLIENT ALERT: Fatal - Bad Certificate\n {bad_cert,{hostname_check_failed,{requested,\"127.0.0.1\"},\n {received,[{dNSName,\"localhost\"}]}}}"}}}
+sni_fun calls recorded for the ssl cases: [{sni,"127.0.0.1"}]
+ok   httpc GET string IP, right CA                        want ok           got {ok,{{"HTTP/1.1",200,"OK"}, [{"connection","close"}, {"content-length","11"}, {"content-type","application/json"}], <<"{\"ok\":true}">>}}
+ok   httpc GET string IP, wrong CA (ca-b)                 want unknown_ca   got {error, {failed_connect, [{to_address,{"127.0.0.1",33049}}, {inet, [inet], {tls_alert, {unknown_ca, "TLS client: In state wait_cert_cr at ssl_handshake.erl:2304 generated CLIENT ALERT: Fatal - Unknown CA\n"}}}]}}
+ok   httpc GET string IP, closed port                     want econnrefused got {error,{failed_connect,[{to_address,{"127.0.0.1",60373}}, {inet,[inet],econnrefused}]}}
+sni_fun calls recorded for the httpc cases: [{sni,"127.0.0.1"}]
+raw PATCH request as received by the server:
+PATCH /api/v1/namespaces/default/pods/p HTTP/1.1
+content-type: application/merge-patch+json
+content-length: 38
+host: 127.0.0.1:33049
+authorization: ***
+accept: application/json
+connection: keep-alive
+{"metadata":{"annotations":{"k":"v"}}}
+content-type header lines received: 1
+ok   httpc PATCH string IP, one content-type header       want ok           got {ok,{{"HTTP/1.1",200,"OK"}, [{"connection","close"}, {"content-length","11"}, {"content-type","application/json"}], <<"{\"ok\":true}">>}}
+pkix_test_data keys: [key,cert,cacerts]
+peer subjectAltName: [[{iPAddress,<<127,0,0,1>>}]]
+cacerts entries: 2, distinct: 1
+ok   httpc GET against a pkix_test_data chain with an IP  want ok           got {ok,{{"HTTP/1.1",200,"OK"}, [{"connection","close"}, {"content-length","11"}, {"content-type","application/json"}], <<"{\"ok\":true}">>}}
+tls_check: all 8 cases matched

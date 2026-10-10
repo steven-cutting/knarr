@@ -59,8 +59,16 @@ copied at its original absolute prefix. The image targets linux/amd64, the
 locked CI platform. ARM-host execution requires runtime emulation support;
 `just image-check` and `just smoke` verify the Docker and kind paths separately. It runs as UID/GID 10001. The Deployment
 uses a read-only root filesystem, a writable temporary volume, dropped
-capabilities, no privilege escalation and RuntimeDefault seccomp. The empty
-Role grants no Kubernetes permissions; token automount is disabled.
+capabilities, no privilege escalation and RuntimeDefault seccomp. The Role
+grants `list` and `patch` on pods, bound to the `knarr` ServiceAccount by a
+RoleBinding; token automount stays disabled, and a projected volume supplies a
+600-second token, the cluster CA and the namespace to the S1 probe
+([Decision 0013](../decisions/0013-in-cluster-client.md)). The Deployment
+turns that probe on with `ERL_FLAGS=-knarr s1_probe true`; the gate's test
+runs leave it off, so they make no API call. `just deploy <image> wrong-ca`
+deploys the negative-TLS variant from `deploy/wrong-ca/`, which needs a
+`knarr-wrong-ca` ConfigMap holding an unrelated `ca.crt`; the ticket 14
+evidence script creates one from a throwaway certificate.
 
 Before starting Erlang, the container entrypoint caps the soft file-descriptor
 limit at 65,536, preserving any lower inherited limit. kind's containerd can

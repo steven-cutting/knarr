@@ -10,6 +10,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMAS = ROOT / "scripts/schemas/kubernetes"
+DEPLOY = ROOT / "deploy"
+
+
+def variants():
+    """Every deployable directory under deploy/: the base and its variants."""
+    return sorted(
+        path.name for path in DEPLOY.iterdir() if (path / "kustomization.yaml").is_file()
+    )
+
+
+def render(variant):
+    if variant not in variants():
+        raise ValueError(f"unknown deployment variant: {variant}")
+    return subprocess.check_output(["kustomize", "build", str(DEPLOY / variant)], text=True)
 
 
 def verify(source=SCHEMAS):
@@ -20,16 +34,7 @@ def verify(source=SCHEMAS):
             raise ValueError(f"upstream schema checksum mismatch: {name}")
 
 
-def main():
-    verify()
-    if sys.argv[1:] == ["--render"]:
-        content = subprocess.check_output(
-            ["kustomize", "build", str(ROOT / "deploy/base")], text=True
-        )
-    elif not sys.argv[1:]:
-        content = (ROOT / "deploy/base/resources.json").read_text()
-    else:
-        raise ValueError("usage: deployment.py [--render]")
+def validate(content):
     subprocess.run(
         [
             "kubeconform",
@@ -42,6 +47,21 @@ def main():
         text=True,
         check=True,
     )
+
+
+def main():
+    verify()
+    arguments = sys.argv[1:]
+    if not arguments:
+        validate((DEPLOY / "base/resources.json").read_text())
+    elif arguments == ["--render"]:
+        for variant in variants():
+            print(f"rendering deploy/{variant}")
+            validate(render(variant))
+    elif len(arguments) == 2 and arguments[0] == "--render":
+        validate(render(arguments[1]))
+    else:
+        raise ValueError("usage: deployment.py [--render [variant]]")
 
 
 if __name__ == "__main__":

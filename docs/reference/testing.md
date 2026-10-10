@@ -152,11 +152,11 @@ Run birdie's other commands through `just birdie`, for example `just birdie stal
 
 1. **A pure builder** takes values and returns a `Request(String)`.
 2. **A pure decoder** takes a `Response(String)` and returns a typed result. Every way it can fail is a named error.
-3. **A function that does the I/O** only through a `send` it is given, of type `fn(Request(String)) -> Result(Response(String), e)`. That is the type of `gleam_httpc.send`, so production code passes `httpc.send` unchanged. Ticket 14 brings in the real client. A test passes a closure.
+3. **A function that does the I/O** only through a `send` it is given, of type `fn(Request(String)) -> Result(Response(String), e)`. Production passes `k8s_http.send(_, k8s_http.Tls(ca_file))`, the verified-TLS adapter from [Decision 0013](../decisions/0013-in-cluster-client.md); `gleam_httpc` is not used because it cannot carry a CA file. A test passes a closure.
 
 The builder and the decoder are tested by value. The I/O function is tested with a closure fake. The fake asserts the request it was handed and returns a canned response. A second fake returns `Error(_)`, to test the failure path. To snapshot the outgoing request, take the picture inside the fake: it then shows exactly what the function sent, not a request the test built again.
 
-The worked example lives in `test/` only, because it is not part of knarr. It models the apiserver's `GET /version`, a real, read-only call that decides nothing:
+The real client, `src/knarr/k8s_client.gleam` with `test/k8s_client_test.gleam`, follows the same shape for the pod list and the annotation patch. The worked example lives in `test/` only, because it is not part of knarr. It models the apiserver's `GET /version`, a real, read-only call that decides nothing:
 
 - [sans_io_example.gleam](../../test/sans_io_example.gleam): the builder, the decoder and `fetch_version`
 - [sans_io_example_test.gleam](../../test/sans_io_example_test.gleam): named tests, the closure fakes, a fixed-seed property, and a snapshot taken inside the fake

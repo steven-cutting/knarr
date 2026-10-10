@@ -1,0 +1,39 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "knarr"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [
+          {
+            "name": "knarr",
+            "env": [
+              {
+                "name": "KNARR_CA_FILE",
+                "value": "/etc/knarr/wrong-ca/ca.crt"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "wrong-ca",
+                "mountPath": "/etc/knarr/wrong-ca",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "wrong-ca",
+            "configMap": {
+              "name": "knarr-wrong-ca"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

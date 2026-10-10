@@ -327,10 +327,34 @@ image-check image=cluster_image:
     python3 scripts/checks/image.py "$1"
 
 [group('check')]
-[doc('Lint the image and validate base resources against pinned local schemas')]
+[doc("Lint both images and validate the base and fake worker resources against pinned local schemas")]
 packaging-check:
-    hadolint Dockerfile
+    hadolint Dockerfile fixtures/fake_worker/Dockerfile
     python3 scripts/checks/deployment.py
+
+# The fake worker fixture on kind (ticket 29). Its image builds from the
+# repository root, with its own Dockerfile and context allowlist beside it.
+fake_worker_image := replace(cluster_image, "knarr:", "fake-worker:")
+
+[group('cluster')]
+[doc('Build the linux/amd64 fake worker image (needs network)')]
+fake-worker-image-build image=fake_worker_image:
+    docker build --platform linux/amd64 --file fixtures/fake_worker/Dockerfile --tag "$1" .
+
+[group('cluster')]
+[doc('Verify the fake worker image: numeric user, OTP, restricted runtime and a SIGTERM drain')]
+fake-worker-image-check image=fake_worker_image:
+    python3 scripts/checks/image.py --fake-worker "$1"
+
+[group('cluster')]
+[doc('Load and deploy four fake workers and their collector to this worktree kind cluster')]
+fake-worker-deploy image=fake_worker_image: cluster-tools
+    python3 scripts/checks/cluster.py fake-worker-deploy "{{ justfile_directory() }}" "$1"
+
+[group('cluster')]
+[doc('Set mixed states through control, read them back from status, and find kill records')]
+fake-worker-smoke: cluster-tools
+    python3 scripts/checks/cluster.py fake-worker-smoke "{{ justfile_directory() }}"
 
 [group('cluster')]
 [doc('Render and validate every deploy/ variant, and hold the release overlay to its two-line difference')]

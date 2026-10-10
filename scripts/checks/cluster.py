@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -10,6 +11,8 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +26,21 @@ KWOK_IMAGES = {
     "etcd": "registry.k8s.io/etcd:3.6.10-0@sha256:f65c61039e7b7fd6e651f7ec2459b880589892cb13cf79c2f71c92aa08fc5144",
     "kwok-controller": "registry.k8s.io/kwok/kwok:v0.8.0@sha256:6d25aa8fbdfe78845423160bf125b5513f9522e2770981f0945c2a250c2b26f0",
 }
+# The fake worker fixture (ticket 29): its manifests, its workers' label, and the
+# actions that need real pods.
+FAKE_WORKER = ROOT / "fixtures/fake_worker/deploy"
+WORKERS = "app.kubernetes.io/name=fake-worker"
+KIND_ONLY = {"deploy", "smoke", "image-load", "fake-worker-deploy", "fake-worker-smoke"}
+# What the smoke sets on four workers through control, and what each one's status
+# endpoint must then answer, byte for byte (worker_contract.allium).
+MIXED = [
+    ("idle", '{"cost":0,"accepting":true}', (200, '{"cost":0,"accepting":true}')),
+    ("busy", '{"cost":1800,"accepting":true}', (200, '{"cost":1800,"accepting":true}')),
+    ("draining", '{"cost":500,"accepting":false}', (200, '{"cost":500,"accepting":false}')),
+    ("absent", '{"failure":"not_found"}', (404, "not found\n")),
+]
+# Loopback only: a proxy in the environment never sees the smoke's requests.
+LOOPBACK = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def run(*args, **kwargs):
@@ -101,6 +119,129 @@ def smoke(state):
                 forward.wait()
 
 
+@contextlib.contextmanager
+def port_forward(state, target, port):
+    """Forward a loopback port the OS picks to `port` on `target`, and yield it.
+    Each forward logs to its own file under .cluster/."""
+    log_path = state / f"port-forward-{re.sub(r'[^A-Za-z0-9.-]', '-', target)}-{port}.log"
+    with log_path.open("w+") as log:
+        forward = subprocess.Popen(
+            ["kubectl", "port-forward", "--address=127.0.0.1", target, f":{port}"],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            deadline = time.monotonic() + 30
+            local = None
+            while local is None and time.monotonic() < deadline and forward.poll() is None:
+                log.seek(0)
+                match = re.search(rf"Forwarding from 127\.0\.0\.1:(\d+) -> {port}\b", log.read())
+                if match:
+                    local = int(match[1])
+                else:
+                    time.sleep(0.1)
+            if local is None:
+                raise RuntimeError(f"port-forward to {target} failed; see {log_path}")
+            yield local
+        finally:
+            forward.terminate()
+            try:
+                forward.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                forward.kill()
+                forward.wait()
+
+
+def http(method, url, body=None):
+    """One plain-HTTP request over loopback: its status and body, errors included."""
+    data = None if body is None else body.encode()
+    request = urllib.request.Request(url, data=data, method=method)  # noqa: S310 - loopback http
+    try:
+        with LOOPBACK.open(request, timeout=5) as response:
+            return response.status, response.read().decode()
+    except urllib.error.HTTPError as error:
+        return error.code, error.read().decode()
+
+
+def expect(got, wanted, what):
+    if got != wanted:
+        raise RuntimeError(f"{what}: wanted {wanted!r}, got {got!r}")
+
+
+def fake_worker_smoke(state):
+    """Set mixed states on four workers through control and read each back from
+    its status endpoint; then delete a busy and an idle worker, read the busy one
+    while it drains, and find both kill records at the collector by pod name."""
+    running = output(
+        "kubectl",
+        "get",
+        "pods",
+        "-l",
+        WORKERS,
+        "--field-selector=status.phase=Running",
+        "-o",
+        "jsonpath={.items[*].metadata.name}",
+    ).split()
+    if len(running) < len(MIXED):
+        raise RuntimeError(f"{len(MIXED)} running fake workers needed, found {len(running)}")
+    pods = sorted(running)[: len(MIXED)]
+    with port_forward(state, "service/fake-worker-collector", 8081) as collector:
+        kills = f"http://127.0.0.1:{collector}/kills"
+        expect(http("DELETE", kills)[0], 204, "clearing the collector")
+        for pod, (label, body, wanted) in zip(pods, MIXED, strict=True):
+            with (
+                port_forward(state, f"pod/{pod}", 8081) as control,
+                port_forward(state, f"pod/{pod}", 8080) as status,
+            ):
+                url = f"http://127.0.0.1:{control}/control"
+                expect(http("PUT", url, body)[0], 200, f"{pod} control")
+                got = http("GET", f"http://127.0.0.1:{status}/knarr/v1/status")
+                expect(got, wanted, f"{pod} status")
+                print(f"ok {label} {pod}: {got[0]} {got[1].strip()}")
+        idle, busy = pods[0], pods[1]
+        # StatusEndpoint.Served in the cluster: the busy worker answers while it drains.
+        with port_forward(state, f"pod/{busy}", 8080) as status:
+            run("kubectl", "delete", "pod", busy, "--wait=false")
+            url = f"http://127.0.0.1:{status}/knarr/v1/status"
+            draining = (200, '{"cost":1800,"accepting":false}')
+            deadline = time.monotonic() + 15
+            while (got := http("GET", url)) != draining and time.monotonic() < deadline:
+                time.sleep(0.2)
+            expect(got, draining, f"{busy} status while it drains")
+            print(f"ok draining after SIGTERM {busy}: {got[1]}")
+        run("kubectl", "delete", "pod", idle, "--wait=true", "--timeout=60s")
+        run("kubectl", "wait", "--for=delete", f"pod/{busy}", "--timeout=60s")
+        status_code, listed = http("GET", kills)
+        expect(status_code, 200, "listing kills")
+        records = {record["pod"]: record for record in json.loads(listed)["kills"]}
+        for pod, busy_flag, cost in [(busy, True, 1800), (idle, False, 0)]:
+            wanted = {"pod": pod, "busy": busy_flag, "cost": cost, "accepting": True}
+            expect(records.get(pod), wanted, f"{pod} kill record")
+            print(f"ok kill record {pod}: busy={str(busy_flag).lower()}")
+
+
+def render_fake_worker(state, image):
+    """Write the fake worker's manifests, pointed at the local image and marked with
+    its ID so a rebuilt image rolls out, to .cluster/render/fake-worker/."""
+    target = state / "render" / "fake-worker"
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+    data = json.loads((FAKE_WORKER / "resources.json").read_text())
+    image_id = output("docker", "image", "inspect", "--format={{.Id}}", image)
+    for item in data["items"]:
+        if item["kind"] == "Deployment":
+            template = item["spec"]["template"]
+            template["spec"]["containers"][0]["image"] = image
+            template["metadata"].setdefault("annotations", {})["knarr.dev/local-image-id"] = (
+                image_id
+            )
+    (target / "resources.json").write_text(json.dumps(data))
+    shutil.copyfile(FAKE_WORKER / "kustomization.yaml", target / "kustomization.yaml")
+    return target
+
+
 def render(state, image, variant):
     """Write the base, pointed at the local image and marked with its ID so a rebuilt
     image rolls out, to .cluster/render/base/, and a variant beside it, where its
@@ -133,7 +274,7 @@ def main():
     runner = os.environ.get("KNARR_CLUSTER", "kind")
     if runner not in {"kind", "kwok"}:
         raise ValueError("KNARR_CLUSTER must be kind or kwok")
-    if runner != "kind" and action in {"deploy", "smoke", "image-load"}:
+    if runner != "kind" and action in KIND_ONLY:
         raise ValueError(f"{action} requires kind; kwok pods do not run containers")
     name = output("sh", str(ROOT / "scripts/cluster-name.sh"), str(checkout), "name")
     state = checkout / ".cluster"
@@ -149,7 +290,8 @@ def main():
     os.environ["KUBECONFIG"] = str(state / "kubeconfig")
     os.environ["KWOK_WORKDIR"] = str(state / "kwok")
     os.environ["KWOK_KUBE_VERSION"] = "v1.35.5"
-    image = sys.argv[3] if len(sys.argv) > 3 else f"knarr:{name}"
+    default = "fake-worker" if action.startswith("fake-worker") else "knarr"
+    image = sys.argv[3] if len(sys.argv) > 3 else f"{default}:{name}"
     variant = sys.argv[4] if len(sys.argv) > 4 else "base"
     if not (ROOT / "deploy" / variant / "kustomization.yaml").is_file():
         raise ValueError(f"unknown deployment variant: {variant}")
@@ -232,6 +374,23 @@ def main():
         run("kubectl", "rollout", "status", "deployment/knarr", "--timeout=120s")
     elif action == "smoke":
         smoke(state)
+    elif action == "fake-worker-deploy":
+        run("kind", "load", "docker-image", image, "--name", name)
+        rendered = output("kustomize", "build", str(render_fake_worker(state, image)))
+        run("kubectl", "apply", "-f", "-", input=rendered)
+        # Workers reach the collector by its Service name, so DNS must answer.
+        run(
+            "kubectl",
+            "rollout",
+            "status",
+            "--namespace=kube-system",
+            "deployment/coredns",
+            "--timeout=120s",
+        )
+        for deployment in ("fake-worker-collector", "fake-worker"):
+            run("kubectl", "rollout", "status", f"deployment/{deployment}", "--timeout=120s")
+    elif action == "fake-worker-smoke":
+        fake_worker_smoke(state)
     elif action == "diagnostics":
         for args in [
             ("get", "pods", "-o", "wide"),
@@ -239,6 +398,8 @@ def main():
             ("describe", "pods", "-l", "app.kubernetes.io/name=knarr"),
             ("logs", "deployment/knarr", "--all-containers", "--tail=100"),
             ("logs", "deployment/knarr", "--all-containers", "--previous", "--tail=100"),
+            ("describe", "pods", "-l", "app.kubernetes.io/part-of=knarr-fixtures"),
+            ("logs", "-l", "app.kubernetes.io/part-of=knarr-fixtures", "--tail=100"),
             ("get", "events", "--sort-by=.lastTimestamp"),
         ]:
             subprocess.run(["kubectl", *args], check=False)

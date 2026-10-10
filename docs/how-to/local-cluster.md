@@ -92,8 +92,11 @@ swap disabled and verifies the descriptor cap. The printed memory reading is
 informational, not a peak measurement or a capacity guarantee for future work.
 
 The offline gate validates image lint, base resources against local Kubernetes
-schemas, and static security settings. `just deployment-check` validates the
-kustomize output with the optional cluster tools installed. Container checks separately prove both image stages use
+schemas, and static security settings. `just deployment-check`, with the
+optional cluster tools installed, renders every variant under `deploy/`
+(`base`, `release` and `wrong-ca`) with kustomize and validates each. It fails
+unless the release overlay changes exactly two lines of the base's render: the
+image, pinned by digest, and the pull policy. Container checks separately prove both image stages use
 the pixi manifest's OTP major (with lock agreement checked by the gate) and that the runtime starts with a read-only root.
 The kind smoke job proves actual endpoint access; the kwok job proves cluster
 readiness only. Both jobs remain outside aggregate `check`.

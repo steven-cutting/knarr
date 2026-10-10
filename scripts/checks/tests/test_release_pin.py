@@ -8,6 +8,7 @@ real overlay is never touched and no cluster tools are needed.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,7 @@ from conftest import REPOSITORY
 
 DIGEST = "sha256:" + "0123456789abcdef" * 4
 OTHER = "sha256:" + "fedcba9876543210" * 4
+DIGEST_LINE = re.compile(r"^( *digest: )sha256:[0-9a-f]{64}$", re.MULTILINE)
 FAKE_KUSTOMIZE = """\
 import os, pathlib, re, sys
 assert sys.argv[1] == "build", sys.argv
@@ -91,15 +93,25 @@ def test_a_malformed_digest_is_refused(checkout: Path, digest: str) -> None:
     assert overlay(checkout).read_bytes() == before
 
 
-def test_a_digest_changes_one_line_and_prints_the_reference(checkout: Path) -> None:
+@pytest.mark.parametrize(
+    "pinned", [False, True], ids=["the committed overlay", "a pinned overlay"]
+)
+def test_a_digest_changes_one_line_and_prints_the_reference(checkout: Path, pinned: bool) -> None:
+    if pinned:
+        text = overlay(checkout).read_text()
+        overlay(checkout).write_text(DIGEST_LINE.sub(rf"\g<1>{DIGEST}", text))
     before = overlay(checkout).read_text().splitlines()
-    result = pin(checkout, DIGEST)
+    # Whatever the overlay holds now, the placeholder or a pinned digest, a new
+    # digest replaces it.
+    (current,) = [line for line in before if DIGEST_LINE.fullmatch(line)]
+    digest = OTHER if DIGEST in current else DIGEST
+    result = pin(checkout, digest)
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines()[-1] == f"ghcr.io/steven-cutting/knarr@{DIGEST}"
+    assert result.stdout.splitlines()[-1] == f"ghcr.io/steven-cutting/knarr@{digest}"
     after = overlay(checkout).read_text().splitlines()
     assert len(after) == len(before)
     assert [(old, new) for old, new in zip(before, after, strict=True) if old != new] == [
-        ("    digest: sha256:" + "0" * 64, f"    digest: {DIGEST}")
+        (current, DIGEST_LINE.sub(rf"\g<1>{digest}", current))
     ]
     assert sorted(path.name for path in overlay(checkout).parent.iterdir()) == [
         "kustomization.yaml",

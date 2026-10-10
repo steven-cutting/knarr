@@ -2,9 +2,10 @@
 # every pushed version tag (vX.Y.Z or vX.Y.Z-rc.N) runs it. The guards it
 # sources are scripts/release/lib.sh, tested offline by lib_test.sh beside it.
 # `just lint` runs actionlint on this file, and
-# scripts/checks/tests/test_workflows.py holds its triggers, its permissions
-# and the existence guard to Decision 0012. Ticket 28 drafted it and dry-ran it
-# against a throwaway registry (.scratch/bootstrap/evidence/28/).
+# scripts/checks/tests/test_workflows.py holds its triggers, its permissions,
+# the moved-tag refusal and the existence guard to Decision 0012. Ticket 28
+# drafted it and dry-ran it against a throwaway registry
+# (.scratch/bootstrap/evidence/28/).
 #
 # The release model (Decision 0012): the maintainer merges a release pull
 # request that bumps gleam.toml and CHANGELOG.md, tags the merge commit
@@ -22,12 +23,14 @@ on:
 
 permissions: {}
 
-# One group for the whole repository, not one per tag: two release runs never
-# overlap, so a slower older run cannot push X.Y or X after a newer one and
-# move them backward. GitHub keeps one pending run per group, so a third tag
-# pushed while one run is in progress and another waits cancels the waiting
-# run; the maintainer re-runs it from the Actions page, since the tag ruleset
-# stops the tag being pushed again.
+# One group for the whole repository, not one per tag, so two release runs
+# never overlap. The group does not order them by version. GitHub keeps one
+# pending run per group, so a third tag pushed while one run is in progress
+# and another waits cancels the waiting run; the maintainer re-runs it from the
+# Actions page, since the tag ruleset stops the tag being pushed again. An
+# older release that runs after a newer one in its line, re-run or not, moves
+# X.Y (and X) back to itself, as a backport does (Decision 0012). No install
+# follows them: every install pins a digest.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -44,6 +47,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.guards.outputs.version }}
+      commit: ${{ steps.guards.outputs.commit }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,18 +61,26 @@ jobs:
         run: |
           # shellcheck source=/dev/null
           . scripts/release/lib.sh
+          # The guards read gleam.toml and CHANGELOG.md from the checkout, so
+          # they check the tagged commit only if the checkout is that commit.
+          # publish builds this commit and no other.
+          commit=$(git rev-parse "refs/tags/$TAG^{commit}")
+          if [ "$(git rev-parse HEAD)" != "$commit" ]; then
+            echo "::error::the checkout is not tag $TAG's commit $commit"; exit 1
+          fi
           version=$(toml_version < gleam.toml)
           if ! tag_matches_version "$TAG" "$version"; then
             echo "::error::tag $TAG does not match gleam.toml version $version"; exit 1
           fi
-          verdict=$(ancestor_verdict "refs/tags/$TAG" origin/main) || {
-            echo "::error::tag $TAG is $verdict of origin/main: release only what main carries"; exit 1
+          verdict=$(ancestor_verdict "$commit" origin/main) || {
+            echo "::error::the ancestry of tag $TAG against origin/main is $verdict, not ancestor: release only what main carries"; exit 1
           }
           if ! changelog_has_version "$version" < CHANGELOG.md; then
             echo "::error::CHANGELOG.md has no '## [$version] - YYYY-MM-DD' heading"; exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag $TAG: version $version, an ancestor of origin/main, in the changelog"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "tag $TAG at $commit: version $version, an ancestor of origin/main, in the changelog"
 
   publish:
     name: Publish to ghcr.io
@@ -90,11 +102,38 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The run waits for approval between verify and this job, and until
+      # 37's tag ruleset exists the tag can be moved meanwhile. Build only the
+      # commit verify checked, and only while the tag still names it: the
+      # checkout's copy of the tag may be the one the run was triggered with,
+      # so fetch it again.
+      - name: Refuse a tag that moved after verify
+        env:
+          TAG: ${{ github.ref_name }}
+          COMMIT: ${{ needs.verify.outputs.commit }}
+        run: |
+          git fetch --depth=1 --no-tags origin "+refs/tags/$TAG:refs/tags/$TAG"
+          tagged=$(git rev-parse "refs/tags/$TAG^{commit}")
+          head=$(git rev-parse HEAD)
+          if [ "$tagged" != "$COMMIT" ] || [ "$head" != "$COMMIT" ]; then
+            echo "::error::tag $TAG names $tagged and the checkout is $head, not $COMMIT, the commit verify checked: not building"; exit 1
+          fi
       - name: Log in to ghcr.io
         env:
           ACTOR: ${{ github.actor }}
           TOKEN: ${{ github.token }}
         run: printf '%s' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+      # A re-run of a run that failed after its push meets `present` here and
+      # stops, as Decision 0012 decides: the release is published and only its
+      # digest is missing. Recover it by hand:
+      #   1. Read the digest from the Digest: line of
+      #      docker buildx imagetools inspect ghcr.io/steven-cutting/knarr:X.Y.Z
+      #      (digest_of_inspect in lib.sh parses it).
+      #   2. Pull ghcr.io/steven-cutting/knarr@<digest>.
+      #   3. Check that the tagged commit is what
+      #      docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' ghcr.io/steven-cutting/knarr@<digest>
+      #      prints.
+      #   4. Run just release-pin <digest>.
       - name: Refuse to push over an existing tag
         env:
           ACTOR: ${{ github.actor }}
@@ -120,12 +159,12 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.verify.outputs.version }}
+          COMMIT: ${{ needs.verify.outputs.commit }}
         run: |
           # shellcheck source=/dev/null
           . scripts/release/lib.sh
-          sha=$(git rev-parse "refs/tags/$TAG^{commit}")
           set --
-          for t in $(tags_for "$TAG" "$sha"); do set -- "$@" --tag "$IMAGE:$t"; done
+          for t in $(tags_for "$TAG" "$COMMIT"); do set -- "$@" --tag "$IMAGE:$t"; done
           # --provenance=false --sbom=false: one image manifest, whose digest
           # is the one the overlay pins, whatever image store the runner's
           # docker has (registry.txt). Ticket 38 turns attestations on and
@@ -133,7 +172,7 @@ jobs:
           docker buildx build --platform linux/amd64 --provenance=false --sbom=false \
             --label "org.opencontainers.image.source=https://github.com/steven-cutting/knarr" \
             --label "org.opencontainers.image.version=$VERSION" \
-            --label "org.opencontainers.image.revision=$sha" \
+            --label "org.opencontainers.image.revision=$COMMIT" \
             --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --metadata-file metadata.json "$@" --push .
           digest=$(digest_of_metadata < metadata.json)
@@ -142,7 +181,7 @@ jobs:
             echo
             echo "Pin this in deploy/release: \`$IMAGE@$digest\`"
             echo
-            for t in $(tags_for "$TAG" "$sha"); do echo "- \`$IMAGE:$t\`"; done
+            for t in $(tags_for "$TAG" "$COMMIT"); do echo "- \`$IMAGE:$t\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
           echo "DIGEST=$digest" >> "$GITHUB_ENV"
           echo "digest=$digest"

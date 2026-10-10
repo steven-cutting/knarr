@@ -4,7 +4,8 @@ The YAML is read line by line, as test_hook_configs.py reads the prek configs:
 the standard library has no YAML parser and knarr installs no PyPI package.
 The rules for release.yml are Decision 0012's: it runs on a version tag only,
 its token can write packages only in the job behind the release environment,
-and the existence guard pushes only when the tag is absent.
+and the existence guard pushes only when the tag is absent. publish also builds
+only the commit verify checked, and stops if the tag has moved since.
 """
 
 from __future__ import annotations
@@ -71,20 +72,25 @@ def jobs(text: str) -> dict[str, list[str]]:
     return found
 
 
-def permissions(job: list[str]) -> dict[str, str] | str | None:
-    """A job's `permissions:` scopes, its inline value (such as write-all), or None."""
+def mapping(job: list[str], name: str) -> dict[str, str] | str | None:
+    """A job's `name:` mapping, its inline value (such as write-all), or None."""
     for index, line in enumerate(job):
-        if match := re.fullmatch(r"    permissions:\s*(.*?)", line):
+        if match := re.fullmatch(rf"    {name}:\s*(.*?)", line):
             if match.group(1):
                 return match.group(1)
-            scopes: dict[str, str] = {}
+            entries: dict[str, str] = {}
             for later in job[index + 1 :]:
                 if not later.startswith("      "):
                     break
                 key, _, value = later.strip().partition(":")
-                scopes[key] = value.strip()
-            return scopes
+                entries[key] = value.strip()
+            return entries
     return None
+
+
+def permissions(job: list[str]) -> dict[str, str] | str | None:
+    """A job's `permissions:` scopes, its inline value (such as write-all), or None."""
+    return mapping(job, "permissions")
 
 
 def environment(job: list[str]) -> str | None:
@@ -262,3 +268,73 @@ def test_release_pushes_only_when_the_tag_is_absent() -> None:
     arms = guard_arms(RELEASE.read_text())
     assert [pattern for pattern, _ in arms] == ["absent", "present", "*"]
     assert proceeds_only_on_absent(arms)
+
+
+def test_verify_hands_publish_the_commit_it_checked() -> None:
+    verify = jobs(RELEASE.read_text())["verify"]
+    assert mapping(verify, "outputs") == {
+        "version": "${{ steps.guards.outputs.version }}",
+        "commit": "${{ steps.guards.outputs.commit }}",
+    }
+    assert 'echo "commit=$commit" >> "$GITHUB_OUTPUT"' in [line.strip() for line in verify]
+
+
+# The lines, in order, by which publish refuses a tag that no longer names the
+# commit verify checked: the checkout's copy of the tag may be the one the run
+# was triggered with, so the tag is fetched again before it is compared.
+MOVED_TAG_GUARD = [
+    "COMMIT: ${{ needs.verify.outputs.commit }}",
+    'git fetch --depth=1 --no-tags origin "+refs/tags/$TAG:refs/tags/$TAG"',
+    'tagged=$(git rev-parse "refs/tags/$TAG^{commit}")',
+    "head=$(git rev-parse HEAD)",
+    'if [ "$tagged" != "$COMMIT" ] || [ "$head" != "$COMMIT" ]; then',
+]
+
+
+def refuses_a_moved_tag_before_it_pushes(lines: list[str]) -> bool:
+    """The tag, fetched again, and HEAD are both compared with verify's commit, and a
+    difference stops the job, before the one push."""
+    steps = [line.strip() for line in lines]
+    push = [i for i, line in enumerate(steps) if "--push" in line]
+    if len(push) != 1 or not all(line in steps for line in MOVED_TAG_GUARD):
+        return False
+    at = [steps.index(line) for line in MOVED_TAG_GUARD]
+    stops = at[-1] + 1 < len(steps) and re.search(r"\bexit 1\b", steps[at[-1] + 1])
+    return at == sorted(at) and bool(stops) and at[-1] < push[0]
+
+
+GUARDED = [*MOVED_TAG_GUARD, 'echo "::error::moved"; exit 1', "fi"]
+
+
+@pytest.mark.parametrize(
+    "steps",
+    [
+        ["docker buildx build --push .", *GUARDED],
+        [*GUARDED[:4], 'if [ "$tagged" != "$COMMIT" ]; then', *GUARDED[5:], "--push ."],
+        [*GUARDED[:4], 'if [ "$head" != "$COMMIT" ]; then', *GUARDED[5:], "--push ."],
+        [GUARDED[0], *GUARDED[2:], "docker buildx build --push ."],
+        [*GUARDED[:5], 'echo "::warning::moved"', "fi", "docker buildx build --push ."],
+    ],
+    ids=[
+        "push first",
+        "only the tag compared",
+        "only HEAD compared",
+        "the checkout's tag",
+        "a difference that does not stop",
+    ],
+)
+def test_the_moved_tag_rule_refuses_a_check_that_does_not_check(steps: list[str]) -> None:
+    assert not refuses_a_moved_tag_before_it_pushes(steps)
+
+
+def test_the_moved_tag_rule_accepts_the_guard_before_the_push() -> None:
+    assert refuses_a_moved_tag_before_it_pushes([*GUARDED, "docker buildx build --push ."])
+
+
+def test_release_builds_only_the_commit_verify_checked() -> None:
+    publish = jobs(RELEASE.read_text())["publish"]
+    assert refuses_a_moved_tag_before_it_pushes(publish)
+    steps = [line.strip() for line in publish]
+    assert 'for t in $(tags_for "$TAG" "$COMMIT"); do set -- "$@" --tag "$IMAGE:$t"; done' in steps
+    assert '--label "org.opencontainers.image.revision=$COMMIT" \\' in steps
+    assert not any("git rev-parse" in line for line in steps[steps.index(MOVED_TAG_GUARD[-1]) :])

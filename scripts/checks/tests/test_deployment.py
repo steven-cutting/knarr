@@ -15,10 +15,13 @@ import deployment
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def resources():
+    return json.loads((ROOT / "deploy/base/resources.json").read_text())["items"]
+
+
 def test_restricted_skeleton():
-    resources = json.loads((ROOT / "deploy/base/resources.json").read_text())["items"]
-    by_kind = {item["kind"]: item for item in resources}
-    assert by_kind["Role"]["rules"] == []
+    by_kind = {item["kind"]: item for item in resources()}
+    assert len(by_kind) == 4
     assert by_kind["ServiceAccount"]["automountServiceAccountToken"] is False
     deployment = by_kind["Deployment"]["spec"]
     assert deployment["replicas"] == 1
@@ -33,6 +36,70 @@ def test_restricted_skeleton():
     assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
     assert container["livenessProbe"]["httpGet"]["path"] == "/healthz"
     assert container["imagePullPolicy"] == "Never"
+
+
+def test_role_grants_exactly_the_verbs_the_client_uses():
+    by_kind = {item["kind"]: item for item in resources()}
+    assert by_kind["Role"]["rules"] == [
+        {"apiGroups": [""], "resources": ["pods"], "verbs": ["list", "patch"]}
+    ]
+    binding = by_kind["RoleBinding"]
+    assert binding["roleRef"] == {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "knarr",
+    }
+    assert binding["subjects"] == [{"kind": "ServiceAccount", "name": "knarr"}]
+
+
+def test_token_is_projected_with_the_shortest_expiry_and_read_only():
+    by_kind = {item["kind"]: item for item in resources()}
+    pod = by_kind["Deployment"]["spec"]["template"]["spec"]
+    # Automount stays off at both levels: the projected volume is the only token.
+    assert pod["automountServiceAccountToken"] is False
+    assert by_kind["ServiceAccount"]["automountServiceAccountToken"] is False
+    volume = next(volume for volume in pod["volumes"] if volume["name"] == "kube-api-access")
+    sources = volume["projected"]["sources"]
+    assert {"serviceAccountToken": {"path": "token", "expirationSeconds": 600}} in sources
+    assert {
+        "configMap": {"name": "kube-root-ca.crt", "items": [{"key": "ca.crt", "path": "ca.crt"}]}
+    } in sources
+    assert {
+        "downwardAPI": {
+            "items": [{"path": "namespace", "fieldRef": {"fieldPath": "metadata.namespace"}}]
+        }
+    } in sources
+    container = pod["containers"][0]
+    mount = next(
+        mount for mount in container["volumeMounts"] if mount["name"] == "kube-api-access"
+    )
+    assert mount == {
+        "name": "kube-api-access",
+        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+        "readOnly": True,
+    }
+    assert {"name": "POD_NAME", "valueFrom": {"fieldRef": {"fieldPath": "metadata.name"}}} in (
+        container["env"]
+    )
+    assert {"name": "ERL_FLAGS", "value": "-knarr s1_probe true"} in container["env"]
+
+
+def test_wrong_ca_variant_only_redirects_the_ca_file():
+    patch = json.loads((ROOT / "deploy/wrong-ca/patch.json").read_text())
+    pod = patch["spec"]["template"]["spec"]
+    assert pod["containers"][0]["env"] == [
+        {"name": "KNARR_CA_FILE", "value": "/etc/knarr/wrong-ca/ca.crt"}
+    ]
+    assert pod["containers"][0]["volumeMounts"] == [
+        {"name": "wrong-ca", "mountPath": "/etc/knarr/wrong-ca", "readOnly": True}
+    ]
+    assert pod["volumes"] == [{"name": "wrong-ca", "configMap": {"name": "knarr-wrong-ca"}}]
+    assert deployment.variants() == ["base", "release", "wrong-ca"]
+
+
+def test_unknown_variant_is_refused():
+    with pytest.raises(ValueError, match="unknown deployment variant"):
+        deployment.render("production")
 
 
 def test_vendored_schemas_are_plain_upstream_json():
@@ -51,10 +118,10 @@ def test_changed_schema_is_refused(tmp_path):
         deployment.verify(tmp_path)
 
 
-# kustomize v5.8.2's render of deploy/base, and the release render ticket 28's
-# overlay-render.txt recorded with a pushed digest: the same text with the two
-# container lines the overlay changes. YAML indents by 2, so the indent check
-# is off for the fixture.
+# kustomize v5.8.2's render of deploy/base, and the release render: the same
+# text with the two container lines the overlay changes, pinned to the digest
+# ticket 28's overlay-render.txt recorded. YAML indents by 2, so the indent
+# check is off for the fixture.
 # editorconfig-checker-disable
 BASE_RENDER = """\
 apiVersion: v1
@@ -67,7 +134,26 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: knarr
-rules: []
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: knarr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: knarr
+subjects:
+- kind: ServiceAccount
+  name: knarr
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -87,7 +173,14 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - image: knarr:local
+      - env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ERL_FLAGS
+          value: -knarr s1_probe true
+        image: knarr:local
         imagePullPolicy: Never
         livenessProbe:
           httpGet:
@@ -120,6 +213,9 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: kube-api-access
+          readOnly: true
       securityContext:
         runAsGroup: 10001
         runAsNonRoot: true
@@ -130,12 +226,28 @@ spec:
       volumes:
       - emptyDir: {}
         name: tmp
+      - name: kube-api-access
+        projected:
+          sources:
+          - serviceAccountToken:
+              expirationSeconds: 600
+              path: token
+          - configMap:
+              items:
+              - key: ca.crt
+                path: ca.crt
+              name: kube-root-ca.crt
+          - downwardAPI:
+              items:
+              - fieldRef:
+                  fieldPath: metadata.namespace
+                path: namespace
 """
 # editorconfig-checker-enable
 DIGEST = "sha256:72d620f203b377bb4c2e2e5e9e3a81cf31228d31b5d8ebb1f85e20b7f767137b"
 RELEASE_RENDER = BASE_RENDER.replace(
-    "      - image: knarr:local\n        imagePullPolicy: Never\n",
-    f"      - image: ghcr.io/steven-cutting/knarr@{DIGEST}\n        imagePullPolicy: IfNotPresent\n",
+    "        image: knarr:local\n        imagePullPolicy: Never\n",
+    f"        image: ghcr.io/steven-cutting/knarr@{DIGEST}\n        imagePullPolicy: IfNotPresent\n",
 )
 
 
@@ -161,7 +273,7 @@ def test_the_overlay_may_change_the_image_and_its_pull_policy():
         ),
         (
             RELEASE_RENDER + "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: knarr\n",
-            "78 lines",
+            f"{len(RELEASE_RENDER.splitlines()) + 5} lines",
         ),
     ],
     ids=[
@@ -220,8 +332,7 @@ def overlay_lines(name):
 
 
 def test_the_committed_overlay_pins_the_published_image_and_nothing_else():
-    resources = json.loads((ROOT / "deploy/base/resources.json").read_text())["items"]
-    base = next(item for item in resources if item["kind"] == "Deployment")
+    base = next(item for item in resources() if item["kind"] == "Deployment")
     container = base["spec"]["template"]["spec"]["containers"][0]
     assert "imagePullPolicy" in container
     lines = overlay_lines("kustomization.yaml")
@@ -254,11 +365,12 @@ def test_the_committed_overlay_pins_the_published_image_and_nothing_else():
 
 
 def render_with_fakes(tmp_path, release):
-    """`deployment.py --render` with a fake kustomize serving canned renders and a fake kubeconform."""
+    """`deployment.py --render` with a fake kustomize serving canned renders and a fake
+    kubeconform: `release` for the release overlay, the base render for every other variant."""
     renders = tmp_path / "renders"
     renders.mkdir()
-    (renders / "base").write_text(BASE_RENDER)
-    (renders / "release").write_text(release)
+    for variant in deployment.variants():
+        (renders / variant).write_text(release if variant == "release" else BASE_RENDER)
     binaries = tmp_path / "bin"
     binaries.mkdir()
     for tool, body in [
@@ -295,15 +407,16 @@ def render_with_fakes(tmp_path, release):
     return result, calls
 
 
-def test_render_builds_and_validates_both_and_checks_their_difference(tmp_path):
+def test_render_builds_and_validates_every_variant_and_checks_the_difference(tmp_path):
     result, calls = render_with_fakes(tmp_path, RELEASE_RENDER)
     assert result.returncode == 0, result.stderr
     assert [arguments for tool, arguments, _ in calls if tool == "kustomize"] == [
         ["build", str(ROOT / "deploy/base")],
         ["build", str(ROOT / "deploy/release")],
+        ["build", str(ROOT / "deploy/wrong-ca")],
     ]
     validated = [(arguments, stdin) for tool, arguments, stdin in calls if tool == "kubeconform"]
-    assert [stdin for _, stdin in validated] == [BASE_RENDER, RELEASE_RENDER]
+    assert [stdin for _, stdin in validated] == [BASE_RENDER, RELEASE_RENDER, BASE_RENDER]
     assert all("-strict" in arguments for arguments, _ in validated)
     assert f"ghcr.io/steven-cutting/knarr@{DIGEST}" in result.stdout
 
@@ -314,9 +427,5 @@ def test_render_fails_when_the_overlay_changes_anything_else(tmp_path):
     )
     assert result.returncode != 0
     assert "replicas" in result.stderr
-    assert [tool for tool, _, _ in calls] == [
-        "kustomize",
-        "kustomize",
-        "kubeconform",
-        "kubeconform",
-    ]
+    # The difference is checked after every variant is validated.
+    assert [tool for tool, _, _ in calls] == ["kustomize", "kubeconform"] * 3

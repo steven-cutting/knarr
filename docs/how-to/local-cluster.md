@@ -59,8 +59,16 @@ copied at its original absolute prefix. The image targets linux/amd64, the
 locked CI platform. ARM-host execution requires runtime emulation support;
 `just image-check` and `just smoke` verify the Docker and kind paths separately. It runs as UID/GID 10001. The Deployment
 uses a read-only root filesystem, a writable temporary volume, dropped
-capabilities, no privilege escalation and RuntimeDefault seccomp. The empty
-Role grants no Kubernetes permissions; token automount is disabled.
+capabilities, no privilege escalation and RuntimeDefault seccomp. The Role
+grants `list` and `patch` on pods, bound to the `knarr` ServiceAccount by a
+RoleBinding; token automount stays disabled, and a projected volume supplies a
+600-second token, the cluster CA and the namespace to the S1 probe
+([Decision 0013](../decisions/0013-in-cluster-client.md)). The Deployment
+turns that probe on with `ERL_FLAGS=-knarr s1_probe true`; the gate's test
+runs leave it off, so they make no API call. `just deploy <image> wrong-ca`
+deploys the negative-TLS variant from `deploy/wrong-ca/`, which needs a
+`knarr-wrong-ca` ConfigMap holding an unrelated `ca.crt`; the ticket 14
+evidence script creates one from a throwaway certificate.
 
 Before starting Erlang, the container entrypoint caps the soft file-descriptor
 limit at 65,536, preserving any lower inherited limit. kind's containerd can
@@ -72,9 +80,10 @@ informational, not a peak measurement or a capacity guarantee for future work.
 
 The offline gate validates image lint, base resources against local Kubernetes
 schemas, and static security settings. `just deployment-check`, with the
-optional cluster tools installed, renders `deploy/base` and the release overlay
-`deploy/release` with kustomize and validates both. It fails unless the overlay
-changes exactly two lines: the image, pinned by digest, and the pull policy. Container checks separately prove both image stages use
+optional cluster tools installed, renders every variant under `deploy/`
+(`base`, `release` and `wrong-ca`) with kustomize and validates each. It fails
+unless the release overlay changes exactly two lines of the base's render: the
+image, pinned by digest, and the pull policy. Container checks separately prove both image stages use
 the pixi manifest's OTP major (with lock agreement checked by the gate) and that the runtime starts with a read-only root.
 The kind smoke job proves actual endpoint access; the kwok job proves cluster
 readiness only. Both jobs remain outside aggregate `check`.

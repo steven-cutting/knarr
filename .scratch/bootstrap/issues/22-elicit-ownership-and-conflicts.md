@@ -5,6 +5,7 @@
 - the marker's design
 - the write mode: an unconditional merge patch, a `resourceVersion` precondition, or a JSON Patch `test`
 - emitting an Event and backing off when another writer changes the value
+- the LIST-to-PATCH window: S1's probe decides `NoPatchWhileTerminating` from the last LIST and patches unconditionally, so a `deletionTimestamp` set between the two is not seen. A `resourceVersion` precondition or a JSON Patch `test` is what closes it (raised in the review of pull request #15)
 
 Other writers include user-set values, the lablabs and zepellin controllers, and Karpenter with `PodDeletionCostManagement` enabled. The goal is that the other writer wins.
 

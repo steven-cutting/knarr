@@ -1,0 +1,78 @@
+---
+title: "Decision 0013: In-cluster Kubernetes client"
+kind: "decision"
+audience: [maintainer, agent]
+canonical_for: [decision_in_cluster_client]
+requires: []
+---
+
+# Decision 0013: In-cluster Kubernetes client
+
+## Context
+
+OVERVIEW §9.2 decided option (A), a pure Gleam client over an Erlang FFI, and §8 named in-cluster TLS as its hard part: the cluster CA is not in the OS trust store, `gleam_httpc` passes no ssl options when verification is on, and whether an https hostname check passes against the IP literal in `KUBERNETES_SERVICE_HOST` was unverified. Projected service-account tokens rotate on disk and must be re-read. Ticket 13 left a skeleton that makes no API call.
+
+Spike S1 (ticket 14) settles those three questions, which `docs/specs/k8s_client.allium` held as open questions, and leaves the §9.10 patch-preconditions question for ticket 22. The local evidence was gathered on 2026-10-09 (UTC) on an Apple M5 Pro (Darwin arm64) with the pinned toolchain: Gleam 1.19.0, OTP 29 (erts 17.1) and OpenSSL 3.6.5 from the pixi environment, OrbStack 2.2.3 with its Docker engine 29.4. Scripts and transcripts are in [`.scratch/bootstrap/evidence/14/`](../../.scratch/bootstrap/evidence/14/README.md). The kind run itself happens in CI, for the reason the Emulation finding gives.
+
+## Decision
+
+Option (A) stands, with these specifics, which the `Client` contract in [k8s_client.allium](../specs/k8s_client.allium) states as its invariants:
+
+- **One FFI module around `httpc`.** `k8s_client` holds pure request builders and response decoders joined by functions that send only through an injected `send` (Decision 0002). `k8s_http.send` is the production `send`: it calls `k8s_http_ffi`, which makes one `httpc:request` with explicit ssl options and turns every failure into a value. No `gleam_httpc`: it cannot carry a CA file.
+- **Verified TLS, no fallback.** `verify_peer`, the service-account `ca.crt` as the only `cacertfile`, and `customize_hostname_check` with `public_key:pkix_verify_hostname_match_fun(https)`. The host is given as the string `KUBERNETES_SERVICE_HOST` holds. `server_name_indication` is left at its default: `disable` would also disable the hostname check on OTP 29, and a DNS name would replace the IP the pod is told to use. There is no `verify_none` path in the code.
+- **Token re-read every cycle.** The probe reads the projected token file on every tick and never keeps it beyond the request. A failed read is logged and that cycle makes no request. The token is never logged; a change is logged as the first twelve hex characters of the file's sha256 and the JWT's `exp` claim.
+- **Verbs.** The Role grants `list` and `patch` on `pods` and nothing else; a RoleBinding binds it to the `knarr` ServiceAccount. Automount stays off at both levels; a projected volume supplies the token with `expirationSeconds: 600`, the minimum, so expiry can be observed, plus `kube-root-ca.crt` and the namespace through the downward API.
+- **NoPatchWhileTerminating.** A pod is not patched when the most recent LIST shows `deletionTimestamp` set. The probe decides that in a pure function with its own test. The PATCH itself is unconditional, so a `deletionTimestamp` set in the window between the LIST and the PATCH is not seen; the `resourceVersion` precondition or JSON Patch `test` that closes it is the §9.10 open question, which ticket 22 owns.
+- **The probe is scaffolding.** `s1_probe` runs under its own supervisor (three restarts a minute) as a second child of the root, so its exhaustion counts as one root restart against the Recovery clause's two in five seconds. It is off unless `-knarr s1_probe true` is in `ERL_FLAGS`, which the Deployment sets and the gate does not. Ticket 41 replaces it with the real client module.
+
+## Findings
+
+Each row names the transcript that shows it. The first group is local evidence; the last three come from the CI run described under Verification.
+
+| Finding | Where | Verdict |
+| --- | --- | --- |
+| `ssl:connect("127.0.0.1", ...)` with the https match_fun: ok against a certificate with an IP SAN, `unknown_ca` against an unrelated CA, and `hostname_check_failed` against a certificate with only a DNS SAN. The string form of the IP is what the hostname check matches against the IP SAN | [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt) | Confirmed. The §8 question is answered for the string form |
+| **SNI.** OTP 29 sends a `server_name` extension carrying `"127.0.0.1"` when the host is a string IP; the listener's `sni_fun` recorded it for both the raw `ssl` and the `httpc` cases. RFC 6066 says clients should not send an IP literal there. Go's TLS server, which the apiserver uses, ignores an SNI it cannot match: every request in the kind run succeeded with it | [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt), [s1-kind.txt](../../.scratch/bootstrap/evidence/14/s1-kind.txt) | Confirmed, locally and against the apiserver |
+| **httpc error shapes.** A handshake failure arrives as `{error, {failed_connect, [{to_address, _}, {inet, [inet], {tls_alert, {unknown_ca, _}}}]}}` and a refused connection as `{inet, [inet], econnrefused}` in the same wrapper. `k8s_http_ffi` maps exactly these to `TlsAlert` and `ConnectFailed`; neither term carries the request | [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt) | Confirmed |
+| **Content type.** `httpc:request` takes the content type as its own argument. Passing it there and removing it from the header list gives the server exactly one `content-type` header; httpc adds `host` and `connection: keep-alive` itself | [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt) | Confirmed; the adapter does this |
+| **In-gate loopback proof.** `public_key:pkix_test_data/1` accepts an `extensions` entry with an `iPAddress` SAN on the peer (its `cacerts` holds the root twice, so it is deduplicated before writing the PEM). `test/k8s_http_test.gleam` builds that chain in memory, writes only the CA PEMs under `build/`, and proves: right CA succeeds, wrong CA fails with `TlsAlert("unknown_ca")`, a certificate from the right CA whose only SAN is a DNS name fails with `TlsAlert("bad_certificate")`, a closed port gives `ConnectFailed("econnrefused")`, one content-type header on a PATCH, and an unsupported method or a body without a content type is a value. No key is committed. Two mutations of `k8s_http_ffi` were run against these tests: `{server_name_indication, disable}` fails only the same-CA DNS-SAN case, which is the gap that case closes; removing `customize_hostname_check` fails nothing, because the OTP 29 default hostname match already pairs a string IP host with an `iPAddress` SAN and refuses a DNS-only one, so on this pin the option states the intent rather than adding a check | [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt), `just test` | Confirmed |
+| **Token reload.** With a 50 ms interval and a closure `send`, the probe's third tick carries the token written to disk after the first, a missing file skips the cycle and a later file is picked up, a failing `send` leaves the process alive, and killing the probe restarts it under its own supervisor while the listener's pid is unchanged | `test/s1_probe_test.gleam` | Confirmed |
+| **Erlang wiring.** The exported shipment run with `-knarr s1_probe true` against a closed loopback port logs the token's hash and `exp` and `connect_failed econnrefused`, and stays up; with `POD_NAME` unset the start fails with `missing_environment_variable` | hand-back notes of ticket 14 | Confirmed |
+| **Emulation.** On this ARM host OTP 29's amd64 build fails under Rosetta in `prim_tty:tty_create` (a NIF `undef`), both when the runtime image starts and inside `just image-build`, whose build stage runs `gleam export erlang-shipment`. `ERL_FLAGS='+JMsingle true'` fixes the runtime, so a pod could run here, but the committed Dockerfile cannot build here and is not changed for it | [emulation.txt](../../.scratch/bootstrap/evidence/14/emulation.txt) | Confirmed; the kind run goes to CI |
+| **From the pod.** LIST and PATCH over verified TLS against the real apiserver every 30 s. The first token's `exp` was 600 s after the pod started; kubelet rotated the file at +512 s (a new hash and `exp`); the first LIST and PATCH after the first `exp` came 2 s after it, from one process (`restartCount` 0, same UID), with no failed cycle; `knarr.io/s1-probe` is on the pod. The token file is mode 0600 owned by UID 10001, so no `fsGroup` is needed | [s1-kind.txt](../../.scratch/bootstrap/evidence/14/s1-kind.txt) | Confirmed |
+| **Wrong CA, from the pod.** With `KNARR_CA_FILE` pointing at an unrelated CA, every cycle logged `tls_alert unknown_ca`, nothing succeeded, and the pod stayed Ready with `restartCount` 0: the failure is a value, and there is no fallback | [wrong-ca.txt](../../.scratch/bootstrap/evidence/14/wrong-ca.txt) | Confirmed |
+| **Native Linux.** The eight TLS cases match on ubuntu-24.04 linux/amd64 with the same OTP 29, which closes ticket 35's TLS row for the default environment | [tls-native.txt](../../.scratch/bootstrap/evidence/14/tls-native.txt) | Confirmed |
+
+## Verification
+
+**Gate.** `just check` passes with the new modules, 56 Gleam tests including the loopback TLS tests and the probe tests, two accepted request snapshots, and the checker tests for the Role, RoleBinding, projected token, variant rendering and the refused unknown variant. `just check-specs` and `just analyse-specs` report nothing; `just plan-spec docs/specs/k8s_client.allium` reports 8 structural obligations.
+
+**Local probes.** [tls/run.sh](../../.scratch/bootstrap/evidence/14/tls/run.sh) runs the eight ssl, httpc and `pkix_test_data` cases; its transcript is [tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt). [emulation.txt](../../.scratch/bootstrap/evidence/14/emulation.txt) is the hand-run record of the ARM-host attempt. A local kind cluster (kindest/node v1.35.8) accepted both deployment variants with `kubectl apply --dry-run=server`, has the `kube-root-ca.crt` ConfigMap the projected volume reads, and gave the [version.json](../../.scratch/bootstrap/evidence/14/version.json) ticket 35's fixture item asks for: `major`, `minor` and `gitVersion` are strings, as the 08 fixture assumes.
+
+**Kind run, in CI.** The `cluster-s1` job in `ci.yml` is non-required and runs on a pull request. Run 37906694255 on pull request #15 (ubuntu-24.04, native linux/amd64, Docker 28.0.4, kindest/node v1.35.8) passed every check: [tls/run.sh](../../.scratch/bootstrap/evidence/14/tls/run.sh) ([tls-native.txt](../../.scratch/bootstrap/evidence/14/tls-native.txt)), then [s1-kind.sh](../../.scratch/bootstrap/evidence/14/s1-kind.sh) ([s1-kind.txt](../../.scratch/bootstrap/evidence/14/s1-kind.txt)), which deploys the base and reads the pod's log with [s1_logs.py](../../.scratch/bootstrap/evidence/14/s1_logs.py) until it shows the first token's hash and an `exp` about 600 s after the pod started, a changed hash, and a LIST and PATCH after that `exp`, with `restartCount` 0 and the same pod UID, then [wrong-ca.sh](../../.scratch/bootstrap/evidence/14/wrong-ca.sh) ([wrong-ca.txt](../../.scratch/bootstrap/evidence/14/wrong-ca.txt)), which deploys the `wrong-ca` variant and requires `unknown_ca` on every cycle, no success and a Ready pod. The transcripts are the job's log with the runner preamble and BuildKit progress removed. Its `tls/run.sh` step also covers ticket 35's native-Linux TLS row for the default environment; the runtime environment and the rebar3 probe stay open there. The job runs on every pull request; now that the transcripts are committed it should be narrowed to the paths it proves or a label, which ticket 41 carries.
+
+**Not run here.** Anything against a cluster other than kind. IPv6 service addresses: `KUBERNETES_SERVICE_HOST` would need bracketing in the URL, which the adapter does not do.
+
+## Consequences
+
+- **§9.2 is validated**, and the `k8s_client` module has a contract to build against (ticket 41).
+- **`gleam_json` is a runtime dependency** and `inets` and `ssl` are extra applications of the release.
+- **The Role is no longer empty**, so the local cluster guide and the deployment checks describe real permissions, and a change to the verbs is a change to the `Verbs` invariant first.
+- **A second root child exists when the probe is on.** The skeleton's one-child supervision tests still hold because the gate runs with the probe off; the probe's own supervisor isolates its restarts.
+- **Ticket 42** records what was learned about OTP: the IP-literal SNI, the Rosetta JIT flag, the httpc error shapes, and that a gleam_otp actor does not answer `gen_server:stop`.
+
+## What would reopen this
+
+- **The OTP pin moves.** `tls/run.sh` and the loopback test rerun; a changed alert shape or SNI behaviour reopens its row.
+- **A managed cluster differs**, for example a service address that is not an IP literal or an IPv6 one.
+- **Ticket 22 chooses a write mode** that needs more than a merge patch, which amends `Verbs` and the open §9.10 question.
+
+## Related pages
+
+- [Project overview](../OVERVIEW.md), §8 and §9.2
+- [Decision 0002: Effects live behind sans-IO boundaries](0002-sans-io-boundaries.md)
+- [Decision 0007: Local cluster and test tiers](0007-local-cluster.md)
+- [Testing reference](../reference/testing.md), for the sans-IO pattern the client follows
+- [Run the walking skeleton locally](../how-to/local-cluster.md), for the Role, the token volume and the wrong-CA variant
+- [Evidence for this record](../../.scratch/bootstrap/evidence/14/README.md)
+- [Ticket 14](../../.scratch/bootstrap/issues/14-spike-s1-in-cluster-client.md), with the hand-back notes and the follow-ups 36 and 37

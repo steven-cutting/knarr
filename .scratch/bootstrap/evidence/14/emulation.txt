@@ -1,0 +1,59 @@
+date: 2026-10-09T05:57Z
+host: Darwin arm64
+docker 29.4.0 linux/arm64
+Version: 2.2.3 (2020300)
+image: knarr-runtime-probe:13 (ticket 13's local amd64 runtime image, OTP 29)
+
+== 1. docker run --platform linux/amd64, erl -noshell, no tty ==
+=ERROR REPORT==== 9-Oct-2026::05:54:55.500732 ===
+** State machine user_drv terminating
+** When server state  = {undefined,undefined}
+** Reason for termination = error:undef
+** Callback modules = [user_drv]
+** Callback mode = state_functions
+** Stacktrace =
+**  [{erlang,nif_error,[undef],[{error_info,#{module => erl_erts_errors}}]},
+     {prim_tty,tty_create,1,[{file,"prim_tty.erl"},{line,1378}]},
+     {prim_tty,init,1,[{file,"prim_tty.erl"},{line,220}]},
+     {user_drv,init,1,[{file,"user_drv.erl"},{line,199}]},
+     {gen_statem,init_it,6,[{file,"gen_statem.erl"},{line,3316}]},
+     {proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,333}]}]
+
+=CRASH REPORT==== 9-Oct-2026::05:54:55.502134 ===
+[... crash report elided ...]
+95:Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,[normal,[]]}}}")
+FAIL runtime erl under Rosetta: prim_tty NIF undef (tty_create), kernel fails to start user
+
+== 2. just image-build knarr:emulation-probe (build stage runs gleam export erlang-shipment under Rosetta) ==
+Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,[normal,[]]}}}")
+#5 [build  5/10] ADD --checksum=sha256:708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f https://github.com/erlang/rebar3/releases/download/3.27.1/rebar3 /opt/knarr/.tools/bin/rebar3
+#10 [build  5/10] ADD --checksum=sha256:708407032479514dd68b581a0b09a68b5a781fb6f53dcf4ad81ce4ef6b92940f https://github.com/erlang/rebar3/releases/download/3.27.1/rebar3 /opt/knarr/.tools/bin/rebar3
+#11 [build  6/10] RUN chmod 0755 .tools/bin/rebar3
+#18 11.53 Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,[normal,[]]}}}")
+#18 11.53 Crash dump is being written to: erl_crash.dump...Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,[normal,[]]}}}")
+#18 11.74 There was a problem when running the shell command `rebar3`.
+11.53 Kernel pid terminated (application_controller) ("{application_start_failure,kernel,{{shutdown,{failed_to_start_child,user,nouser}},{kernel,start,[normal,[]]}}}")
+FAIL image-build under Rosetta: the build stage's erl fails the same way, so the committed Dockerfile cannot build here
+
+== 3. variants on the runtime image ==
+== variant: -noinput ==
+=ERROR REPORT==== 9-Oct-2026::05:56:38.138445 ===
+** State machine user_drv terminating
+** When server state  = {undefined,undefined}
+** Reason for termination = error:undef
+** Callback modules = [user_drv]
+** Callback mode = state_functions
+** Stacktrace =
+**  [{erlang,nif_error,[undef],[{error_info,#{module => erl_erts_errors}}]},
+exit 
+== variant: +JMsingle true as ERL_FLAGS (pod env var only) ==
+otp 29
+exit 
+== variant: +JMsingle true and -noinput ==
+otp 29
+exit 
+FAIL -noinput alone: the same prim_tty undef
+ok   ERL_FLAGS='+JMsingle true' (JIT single-mapped code pages): erl starts under Rosetta and reports OTP 29
+ok   ERL_FLAGS='+JMsingle true' with -noinput
+
+Verdict: the gate in the plan ('the image cannot be built or run locally') is met on the build side. The committed Dockerfile is unchanged, so the kind proof runs in CI (the non-required cluster-s1 job). The +JMsingle finding goes to Decision 0013 and the OTP findings follow-up.

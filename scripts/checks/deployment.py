@@ -1,8 +1,9 @@
 """Offline validation with immutable, checksum-verified upstream schemas.
 
-With --render, kustomize renders deploy/base and the release overlay over it,
-both are validated, and the overlay may change only the container image, to the
-published one pinned by digest, and its pull policy (Decision 0012).
+With --render, kustomize renders every variant under deploy/ and kubeconform
+validates each; the release overlay may then differ from the base only in the
+container image, to the published one pinned by digest, and its pull policy
+(Decision 0012). With --render <variant>, it renders and validates that one.
 """
 
 from __future__ import annotations
@@ -16,13 +17,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMAS = ROOT / "scripts/schemas/kubernetes"
-BASE = ROOT / "deploy/base"
-RELEASE = ROOT / "deploy/release"
+DEPLOY = ROOT / "deploy"
 # What each line the release overlay changes must become.
 RELEASE_VALUES = {
     "image": re.compile(r"ghcr\.io/steven-cutting/knarr@sha256:[0-9a-f]{64}"),
     "imagePullPolicy": re.compile(r"IfNotPresent"),
 }
+
+
+def variants():
+    """Every deployable directory under deploy/: the base and its variants."""
+    return sorted(
+        path.name for path in DEPLOY.iterdir() if (path / "kustomization.yaml").is_file()
+    )
+
+
+def render(variant):
+    if variant not in variants():
+        raise ValueError(f"unknown deployment variant: {variant}")
+    return subprocess.check_output(["kustomize", "build", str(DEPLOY / variant)], text=True)
 
 
 def verify(source=SCHEMAS):
@@ -31,10 +44,6 @@ def verify(source=SCHEMAS):
         content = (source / name).read_bytes()
         if hashlib.sha256(content).hexdigest() != hashes["sha256"]:
             raise ValueError(f"upstream schema checksum mismatch: {name}")
-
-
-def render(directory):
-    return subprocess.check_output(["kustomize", "build", str(directory)], text=True)
 
 
 def validate(content):
@@ -90,16 +99,21 @@ def overlay_difference(base, release):
 
 def main():
     verify()
-    if sys.argv[1:] == ["--render"]:
-        base, release = render(BASE), render(RELEASE)
-        validate(base)
-        validate(release)
-        image = overlay_difference(base, release)
+    arguments = sys.argv[1:]
+    if not arguments:
+        validate((DEPLOY / "base/resources.json").read_text())
+    elif arguments == ["--render"]:
+        renders = {}
+        for variant in variants():
+            print(f"rendering deploy/{variant}")
+            renders[variant] = render(variant)
+            validate(renders[variant])
+        image = overlay_difference(renders["base"], renders["release"])
         print(f"release overlay: image {image}, imagePullPolicy IfNotPresent, nothing else")
-    elif not sys.argv[1:]:
-        validate((BASE / "resources.json").read_text())
+    elif len(arguments) == 2 and arguments[0] == "--render":
+        validate(render(arguments[1]))
     else:
-        raise ValueError("usage: deployment.py [--render]")
+        raise ValueError("usage: deployment.py [--render [variant]]")
 
 
 if __name__ == "__main__":

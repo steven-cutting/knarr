@@ -12,7 +12,12 @@ SCRIPT = Path(__file__).resolve().parents[1] / "cluster.py"
 
 
 def run_fake(
-    tmp_path: Path, runner: str, action: str, *, configured: bool = False
+    tmp_path: Path,
+    runner: str,
+    action: str,
+    *,
+    configured: bool = False,
+    extra: tuple[str, ...] = (),
 ) -> tuple[subprocess.CompletedProcess[str], list]:
     checkout = tmp_path / "work tree"
     checkout.mkdir()
@@ -43,7 +48,7 @@ def run_fake(
         "KUBERNETES_SERVICE_PORT": "443",
     }
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), action, str(checkout)],
+        [sys.executable, str(SCRIPT), action, str(checkout), *extra],
         env=env,
         capture_output=True,
         text=True,
@@ -123,7 +128,8 @@ def test_changing_runner_refuses_to_overwrite_state(tmp_path: Path) -> None:
 def test_deploy_records_image_identity_for_rollout(tmp_path: Path) -> None:
     result, calls = run_fake(tmp_path, "kind", "deploy", configured=True)
     assert result.returncode == 0, result.stderr
-    data = json.loads((tmp_path / "work tree/.cluster/render/resources.json").read_text())
+    render = tmp_path / "work tree/.cluster/render/base"
+    data = json.loads((render / "resources.json").read_text())
     deployment = next(item for item in data["items"] if item["kind"] == "Deployment")
     template = deployment["spec"]["template"]
     assert (
@@ -131,6 +137,35 @@ def test_deploy_records_image_identity_for_rollout(tmp_path: Path) -> None:
     )
     assert template["spec"]["containers"][0]["image"].startswith("knarr:work-tree-")
     assert all(call[1] == str(tmp_path / "work tree/.cluster/kubeconfig") for call in calls)
+    build = next(call[0] for call in calls if call[0][0].endswith("kustomize"))
+    assert build[1:] == ["build", str(render)]
+
+
+def test_deploy_variant_layers_on_the_rendered_base(tmp_path: Path) -> None:
+    result, calls = run_fake(
+        tmp_path, "kind", "deploy", configured=True, extra=("knarr:probe", "wrong-ca")
+    )
+    assert result.returncode == 0, result.stderr
+    render = tmp_path / "work tree/.cluster/render/wrong-ca"
+    assert (render / "kustomization.yaml").read_text() == (
+        Path(SCRIPT).parents[2] / "deploy/wrong-ca/kustomization.yaml"
+    ).read_text()
+    assert (render / "patch.json").is_file()
+    # The variant's kustomization names ../base, so the patched base sits beside it.
+    data = json.loads((render / "../base/resources.json").read_text())
+    deployment = next(item for item in data["items"] if item["kind"] == "Deployment")
+    assert deployment["spec"]["template"]["spec"]["containers"][0]["image"] == "knarr:probe"
+    build = next(call[0] for call in calls if call[0][0].endswith("kustomize"))
+    assert build[1:] == ["build", str(render)]
+
+
+def test_deploy_refuses_an_unknown_variant(tmp_path: Path) -> None:
+    result, calls = run_fake(
+        tmp_path, "kind", "deploy", configured=True, extra=("knarr:probe", "production")
+    )
+    assert result.returncode != 0
+    assert "unknown deployment variant" in result.stderr
+    assert not calls
 
 
 def test_deploy_requires_local_kubeconfig(tmp_path: Path) -> None:

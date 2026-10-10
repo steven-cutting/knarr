@@ -269,10 +269,12 @@ image-build image=cluster_image:
 image-load image=cluster_image: cluster-tools
     python3 scripts/checks/cluster.py image-load "{{ justfile_directory() }}" "$1"
 
+# The variant is a directory under deploy/ with a kustomization: `base`, or
+# `wrong-ca` for the negative TLS case (ticket 14).
 [group('cluster')]
-[doc('Load and deploy the skeleton to this worktree kind cluster')]
-deploy image=cluster_image: cluster-tools
-    python3 scripts/checks/cluster.py deploy "{{ justfile_directory() }}" "$1"
+[doc('Load and deploy the base, or a deploy/ variant, to this worktree kind cluster')]
+deploy image=cluster_image variant="base": cluster-tools
+    python3 scripts/checks/cluster.py deploy "{{ justfile_directory() }}" "$1" "$2"
 
 [group('cluster')]
 [doc('Check all three endpoints through a temporary loopback port forward')]
@@ -301,7 +303,7 @@ packaging-check:
     python3 scripts/checks/deployment.py
 
 [group('cluster')]
-[doc('Render kustomize and validate every resource against pinned local schemas')]
+[doc('Render and validate every deploy/ variant, and hold the release overlay to its two-line difference')]
 deployment-check: cluster-tools
     python3 scripts/checks/deployment.py --render
 

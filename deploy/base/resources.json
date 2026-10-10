@@ -16,7 +16,38 @@
       "metadata": {
         "name": "knarr"
       },
-      "rules": []
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "list",
+            "patch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "knarr"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "knarr"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "knarr"
+        }
+      ]
     },
     {
       "apiVersion": "apps/v1",
@@ -84,6 +115,11 @@
                   {
                     "name": "tmp",
                     "mountPath": "/tmp"
+                  },
+                  {
+                    "name": "kube-api-access",
+                    "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                    "readOnly": true
                   }
                 ],
                 "livenessProbe": {
@@ -101,13 +137,63 @@
                   },
                   "periodSeconds": 5,
                   "timeoutSeconds": 2
-                }
+                },
+                "env": [
+                  {
+                    "name": "POD_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "fieldPath": "metadata.name"
+                      }
+                    }
+                  },
+                  {
+                    "name": "ERL_FLAGS",
+                    "value": "-knarr s1_probe true"
+                  }
+                ]
               }
             ],
             "volumes": [
               {
                 "name": "tmp",
                 "emptyDir": {}
+              },
+              {
+                "name": "kube-api-access",
+                "projected": {
+                  "sources": [
+                    {
+                      "serviceAccountToken": {
+                        "path": "token",
+                        "expirationSeconds": 600
+                      }
+                    },
+                    {
+                      "configMap": {
+                        "name": "kube-root-ca.crt",
+                        "items": [
+                          {
+                            "key": "ca.crt",
+                            "path": "ca.crt"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "downwardAPI": {
+                        "items": [
+                          {
+                            "path": "namespace",
+                            "fieldRef": {
+                              "fieldPath": "metadata.namespace"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }

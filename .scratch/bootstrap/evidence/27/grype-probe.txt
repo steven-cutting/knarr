@@ -1,5 +1,5 @@
-date: 2026-10-09T23:15Z
-revision: 0474e67
+date: 2026-10-10T02:34Z
+revision: 69794fb
 Version: 0.120.1
 Syft Version: v1.54.1
 Supported DB Schema: 6
@@ -25,3 +25,12 @@ source: ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834
   libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-77696  Low       0.2% (14th)  < 0.1  
   libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-75805  Low       0.2% (11th)  < 0.1
 exit 2: a fixed vulnerability at or above high; the audit job reports it
+-- 3. the runtime environment's conda records, as an image and as a directory
+  runtime locks 13 packages for linux-64; the default environment here holds 8 at the same version: ca-certificates 2026.7.22, erlang 29.1.1, libzlib 1.3.2, ncurses 6.6, openssl 3.6.5, perl 5.32.1, readline 8.3, zlib 1.3.2
+  no record here, not scanned: _openmp_mutex 4.5, libgcc 16.2.0, libgomp 16.2.0, libstdcxx 16.2.0, libxcrypt 4.4.38
+  docker 34 catalogers, conda-meta not run; 0 conda matches, 0 with a fix
+  dir    57 catalogers, conda-meta 8 packages; 7 conda matches, 4 with a fix
+         Critical CVE-2022-48522   perl 5.32.1 -> 5.35.5 (nvd:cpe)
+         High     CVE-2023-31484   perl 5.32.1 -> 5.38.0 (nvd:cpe)
+         High     CVE-2023-31486   perl 5.32.1 -> 5.38.0 (nvd:cpe)
+         High     CVE-2023-47038   perl 5.32.1 -> 5.34.2, 5.36.2, 5.38.1 (nvd:cpe)

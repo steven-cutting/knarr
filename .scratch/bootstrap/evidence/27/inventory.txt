@@ -1,4 +1,4 @@
-revision: 0474e67
+revision: 69794fb
 hex package range          11  renovate gleam (hex), group hex packages
                                in gleam.toml
 hex package lock           38  renovate gleam: update-lockfile, lockFileMaintenance
@@ -15,7 +15,9 @@ prek remote hook rev        0  none to cover: 4 repos, all local or builtin
                                in .pre-commit-config.yaml, .pre-commit-fix.yaml
 base image digest           2  renovate dockerfile, docker:pinDigests
                                in Dockerfile FROM
-cluster image digest        6  renovate regex (docker), group local cluster, held
+cluster image digest        5  renovate regex (docker), group local cluster, held
+                               in scripts/checks/cluster.py
+kwok image digest           1  gap: manual, with kwokctl's tools.txt lines; renovate has it disabled
                                in scripts/checks/cluster.py
 pixi version                5  renovate: setup-pixi input, dockerfile, regex; group pixi, held
                                in pixi.toml, setup action (2), Dockerfile, README.md
@@ -27,4 +29,4 @@ Kubernetes schema sha256    3  gap: manual, re-vendored with its sources.json
                                in scripts/schemas/kubernetes/sources.json
 vendored skill hash         7  gap: manual, re-vendored from the tag the lock names
                                in skills-lock.json
--- 226 pins in 14 kinds; 25 in the 4 manual kinds
+-- 226 pins in 15 kinds; 26 in the 5 manual kinds

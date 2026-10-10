@@ -10,13 +10,13 @@
 
 **MVP critical path:** yes. The MVP success criterion is measured with it.
 
-**Status:** implemented; the kind smoke runs only in CI's non-required fake worker job. See [the hand-back notes](#hand-back-notes).
+**Status:** done. See [the hand-back notes](#hand-back-notes).
 
 - [x] The status endpoint matches the clauses from 18 exactly, and tests trace each clause.
 - [x] A control endpoint sets cost, accepting or draining, response latency, and failure modes (timeout, 5xx, 404, invalid payload) per pod at runtime.
 - [x] On SIGTERM it drains gracefully within a configurable time and records whether it was busy when killed somewhere that outlives the pod (for example a line the harness scrapes before deletion completes, or a push to a collector endpoint), so a test run can count busy kills after the pods are gone. The ticket names the sink: **the collector**, the same image in collector mode as a one-replica Deployment behind the `fake-worker-collector` Service, which keeps one kill record per pod at `GET /kills`.
 - [x] The image is built the same way as knarr's (13): non-root, small, and loadable into the cluster from 10.
-- [ ] A kind smoke test deploys several replicas, sets mixed states through the control endpoint, and reads them back from the status endpoint.
+- [x] A kind smoke test deploys several replicas, sets mixed states through the control endpoint, and reads them back from the status endpoint.
 
 ## Hand-back notes
 
@@ -54,7 +54,11 @@ The fake worker's reference page, [docs/reference/fake-worker.md](../../../docs/
 - **The first CI kind run found a bug the local tests could not.** The image check passed, every worker's state read back exactly, and the busy worker answered `accepting` false while it drained. But its kill record never reached the collector. Reproduced with two containers on a Docker network: OTP 29's `httpc` builds its default TLS options for every request, even plain HTTP, by loading the OS CA store. The `ubuntu:24.04` runtime has none, so each delivery crashed the sink actor with `no_cacerts_found`. This sandbox's host has CA certificates, so neither the Gleam nor the process tests could see it.
   - The fix passes `{ssl, []}` on the delivery, which stops that load, and turns any other exception into a failed attempt, so the sink retries rather than crashing.
   - `just fake-worker-image-check` now starts a collector from the same image on a private network and requires the worker to deliver its record there by name. Run here against the old image, it failed with that same error. Against the fixed image it passed three runs out of three.
-- **kind did not run here.** The pinned node starts, but the sandbox refuses nested containers: `runc` fails on `/proc/self/oom_score_adj`, after a first failure on the host's cgroup v1. The smoke's logic is covered by `scripts/checks/tests/test_fake_worker_cluster.py`, against a fake cluster: a second run resets the first's states, a mismatched status fails, and a dropped connection is retried. The real run is CI's fake worker job, and the last box stays open until it passes.
+- **kind, in CI.** CI's "Kind fake worker smoke" job passed on `4b34dcc` (run 38043564445), on native linux/amd64.
+  - `just fake-worker-image-check` took 5 s: `image: OTP 29, numeric user and read-only runtime verified`, 54 MiB of the 256 MiB limit, with its collector on a private network.
+  - `just fake-worker-smoke` took 8 s. It printed `ok idle … 200 {"cost":0,"accepting":true}`, `ok busy … 200 {"cost":1800,"accepting":true}`, `ok draining … 200 {"cost":500,"accepting":false}` and `ok absent … 404 not found`. After SIGTERM it printed `ok draining after SIGTERM … {"cost":1800,"accepting":false}`, then `ok kill record … busy=true` and `ok kill record … busy=false`.
+  - The image build took 18 s. The other jobs passed on the same head, knarr's own kind smoke among them, so the port-forward helper it now shares works.
+  - This sandbox cannot run kind: the pinned node starts, but `runc` refuses nested containers on `/proc/self/oom_score_adj`, after a first failure on the host's cgroup v1. `scripts/checks/tests/test_fake_worker_cluster.py` covers the smoke's logic against a fake cluster: a second run resets the first's states, a mismatched status fails, and a dropped connection is retried.
 - **Checker tests:** 429 passed. `just docs-check` validates 27 pages, `just agents-check` passes, and `just check` ends with "All checks passed and the worktree is unchanged."
 - **Review:** `/code-review high` over the branch reported ten findings, all fixed with a test where behaviour changed:
   - the smoke failed when run twice on one cluster;

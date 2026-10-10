@@ -63,14 +63,21 @@ child_result({ok, _, _}) -> {ok, nil};
 child_result({error, running}) -> {ok, nil};
 child_result(Other) -> {error, {listener_error, format(Other)}}.
 
+%% The sink URL is plain http://. Without an ssl option, OTP 29's httpc builds
+%% its default TLS options for every request, loading the OS CA store, and the
+%% runtime image has none: the request crashes with no_cacerts_found. An empty
+%% ssl option skips that. Any other exception is a failed attempt too, so the
+%% sink retries instead of crashing.
 deliver(Url, Body, Timeout) ->
   Request = {unicode:characters_to_list(Url), [], "application/json", Body},
-  Options = [{timeout, Timeout}, {connect_timeout, Timeout}],
-  case httpc:request(put, Request, Options, [{body_format, binary}]) of
+  Options = [{timeout, Timeout}, {connect_timeout, Timeout}, {ssl, []}],
+  try httpc:request(put, Request, Options, [{body_format, binary}]) of
     {ok, {{_, Status, _}, _, _}} when Status >= 200, Status < 300 -> {ok, nil};
     {ok, {{_, Status, _}, _, _}} ->
       {error, {delivery_error, <<"status ", (integer_to_binary(Status))/binary>>}};
     {error, Reason} -> {error, {delivery_error, format(Reason)}}
+  catch
+    Class:Reason -> {error, {delivery_error, format({Class, Reason})}}
   end.
 
 stop_vm() ->

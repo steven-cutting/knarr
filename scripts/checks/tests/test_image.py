@@ -104,6 +104,7 @@ FAKE_WORKER_ENTRYPOINT = [
 def test_fake_worker_profile_runs_its_own_image_checks(monkeypatch):
     commands = []
     verified = []
+    cleaned = []
 
     def output(*arguments):
         commands.append(list(arguments))
@@ -116,9 +117,14 @@ def test_fake_worker_profile_runs_its_own_image_checks(monkeypatch):
             return "worker-container"
         return "29"
 
+    def prepare(name, common):
+        assert name == "fake-worker:test"
+        assert "--read-only" in common
+        return image.Session(("--env=PREPARED=1",), verified.append, lambda: cleaned.append(1))
+
     monkeypatch.setattr(image, "output", output)
     monkeypatch.setattr(
-        image, "FAKE_WORKER", dataclasses.replace(image.FAKE_WORKER, verify=verified.append)
+        image, "FAKE_WORKER", dataclasses.replace(image.FAKE_WORKER, prepare=prepare)
     )
     monkeypatch.setattr(
         image.subprocess, "run", lambda args, **_: subprocess.CompletedProcess(args, 0)
@@ -126,6 +132,7 @@ def test_fake_worker_profile_runs_its_own_image_checks(monkeypatch):
     monkeypatch.setattr(image.sys, "argv", ["image.py", "--fake-worker", "fake-worker:test"])
     image.main()
     assert verified == ["worker-container"]
+    assert cleaned == [1]
     descriptors = next(args for args in commands if args[-1] == "ulimit -Sn")
     assert "--entrypoint=/opt/fake_worker/container-entrypoint.sh" in descriptors
     detached = next(args for args in commands if "--detach" in args)
@@ -133,8 +140,41 @@ def test_fake_worker_profile_runs_its_own_image_checks(monkeypatch):
     assert "--memory=268435456" in detached
     assert "--publish=127.0.0.1::8080" in detached
     assert "--publish=127.0.0.1::8081" in detached
-    # A drain far longer than the check waits, so the exit proves the early stop.
-    assert "--env=FAKE_WORKER_DRAIN_SECONDS=60" in detached
+    assert "--env=PREPARED=1" in detached
+
+
+def test_fake_worker_session_runs_a_collector_on_a_private_network(monkeypatch):
+    commands = []
+    monkeypatch.setattr(image, "output", lambda *arguments: commands.append(list(arguments)))
+    monkeypatch.setattr(
+        image.subprocess,
+        "run",
+        lambda args, **_: commands.append(list(args)) or subprocess.CompletedProcess(args, 0),
+    )
+    session = image.prepare_fake_worker("fake-worker:test", ["docker", "run", "--read-only"])
+    network = commands[0][-1]
+    assert commands[0][:3] == ["docker", "network", "create"]
+    collector_run = commands[1]
+    assert collector_run[:3] == ["docker", "run", "--read-only"]
+    assert f"--network={network}" in collector_run
+    assert "--env=FAKE_WORKER_MODE=collector" in collector_run
+    collector = next(
+        argument.removeprefix("--name=")
+        for argument in collector_run
+        if argument.startswith("--name=")
+    )
+    # The worker reaches the collector by name, as on kind, and drains far longer
+    # than the check waits, so its exit proves the early stop.
+    assert session.arguments == (
+        f"--network={network}",
+        "--env=FAKE_WORKER_DRAIN_SECONDS=60",
+        f"--env=FAKE_WORKER_SINK_URL=http://{collector}:8081",
+    )
+    session.cleanup()
+    assert commands[-2:] == [
+        ["docker", "rm", "--force", collector],
+        ["docker", "network", "rm", network],
+    ]
 
 
 def test_the_knarr_entrypoint_does_not_pass_as_the_fake_workers(monkeypatch):

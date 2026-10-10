@@ -300,7 +300,7 @@ CONDA = {
 def test_what_the_hosted_app_has_not_proved_stays_held_after_activation(
     dependencies_: list[dict[str, str]], group: str | None
 ) -> None:
-    # Ticket 43 drops the landing hold, :dependencyDashboardApproval, from
+    # Ticket 44 drops the landing hold, :dependencyDashboardApproval, from
     # extends; these rules keep their own. pixi.lock needs a relock the
     # hosted app may not run, and the cluster pins move together or not at all.
     for dependency in dependencies_:

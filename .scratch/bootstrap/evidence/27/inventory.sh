@@ -61,7 +61,7 @@ rows = [
     ("hex package range", "gleam.toml", len(gleam["dependencies"]) + len(gleam["dev-dependencies"]), "renovate gleam (hex), group hex packages"),
     ("hex package lock", "manifest.toml", sum(1 for p in manifest["packages"] if p.get("source") == "hex"), "renovate gleam: update-lockfile, lockFileMaintenance"),
     ("conda pin (==)", "pixi.toml", exact, "renovate pixi, held for approval"),
-    ("conda package lock", "pixi.lock", locked, "renovate pixi lockFileMaintenance, held; hosted relock unproven (43)"),
+    ("conda package lock", "pixi.lock", locked, "renovate pixi lockFileMaintenance, held; hosted relock unproven (44)"),
     ("action SHA", ", ".join(workflows), count(r"uses: [\w.-]+/[\w./-]+@[0-9a-f]{40} # v", *workflows), "renovate github-actions, group GitHub Actions"),
     ("runner label", ", ".join(w for w in workflows if "/workflows/" in w), count(r"^\s+runs-on: ubuntu-\S+$", *workflows), "renovate github-actions (github-runners), group GitHub Actions"),
     ("prek remote hook rev", ".pre-commit-config.yaml, .pre-commit-fix.yaml", len(remote_hooks), f"none to cover: {len(hooks)} repos, all local or builtin"),

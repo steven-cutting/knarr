@@ -1,4 +1,4 @@
-# 43: Renovate activation
+# 44: Renovate activation
 
 **Context:** [Decision 0014](../../../docs/decisions/0014-dependency-updates-and-audit.md) chose Renovate, through the Mend-hosted app, to propose an update for every pin it can read. Ticket 27 landed [`.github/renovate.json`](../../../.github/renovate.json) held: every update waits for approval on the Dependency Dashboard, and nothing automerges. It proved each manager only with a local, lookup-only run ([renovate.txt](../evidence/27/renovate.txt)). That run creates no branch, no issue and no pull request. No app is installed yet.
 

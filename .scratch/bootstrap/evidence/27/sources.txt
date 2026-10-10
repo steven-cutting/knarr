@@ -25,7 +25,7 @@ found       gleam             "The gleam manager uses the gleam program to updat
 found       gleam             "This manager supports lockFileMaintenance for the following file(s): manifest.toml": transitive hex packages move through lock file maintenance
 found       pixi              "Feature dependencies produce dynamic depType values in the form feature-<name>": the otp, cluster and audit features are read
 found       pixi              "Self-hosted administrators must explicitly allow this path by including pixi in the global allowedUnsafeExecutions setting": relocking pixi.lock is an unsafe execution
-found       pixi              "When pixi is not allowed, the package file is still updated, but pixi.lock is left unchanged": why every conda update stays held until 43 proves the hosted relock
+found       pixi              "When pixi is not allowed, the package file is still updated, but pixi.lock is left unchanged": why every conda update stays held until 44 proves the hosted relock
 found       github-actions    "prefix-dev/setup-pixi pixi-version prefix-dev/pixi": setup-pixi's pixi-version input is read as prefix-dev/pixi
 found       github-actions    "action\.ya?ml$/": every action.yml, the setup action's included, is in the manager's file patterns
 found       github-actions    "Actions pinned to a bare SHA without a version comment are disabled by default": why every SHA carries its version comment
@@ -35,15 +35,15 @@ found       pre-commit        "functionality is currently in beta testing, so yo
 found       github-runners    "This datasource returns a list of all runners that are hosted by GitHub": runner labels are covered without configuration
 found       local             "This feature is flagged as experimental": the dry run's platform is experimental
 found       local             "In this mode, Renovate defaults to dryRun=lookup": the dry run looks up updates and creates nothing
-found       local             "Branch creation is not supported": so the hold and the branches are 43's to see on the hosted app
+found       local             "Branch creation is not supported": so the hold and the branches are 44's to see on the hosted app
 found       options           "composer , gleam": rangeStrategy update-lockfile works for gleam
 found       options           "Renovate only queries the OSV database for dependencies that use one of these datasources": Renovate's OSV alerts cover hex ...
 found       options           "packagist pypi rubygems": ... and not conda, docker or GitHub actions
 found       options           "You will only get OSV-based vulnerability alerts for direct dependencies": and only direct dependencies, so hex-audit asks about every locked package
 found       options           ""schedule" : [], "dependencyDashboardApproval" : false": a vulnerability fix skips the landing hold once the app is live, though it still never automerges
 found       self-hosted       ""mise" , "pixi"": pixi is one of the allowedUnsafeExecutions values
-not found   mend              "allowedUnsafeExecutions" (expected; as of 2026-10-09): whether the hosted app allows pixi is undocumented; 43 proves it
-found       mend              "Installing Renovate into selected repositories always leads to onboarding PRs": what 43 should expect at installation
+not found   mend              "allowedUnsafeExecutions" (expected; as of 2026-10-09): whether the hosted app allows pixi is undocumented; 44 proves it
+found       mend              "Installing Renovate into selected repositories always leads to onboarding PRs": what 44 should expect at installation
 found       permissions       "Read for repository content and write for creating branches": the app writes branches ...
 found       permissions       "Explicit permission needed to update workflows": ... and workflow files: the trust surface 0014 records
 found       presets-default   "Enable Renovate Dependency Dashboard approval workflow": :dependencyDashboardApproval, the landing hold

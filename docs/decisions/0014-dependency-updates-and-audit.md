@@ -36,7 +36,7 @@ The evidence was gathered on 2026-10-09 and 2026-10-10 (UTC) on an Apple M5 Pro 
   Renovate has a manager for each: gleam (hex, with `manifest.toml`), pixi (including the `[feature.*]` tables), github-actions (including `.github/actions/**`), dockerfile, and regex custom managers for the rest. A self-hosted Renovate would need a token stored as a repository secret; the hosted app needs none.
 - **One configuration file, [`.github/renovate.json`](../../.github/renovate.json).** It is plain JSON, so the gate's Python can read it, and every rule and custom manager says why it exists in a `description`. It extends `config:recommended`, `docker:pinDigests`, `helpers:pinGitHubActionDigests` and `:dependencyDashboardApproval`. It enables only five managers: `gleam`, `pixi`, `github-actions`, `dockerfile` and `custom.regex`. It ignores `.scratch/**`, which holds a probe `gleam.toml` from ticket 01 and ticket 28's overlay.
 - **Nothing merges without the maintainer's review.** `automerge` and `platformAutomerge` are `false`, and no rule turns either on. Branch protection already requires `check` on `main`. Renovate runs weekly, early on Monday (UTC), with lock-file maintenance on.
-- **The landing is held.** `:dependencyDashboardApproval` holds every update until the maintainer ticks it on the Dependency Dashboard, and no app is installed. [Ticket 43](../../.scratch/bootstrap/issues/43-renovate-activation.md) installs the Mend app on knarr only (**authorization required**), proves one pull request per manager, and removes that preset. Three holds outlive it:
+- **The landing is held.** `:dependencyDashboardApproval` holds every update until the maintainer ticks it on the Dependency Dashboard, and no app is installed. [Ticket 44](../../.scratch/bootstrap/issues/44-renovate-activation.md) installs the Mend app on knarr only (**authorization required**), proves one pull request per manager, and removes that preset. Three holds outlive it:
   - every conda pin and `pixi.lock`'s maintenance, because the hosted relock is unproven;
   - the pixi group;
   - the local-cluster group.
@@ -57,7 +57,7 @@ Counted from the files by [inventory.txt](../../.scratch/bootstrap/evidence/27/i
 | Hex package ranges | `gleam.toml` | 11 | gleam manager, group hex packages |
 | Hex package lock | `manifest.toml` | 38 | gleam manager: `update-lockfile` and lock-file maintenance, with Renovate running `gleam` to rewrite the lock |
 | Conda pins | `pixi.toml` | 19 | pixi manager, held |
-| Conda lock | `pixi.lock` | 106 | pixi lock-file maintenance, held; the hosted relock is unproven (43) |
+| Conda lock | `pixi.lock` | 106 | pixi lock-file maintenance, held; the hosted relock is unproven (44) |
 | Action SHAs | the workflows and the setup action | 7 | github-actions manager, group GitHub Actions |
 | Runner labels | the workflows | 7 | github-actions manager (`github-runners` datasource), same group |
 | prek remote hook revisions | the two hook configs | 0 | Nothing to cover: every hook is `local` or `builtin` (Decision 0003, "One owner per pin") |
@@ -108,16 +108,16 @@ Ticket 27 changed four things so that the managers read every pin:
 
   osv-scanner is not used, because it reads `mix.lock` but not Gleam's `manifest.toml`. Renovate's OSV alerts are experimental, cover direct dependencies only, and run only once the app does; `osvVulnerabilityAlerts` is on for that day. One residual risk: OSV matches an OTP tag against the tags it enumerated for each record, so an open advisory may miss a tag cut after OSV last processed it.
 - **GitHub's Dependabot alerts,** on since ticket 04. The dependency graph reads the workflow files and lists no Hex, Conda or Docker ecosystem, so for knarr the alerts cover the actions only. Renovate also reads them once the app is installed.
-- **The conda-forge packages have no authoritative advisory source.** OSV has no conda ecosystem, and Renovate's OSV alerts skip the conda datasource. grype matches conda records against NVD's CPEs, but only when it scans them as a directory, and no job does that yet: the image scan below does not read them, and [ticket 44](../../.scratch/bootstrap/issues/44-scan-image-runtime-environment.md) adds the directory scan. Until then the runtime environment the image ships is scanned by no job: erlang, the conda-forge openssl the BEAM links, perl 5.32.1 and zlib. OTP itself is checked through OSV's `GIT` records, and the weekly proposals keep the rest fresh once the app is live.
+- **The conda-forge packages have no authoritative advisory source.** OSV has no conda ecosystem, and Renovate's OSV alerts skip the conda datasource. grype matches conda records against NVD's CPEs, but only when it scans them as a directory, and no job does that yet: the image scan below does not read them, and [ticket 45](../../.scratch/bootstrap/issues/45-scan-image-runtime-environment.md) adds the directory scan. Until then the runtime environment the image ships is scanned by no job: erlang, the conda-forge openssl the BEAM links, perl 5.32.1 and zlib. OTP itself is checked through OSV's `GIT` records, and the weekly proposals keep the rest fresh once the app is live.
 - **The `tools.txt` downloads have no advisory source.** Nothing matches a checksum-pinned download against advisories, and no bot moves them (the manual routine above).
 - **The image: grype, through `just image-scan`.** grype 0.120.1 comes from a pixi `audit` environment that holds only grype; the relock added grype's two records and changed nothing else. `--only-fixed --fail-on high` fails on a high or critical vulnerability that has a fix. In `audit.yml` it scans the linux/amd64 image that `just image-build` builds, and the job is not required.
   - **OS packages only:** grype runs syft to catalogue packages, and syft selects 34 package catalogers for an image source and 57 for a directory. `conda-meta-cataloger` runs only on a directory, and grype 0.120.1 has no flag or configuration setting that selects catalogers. The same runtime-environment records give 0 conda matches as an image, and 7 conda matches, 4 with a fix, as a directory ([grype-probe.txt](../../.scratch/bootstrap/evidence/27/grype-probe.txt), part 3). So the scan reads the image's `deb` packages and not its runtime environment.
-  - **The runtime environment, scanned as a directory,** matches fixed vulnerabilities in conda-forge's perl 5.32.1 through NVD CPEs, and those four are all of part 3's matches with a fix: CVE-2022-48522 (Critical, fixed in 5.35.5), CVE-2023-31484 and CVE-2023-31486 (High, fixed in 5.38.0), and CVE-2023-47038 (High). erlang's conda-forge build pins that perl (its build string is `pl5321`), and Decision 0003 already contemplated pruning perl from the runtime image. Ticket 44 scans the environment in `audit.yml` and decides perl.
+  - **The runtime environment, scanned as a directory,** matches fixed vulnerabilities in conda-forge's perl 5.32.1 through NVD CPEs, and those four are all of part 3's matches with a fix: CVE-2022-48522 (Critical, fixed in 5.35.5), CVE-2023-31484 and CVE-2023-31486 (High, fixed in 5.38.0), and CVE-2023-47038 (High). erlang's conda-forge build pins that perl (its build string is `pl5321`), and Decision 0003 already contemplated pruning perl from the runtime image. Ticket 45 scans the environment in `audit.yml` and decides perl.
   - **Not Trivy:** GHSA-69fq-xp46-6x23 (CVE-2026-33634) records a malicious Trivy release in March 2026, with 76 of 77 `trivy-action` tags force-pushed.
   - **Not osv-scanner:** it is on conda-forge too, but OSV has no conda ecosystem, so it would not close the conda gap, and grype already reads the OS packages.
 - **The first finding: the pinned base already has a High with a fix.** CVE-2026-84782 is in `libssl3t64` 3.0.13-0ubuntu3.15 and fixed in 3.0.13-0ubuntu3.16 ([grype-probe.txt](../../.scratch/bootstrap/evidence/27/grype-probe.txt)). The branch's `audit.yml` run found exactly that on the real knarr image: the same six `libssl3t64` rows, all `deb` ([ci-audit.txt](../../.scratch/bootstrap/evidence/27/ci-audit.txt)). That is Ubuntu's libssl, not the BEAM's: erlang links conda-forge's openssl from the runtime environment (Decision 0003).
   - **No digest update exists yet.** The `ubuntu:24.04` tag still names the pinned index ([digests.txt](../../.scratch/bootstrap/evidence/27/digests.txt)), and HEAD's only proposal for the base is the 24.04 → 26.04 major ([renovate.txt](../../.scratch/bootstrap/evidence/27/renovate.txt)).
-  - **The image-scan job stays red** until Ubuntu republishes noble with `libssl3t64` 3.0.13-0ubuntu3.16 or later. Then Renovate proposes the digest once ticket 43 activates it, or the maintainer moves the `FROM` line by hand (the manual routine above).
+  - **The image-scan job stays red** until Ubuntu republishes noble with `libssl3t64` 3.0.13-0ubuntu3.16 or later. Then Renovate proposes the digest once ticket 44 activates it, or the maintainer moves the `FROM` line by hand (the manual routine above).
   - **While it is red,** the job's table still lists every finding, so a new one is visible in the run. That is the audit working, so `--fail-on` stays at high.
 
 ### Re-locks, ticket 38's arm64 among them
@@ -130,7 +130,7 @@ A re-lock is an ordinary pull request:
 4. Run `just lock-check`, then `just env-check`. The second may need `pixi install --locked` first.
 5. Run the gate.
 
-Until ticket 43 shows the hosted app relocking, a Renovate pixi proposal takes the same route by hand on the bot's branch.
+Until ticket 44 shows the hosted app relocking, a Renovate pixi proposal takes the same route by hand on the bot's branch.
 
 ## Findings
 
@@ -141,7 +141,7 @@ Every row but the last was observed by `run-all.sh`'s scripts, against the commi
 | [inventory.txt](../../.scratch/bootstrap/evidence/27/inventory.txt) | 226 pins in 15 kinds, counted from the files; 26 in the five manual kinds, the kwok image digest among them; no remote prek hook among 4 hook repositories | Every pin has a manager or a recorded gap |
 | [renovate.txt](../../.scratch/bootstrap/evidence/27/renovate.txt) | The configuration validates with `--strict`. HEAD extracts 57 dependencies in 10 files across five managers, with 18 proposals pending today in 8 branches; etcd's is 3.6.10-0 → 3.6.15-0. Two are switched off, both skipped as `disabled`: setup-pixi's `pixi-version` input and the kwok image. A stale copy, with real older pins rolled back, has 30 proposals in 11 branches and shows each of 9 expected proposals in its group's branch. The native `pixi-version` reading proposes nothing. No dependency skipped but the two switched off, no etcd proposal past 3.6, no digest-pin proposal, and the token in no log | Each covered pin is shown proposing an update |
 | [osv-probe.txt](../../.scratch/bootstrap/evidence/27/osv-probe.txt) | `hex_audit.py`: exit 0 on the committed tree, exit 1 naming GHSA-2q6v-32mr-8p8x for `plug 1.3.0` and CVE-2025-32433 for OTP 27.3.2; OSV records CVE-2025-32433 as a `GIT` range on `github.com/erlang/otp` | The hex and OTP source works, and the controls fail it |
-| [grype-probe.txt](../../.scratch/bootstrap/evidence/27/grype-probe.txt) | grype 0.120.1 from the audit environment on the pinned ubuntu:24.04, amd64: 75 matches, 6 with a fix, 1 of them High (`libssl3t64`); the recipe's flags exit 2. Part 3, the runtime environment's records: 8 of the 13 packages it locks for linux-64 have a record on this host, and the other 5 are not scanned. As an image, 34 catalogers, conda-meta not run, 0 conda matches; as a directory, 57 catalogers, conda-meta 8 packages, 7 conda matches, 4 with a fix. All four are perl 5.32.1 through NVD CPEs: CVE-2022-48522 (Critical), CVE-2023-31484, CVE-2023-31486 and CVE-2023-47038 (High) | The scan works, and its first finding is in the base. It does not read the image's conda records (ticket 44) |
+| [grype-probe.txt](../../.scratch/bootstrap/evidence/27/grype-probe.txt) | grype 0.120.1 from the audit environment on the pinned ubuntu:24.04, amd64: 75 matches, 6 with a fix, 1 of them High (`libssl3t64`); the recipe's flags exit 2. Part 3, the runtime environment's records: 8 of the 13 packages it locks for linux-64 have a record on this host, and the other 5 are not scanned. As an image, 34 catalogers, conda-meta not run, 0 conda matches; as a directory, 57 catalogers, conda-meta 8 packages, 7 conda matches, 4 with a fix. All four are perl 5.32.1 through NVD CPEs: CVE-2022-48522 (Critical), CVE-2023-31484, CVE-2023-31486 and CVE-2023-47038 (High) | The scan works, and its first finding is in the base. It does not read the image's conda records (ticket 45) |
 | [digests.txt](../../.scratch/bootstrap/evidence/27/digests.txt) | Both pinned digests are OCI indexes with amd64 and arm64 manifests, and both tags still name them | Confirmed; no ubuntu digest update exists yet |
 | [sources.txt](../../.scratch/bootstrap/evidence/27/sources.txt) | Twenty vendor pages fetched with their sha256; 37 cited phrases found and 3 expected absences; conda-forge carries grype 0.120.1, trivy 0.75.0 and osv-scanner 2.6.0 | Public-source research, as of 2026-10-09 |
 | [ci-audit.txt](../../.scratch/bootstrap/evidence/27/ci-audit.txt) | Run 38015514089 of `audit.yml`, dispatched on the branch at `d5c7178` on 2026-10-10. Hex advisories: success, no advisory for 38 hex packages or Erlang/OTP 29.1.1. Image scan: failure, exit 2, on the real linux/amd64 knarr image, with the six `libssl3t64` 3.0.13-0ubuntu3.15 rows, all `deb`, and CVE-2026-84782 High, fixed in 3.0.13-0ubuntu3.16. External links: failure, from three keda.sh URLs refusing connections; those links were already in the docs, and that job reports remote availability, so it is unrelated to this ticket | Both new jobs run in CI; the image scan's finding is exactly the base image's |
@@ -176,7 +176,7 @@ Each script exits non-zero on an unexpected result and writes only to the work d
   yes  regex          ghcr.io/prefix-dev/pixi  README.md                          renovate/pixi
 ```
 
-**Not run here.** These are ticket 43's proof:
+**Not run here.** These are ticket 44's proof:
 
 - installing the Mend app;
 - a real Renovate pull request, and the Dependency Dashboard;
@@ -188,7 +188,7 @@ Each script exits non-zero on an unexpected result and writes only to the work d
 
 ## Consequences
 
-- **Ticket 43 activates Renovate,** each step authorized by the maintainer:
+- **Ticket 44 activates Renovate,** each step authorized by the maintainer:
   1. install the app;
   2. prove each manager with one approved pull request, including whether the hosted app rewrites `manifest.toml` and relocks `pixi.lock` (relocking by hand on the bot's branch is the passing path if it does not);
   3. remove `:dependencyDashboardApproval`;
@@ -196,17 +196,17 @@ Each script exits non-zero on an unexpected result and writes only to the work d
 
   No ubuntu digest update exists to show on the first dashboard yet. It appears once Ubuntu republishes noble with `libssl3t64` 3.0.13-0ubuntu3.16 or later, and it clears the image scan's finding.
 - **Every pin change arrives as a pull request the maintainer reviews.** The gate fails one that leaves a pin in a shape Renovate cannot read.
-- **`audit.yml` has three jobs, none required:** links, hex advisories and the image scan. The image scan is red until Ubuntu republishes noble with the fixed `libssl3t64` and the `FROM` line moves, through Renovate once ticket 43 activates it or by hand (the manual routine above). While it is red, its table still lists every finding, so a new one is visible in the run. Once it is green, it still says nothing of the runtime environment, which it does not read, until ticket 44 lands.
-- **[Ticket 44](../../.scratch/bootstrap/issues/44-scan-image-runtime-environment.md) scans the runtime environment** the image ships, which the image scan does not read. It also decides perl: pruned from the runtime image with Decision 0003's TLS check rerun, or accepted with a dated, documented grype ignore.
+- **`audit.yml` has three jobs, none required:** links, hex advisories and the image scan. The image scan is red until Ubuntu republishes noble with the fixed `libssl3t64` and the `FROM` line moves, through Renovate once ticket 44 activates it or by hand (the manual routine above). While it is red, its table still lists every finding, so a new one is visible in the run. Once it is green, it still says nothing of the runtime environment, which it does not read, until ticket 45 lands.
+- **[Ticket 45](../../.scratch/bootstrap/issues/45-scan-image-runtime-environment.md) scans the runtime environment** the image ships, which the image scan does not read. It also decides perl: pruned from the runtime image with Decision 0003's TLS check rerun, or accepted with a dated, documented grype ignore.
 - **Ticket 38's arm64 lane** re-locks through the route above.
 - **The network lists** in `AGENTS.md` and `CONTRIBUTING.md` name `just hex-audit`, `just image-scan` and `just audit-install`.
 
 ## What would reopen this
 
 - **A remote prek hook appears.** Pin it as `rev: <40 hex> # frozen: vX.Y.Z`, widen `test_hook_configs.py`'s pattern to accept that comment, and enable Renovate's `pre-commit` manager.
-- **Ticket 43 shows the hosted app relocking `pixi.lock`.** Drop the pixi manager's own hold.
+- **Ticket 44 shows the hosted app relocking `pixi.lock`.** Drop the pixi manager's own hold.
 - **conda-forge gains an advisory source,** or OSV a conda ecosystem. Add it to the audit.
-- **grype or syft gains a way to catalogue conda records in an image.** The image scan then reads the runtime environment itself, and ticket 44's directory scan can retire.
+- **grype or syft gains a way to catalogue conda records in an image.** The image scan then reads the runtime environment itself, and ticket 45's directory scan can retire.
 - **Renovate's native `pixi-version` reading starts proposing.** [renovate.txt](../../.scratch/bootstrap/evidence/27/renovate.txt) part 4 says so when it does; drop the rule and the fourth match string.
 - **Renovate's OSV alerts leave experimental status and cover locked dependencies.** `just hex-audit` may then retire.
 
@@ -215,4 +215,4 @@ Each script exits non-zero on an unexpected result and writes only to the work d
 - [Decision 0003: Tool manager](0003-tool-manager.md), for the pins and the escape hatch
 - [Decision 0012: Release and packaging](0012-release-and-packaging.md), for the image and arm64
 - [Evidence for this record](../../.scratch/bootstrap/evidence/27/README.md)
-- [Ticket 27](../../.scratch/bootstrap/issues/27-spike-dependency-updates-and-audit.md), with the hand-back notes, and tickets [43](../../.scratch/bootstrap/issues/43-renovate-activation.md) and [44](../../.scratch/bootstrap/issues/44-scan-image-runtime-environment.md)
+- [Ticket 27](../../.scratch/bootstrap/issues/27-spike-dependency-updates-and-audit.md), with the hand-back notes, and tickets [44](../../.scratch/bootstrap/issues/44-renovate-activation.md) and [45](../../.scratch/bootstrap/issues/45-scan-image-runtime-environment.md)

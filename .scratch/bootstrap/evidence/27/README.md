@@ -53,7 +53,7 @@ sh .scratch/bootstrap/evidence/27/ci-audit.sh 38015514089
 ## Notes
 
 - **The token never reaches a transcript.** `renovate.sh` passes `gh auth token` to the container by name in its environment, and fails if the token's value appears in any Renovate log.
-- **Lookup mode stops before branches.** The local platform creates no branch, no issue and no pull request. So the transcripts show grouping through branch names but not the holds. The holds are modelled by `scripts/checks/tests/test_dependency_pins.py`, and ticket 43 sees them on the Dependency Dashboard.
+- **Lookup mode stops before branches.** The local platform creates no branch, no issue and no pull request. So the transcripts show grouping through branch names but not the holds. The holds are modelled by `scripts/checks/tests/test_dependency_pins.py`, and ticket 44 sees them on the Dependency Dashboard.
 - **The stale copy's rollbacks name the live pins.** When a pin moves, `renovate.sh` stops and names the rollback to move with it. A Renovate pull request that lands will do this; it does not mean the script is broken.
 - **Point-in-time reads.** The pending proposals, the advisories and grype's database are as of the run's date. The live audit's verdict may differ next week, and the image scan's first finding should clear once Ubuntu republishes noble with the fixed `libssl3t64` and the base image moves.
 - **A failed request is never evidence.** `hex_audit.py` fails closed. `sources.sh` stops on a fetch failure rather than reporting a phrase missing. `run-all.sh` fails if it cannot list Docker's containers rather than reporting none left.

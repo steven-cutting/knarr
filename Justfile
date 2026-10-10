@@ -12,9 +12,9 @@ export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":"
 export PYTHONDONTWRITEBYTECODE := "1"
 
 # Any recipe may write ignored paths, such as build/ and the <title>.new a
-# failing snapshot test leaves. Four recipes change tracked files on purpose:
-# `fix`, `snapshots-review`, `snapshots-accept`, and `birdie` running
-# `accept`, `reject` or `stale delete`. None is in the check group, and
+# failing snapshot test leaves. Five recipes change tracked files on purpose:
+# `fix`, `snapshots-review`, `snapshots-accept`, `release-pin`, and `birdie`
+# running `accept`, `reject` or `stale delete`. None is in the check group, and
 # `just check` proves its recipes change nothing Git can see.
 
 # birdie keeps the list of snapshots a test run referenced in $TMPDIR, named by
@@ -173,7 +173,7 @@ hex-audit:
 # Fails on a high or critical vulnerability that has a fix. grype downloads its
 # vulnerability database on first use. It reads the image's OS packages only,
 # not the conda records of the runtime environment the image ships, so a pass
-# says nothing about erlang, its openssl or perl (Decision 0014, ticket 44).
+# says nothing about erlang, its openssl or perl (Decision 0014, ticket 45).
 [group('audit')]
 [doc('Scan the OS packages of an image for fixable high and critical vulnerabilities with grype (needs network)')]
 image-scan image=cluster_image: audit-tools
@@ -328,6 +328,16 @@ packaging-check:
     python3 scripts/checks/deployment.py
 
 [group('cluster')]
-[doc('Render every deploy/ variant with kustomize and validate each against pinned local schemas')]
+[doc('Render and validate every deploy/ variant, and hold the release overlay to its two-line difference')]
 deployment-check: cluster-tools
     python3 scripts/checks/deployment.py --render
+
+# ---------------------------------------------------------------- release ---
+
+# Writes deploy/release/kustomization.yaml, a tracked file, so it is outside the
+# check group. Ticket 37 runs it with the digest release.yml prints in its run
+# summary; it fails unless the overlay then renders exactly that reference.
+[group('release')]
+[doc('Pin the release overlay to an image digest and print the rendered reference (edits a tracked file)')]
+release-pin digest: cluster-tools
+    sh scripts/release/pin-digest.sh "$1"

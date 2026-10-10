@@ -1,4 +1,4 @@
-# 44: Scan the image's runtime environment
+# 45: Scan the image's runtime environment
 
 **Context:** [Decision 0014](../../../docs/decisions/0014-dependency-updates-and-audit.md) scans the knarr image with grype, through `just image-scan`, and that scan reads the image's OS (`deb`) packages only. grype runs syft to catalogue packages, and syft selects 34 package catalogers for an image source and 57 for a directory. `conda-meta-cataloger` runs only on a directory ([grype-probe.txt](../evidence/27/grype-probe.txt), part 3), and grype 0.120.1 has no flag or configuration setting that selects catalogers. The branch's `audit.yml` run shows the result on the real image: six `libssl3t64` rows, all `deb` ([ci-audit.txt](../evidence/27/ci-audit.txt)). So the runtime environment the image ships at `/opt/knarr/.pixi/envs/runtime` is scanned by no job: erlang, the conda-forge openssl the BEAM links, perl 5.32.1 and zlib.
 
@@ -38,7 +38,7 @@ erlang's conda-forge build pins that perl (its build string is `pl5321`), so per
 
 - [ ] A recipe in the `audit` group scans the linux-64 runtime environment as a directory with `--only-fixed --fail-on high`. It exits 0 when nothing qualifies and 2 on a finding, as `just image-scan` does, and fails when it catalogues no conda package.
 - [ ] `audit.yml` runs it even when the OS-package scan fails, and the job is not required.
-- [ ] perl is pruned from the runtime image, with `tls_check.escript` rerun in the pruned image, or accepted with a dated, documented grype ignore for each CVE. 0014 carries an "Amended by ticket 44" note saying which, and that the image's conda records are scanned.
+- [ ] perl is pruned from the runtime image, with `tls_check.escript` rerun in the pruned image, or accepted with a dated, documented grype ignore for each CVE. 0014 carries an "Amended by ticket 45" note saying which, and that the image's conda records are scanned.
 - [ ] **Authorization required:** the network, for `pixi install`, grype's vulnerability database and any image pull.
 - [ ] **Authorization required:** one `audit.yml` dispatch on the branch. The hand-back records the run, the matches with a fix and the job's verdict.
 - [ ] `just check` ends with "All checks passed and the worktree is unchanged."

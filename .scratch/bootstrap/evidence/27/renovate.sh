@@ -2,7 +2,7 @@
 # Ticket 27 evidence: Renovate itself, on the local platform, against the
 # committed tree. The local platform looks up updates and stops: it creates no
 # branch, no issue and no pull request (sources.txt), so the landing hold and
-# the branches themselves are ticket 43's to see on the hosted app.
+# the branches themselves are ticket 44's to see on the hosted app.
 #
 #   1. renovate-config-validator --strict on .github/renovate.json.
 #   2. A lookup on an export of HEAD: every pin extracted, and what is pending

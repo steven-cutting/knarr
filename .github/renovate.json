@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Renovate proposes an update for every pin it can read; nothing merges without the maintainer's review (Decision 0014). Landed held: every update waits for approval on the Dependency Dashboard until ticket 43 activates the app, except a vulnerability fix, such as one osvVulnerabilityAlerts below raises: Renovate opens those without approval by default, and they still never merge themselves.",
+  "description": "Renovate proposes an update for every pin it can read; nothing merges without the maintainer's review (Decision 0014). Landed held: every update waits for approval on the Dependency Dashboard until ticket 44 activates the app, except a vulnerability fix, such as one osvVulnerabilityAlerts below raises: Renovate opens those without approval by default, and they still never merge themselves.",
   "extends": [
     "config:recommended",
     "docker:pinDigests",
@@ -48,7 +48,7 @@
       "groupName": "GitHub Actions"
     },
     {
-      "description": "Every conda pin, and pixi.lock's maintenance, waits for approval: relocking pixi.lock is an unsafe execution the hosted app may not be allowed to run, so each update is approved and its lock diff read (ticket 43).",
+      "description": "Every conda pin, and pixi.lock's maintenance, waits for approval: relocking pixi.lock is an unsafe execution the hosted app may not be allowed to run, so each update is approved and its lock diff read (ticket 44).",
       "matchManagers": [
         "pixi"
       ],

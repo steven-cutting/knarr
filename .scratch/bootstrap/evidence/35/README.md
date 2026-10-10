@@ -13,7 +13,7 @@ The host was a disposable Claude Code cloud container: a Firecracker VM, Linux x
 | 03, fully cold initialization | **Closed.** Cold `just initialize` 16.676 s, `just check` 183.112 s, network-denied `just check` 200.367 s; all exit 0, worktree clean | [cold.txt](cold.txt), [cold-initialize.txt](cold-initialize.txt), [cold-check.txt](cold-check.txt), [offline.txt](offline.txt), [offline-check.txt](offline-check.txt), [cold-results.json](cold-results.json), [caches-after.txt](caches-after.txt) |
 | 01, native Linux TLS and rebar3 | **Closed.** All six TLS cases in the default and the runtime environment; OTP 29 in both, matching `pixi.lock`; rebar3 compiles both dependencies and the build fails without it | [native-linux.txt](native-linux.txt) |
 | 03, maintainer's primary hook | **Open.** Needs the maintainer's checkout. A tested probe is [below](#open-the-maintainers-primary-hook) | — |
-| 04, intermittent checker test | **Open.** CHECKERS_SUMMARY | [checkers.txt](checkers.txt) |
+| 04, intermittent checker test | **Open.** 20 sequential runs of the current 402-test suite all passed, 8,040 test executions with no failure; green runs do not identify it. Static leads are recorded for the Mac | [checkers.txt](checkers.txt) |
 | 06, hosted audit | **Open.** The authorized dispatch was refused, `403 Resource not accessible by integration`; no scheduled run exists yet | [audit.json](audit.json) |
 | 05/06, restricted agent sandbox | **Open.** macOS only; nothing here observes it | — |
 | 08, snapshot commands | **Closed.** Interactive review accepted through a pseudo-terminal, reject and stale delete, with byte-level and isolation assertions | [snapshots.txt](snapshots.txt) |
@@ -98,7 +98,14 @@ sh .scratch/bootstrap/evidence/35/checkers.sh <initialized-clone> 20 "$(mktemp -
 
 The historical failure ran on the maintainer's Mac in 04's worktree, and its output was not kept: "Its name was lost with the output". No log of it exists in the repository or in this container. The only remaining source would be the maintainer's local session transcripts from 04. So [checkers.sh](checkers.sh) repeats the current suite, the 402 tests `just test-checkers` runs (87 at 04's time), in sequence in the cold clone. It keeps each run's JUnit XML and output so that a failure's name and message survive.
 
-CHECKERS_DETAIL
+[The transcript](checkers.txt) shows all 20 runs, from 19:17Z to 20:14Z, exiting 0. Each run had 402 tests, 0 failed, 0 errors and 0 skipped, and took 160.9–173.5 s. That is 8,040 test executions without a failure. Runs 01–03 overlapped the native probes, the snapshot exercise and the Kubernetes fetch above. Run 05 overlapped a pre-commit hook run in this checkout, at 19:30Z. The rest ran alongside file edits and read-only git. **This does not identify the test, so the item stays open.** The bound was 20 runs, about 55 minutes, against roughly one failure in six recorded runs on the Mac. A Linux VM without concurrent worktrees may simply not reproduce it.
+
+A read-only review of the 04-era suite at `0de7899` found no deterministic defect. That suite's test files, `conftest.py` and the checkers they exercise are unchanged at HEAD. The suite has no sleeps, clock comparisons, subprocess timeouts, ports or network access, and its random `ghp_` token always matches ripsecrets' built-in pattern. A "failed", rather than "error", outcome also puts the failure in a test body, not a fixture. Its leads, unverified, are for a rerun on the maintainer's Mac:
+
+- **ripsecrets.** Every test in `test_ripsecrets_redacted.py` copies the pinned binary into a fresh temporary repository, at `0de7899` line 40 and still so at HEAD, then runs it there. So each test launches a binary at a path macOS has not seen before. The tests also require an exact exit status and output.
+- **Load.** `test_run_project_check.py` starts about fifteen processes per test, so a transient process failure while other worktrees run their gates would surface there.
+
+The next step is `checkers.sh` on the Mac, beside another worktree's `just check`, keeping the JUnit XML. If a run fails, keep a reproducer, and open a focused ticket if the fix is more than one line.
 
 ## 06: hosted audit
 

@@ -14,8 +14,11 @@ await_new_child(Supervisor, Previous, Attempts) ->
     _ -> timer:sleep(20), await_new_child(Supervisor, Previous, Attempts - 1)
   end.
 
-%% A bare actor is stopped the way its supervisor would stop it: an exit
-%% signal, which it does not trap. A supervisor takes gen_server:stop.
+%% A bare actor is stopped with the signal its supervisor would send: an
+%% exit, which it does not trap. gleam_otp 1.3.0's actor does not handle
+%% the terminate system message, so gen_server:stop would block, or time out,
+%% and leave it running. The root is an OTP supervisor and takes
+%% gen_server:stop.
 stop_probe(Pid) ->
   unlink(Pid),
   exit(Pid, shutdown),

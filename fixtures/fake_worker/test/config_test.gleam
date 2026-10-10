@@ -87,3 +87,51 @@ pub fn describe_names_the_variable_and_the_value_test() -> Nil {
   assert config.describe(config.ConfigError("FAKE_WORKER_MODE", "worker", "x"))
     == "FAKE_WORKER_MODE must be worker, not \"x\""
 }
+
+pub fn the_control_port_must_differ_from_the_status_port_test() -> Nil {
+  let same = [
+    #("FAKE_WORKER_STATUS_PORT", "9000"),
+    #("FAKE_WORKER_CONTROL_PORT", "9000"),
+  ]
+  assert result.map_error(parse(same), fn(error) { error.variable })
+    == Error("FAKE_WORKER_CONTROL_PORT")
+  // Port 0 lets the OS choose each, and a collector serves no status port.
+  assert result.is_ok(
+    parse([
+      #("FAKE_WORKER_STATUS_PORT", "0"),
+      #("FAKE_WORKER_CONTROL_PORT", "0"),
+    ]),
+  )
+  assert result.is_ok(parse([#("FAKE_WORKER_MODE", "collector"), ..same]))
+}
+
+// A record needs time to reach the collector before the VM stops.
+pub fn a_sink_needs_a_drain_test() -> Nil {
+  let sink = #("FAKE_WORKER_SINK_URL", "http://collector:8081")
+  let no_drain = #("FAKE_WORKER_DRAIN_SECONDS", "0")
+  assert result.map_error(parse([sink, no_drain]), fn(error) { error.variable })
+    == Error("FAKE_WORKER_DRAIN_SECONDS")
+  assert result.is_ok(parse([no_drain]))
+}
+
+// The worker appends /kills/<pod> to the URL, so it names a host and no path.
+pub fn the_sink_url_names_only_a_host_test() -> Nil {
+  list.each(
+    [
+      "http://", "http://collector:8081/sink", "http://collector?x=1",
+      "http://collector#x", "http://collector:http",
+    ],
+    fn(url) {
+      assert result.map_error(
+          parse([#("FAKE_WORKER_SINK_URL", url)]),
+          fn(error) { error.variable },
+        )
+        == Error("FAKE_WORKER_SINK_URL")
+    },
+  )
+  assert result.map(
+      parse([#("FAKE_WORKER_SINK_URL", "http://c.ns:8081")]),
+      fn(config) { config.sink_url },
+    )
+    == Ok(Some("http://c.ns:8081"))
+}

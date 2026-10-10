@@ -133,6 +133,8 @@ def test_fake_worker_profile_runs_its_own_image_checks(monkeypatch):
     assert "--memory=268435456" in detached
     assert "--publish=127.0.0.1::8080" in detached
     assert "--publish=127.0.0.1::8081" in detached
+    # A drain far longer than the check waits, so the exit proves the early stop.
+    assert "--env=FAKE_WORKER_DRAIN_SECONDS=60" in detached
 
 
 def test_the_knarr_entrypoint_does_not_pass_as_the_fake_workers(monkeypatch):

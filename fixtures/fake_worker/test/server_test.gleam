@@ -39,6 +39,9 @@ fn stop_tree(running: process.Pid) -> Nil
 @external(erlang, "fake_worker_test_ffi", "now_ms")
 fn now_ms() -> Int
 
+@external(erlang, "fake_worker_test_ffi", "kill_registered")
+fn kill_registered(prefix: String) -> Nil
+
 const path = "/knarr/v1/status"
 
 fn worker_config() -> Config {
@@ -152,6 +155,35 @@ pub fn refused_closes_and_reopens_the_same_port_test() -> Nil {
   assert control(running, "{\"failure\":\"none\"}").0 == 200
   assert server.status_port(running) == port
   assert status(running) == Ok(#(200, "{\"cost\":3,\"accepting\":true}"))
+  stop_tree(server.root(running))
+}
+
+// With port 0 the OS picks the status port once; leaving refused rebinds it.
+pub fn refused_keeps_an_os_chosen_port_test() -> Nil {
+  let running = server.start_worker(worker_config(), quiet()) |> should.be_ok
+  let port = server.status_port(running)
+  set(running, "{\"failure\":\"refused\"}")
+  assert status(running) == Error(Refused)
+  set(running, "{\"failure\":\"none\"}")
+  assert server.status_port(running) == port
+  assert status(running) == Ok(#(200, "{\"cost\":0,\"accepting\":true}"))
+  stop_tree(server.root(running))
+}
+
+// The sink is the last child, so its crash restarts nothing before it: a
+// drain in progress survives.
+pub fn a_sink_crash_keeps_the_drain_test() -> Nil {
+  let stops = process.new_subject()
+  let running =
+    server.start_worker(worker_config(), effects(stops, process.new_subject()))
+    |> should.be_ok
+  set(running, "{\"cost\":1800}")
+  let sigterm = running.sigterm |> should.be_some
+  sigterm()
+  kill_registered("fake_worker_sink$")
+  assert status(running) == Ok(#(200, "{\"cost\":1800,\"accepting\":false}"))
+  set(running, "{\"cost\":0}")
+  assert process.receive(stops, 1000) == Ok(Nil)
   stop_tree(server.root(running))
 }
 

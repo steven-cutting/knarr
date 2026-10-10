@@ -32,13 +32,16 @@ FAKE_WORKER = ROOT / "fixtures/fake_worker/deploy"
 WORKERS = "app.kubernetes.io/name=fake-worker"
 KIND_ONLY = {"deploy", "smoke", "image-load", "fake-worker-deploy", "fake-worker-smoke"}
 # What the smoke sets on four workers through control, and what each one's status
-# endpoint must then answer, byte for byte (worker_contract.allium).
+# endpoint must then answer, byte for byte (worker_contract.allium). Every body
+# names every member, so a second run resets what the first set.
 MIXED = [
-    ("idle", '{"cost":0,"accepting":true}', (200, '{"cost":0,"accepting":true}')),
-    ("busy", '{"cost":1800,"accepting":true}', (200, '{"cost":1800,"accepting":true}')),
-    ("draining", '{"cost":500,"accepting":false}', (200, '{"cost":500,"accepting":false}')),
-    ("absent", '{"failure":"not_found"}', (404, "not found\n")),
+    ("idle", (0, True, "none"), (200, '{"cost":0,"accepting":true}')),
+    ("busy", (1800, True, "none"), (200, '{"cost":1800,"accepting":true}')),
+    ("draining", (500, False, "none"), (200, '{"cost":500,"accepting":false}')),
+    ("absent", (0, True, "not_found"), (404, "not found\n")),
 ]
+# How long the smoke repeats a request before it takes the answer as final.
+ANSWER_SECONDS = 15
 # Loopback only: a proxy in the environment never sees the smoke's requests.
 LOOPBACK = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -70,59 +73,34 @@ def ready():
 
 
 def smoke(state):
-    # kubectl asks the OS to allocate its listening port, avoiding a probe/bind race.
-    with (state / "port-forward.log").open("w+") as log:
-        forward = subprocess.Popen(
-            ["kubectl", "port-forward", "--address=127.0.0.1", "deployment/knarr", ":8080"],
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        try:
-            deadline = time.monotonic() + 30
-            port = None
-            while time.monotonic() < deadline and forward.poll() is None:
-                log.seek(0)
-                match = re.search(r"Forwarding from 127\.0\.0\.1:(\d+)", log.read())
-                if match:
-                    port = match[1]
-                    break
-                time.sleep(0.1)
-            if port is None:
-                raise RuntimeError("port-forward failed; see .cluster/port-forward.log")
-            for endpoint in ["healthz", "readyz", "metrics"]:
-                body = output(
-                    "curl",
-                    "--noproxy",
-                    "*",
-                    "--fail",
-                    "--silent",
-                    "--show-error",
-                    "--max-time",
-                    "5",
-                    f"http://127.0.0.1:{port}/{endpoint}",
-                )
-                if endpoint == "metrics":
-                    if not re.search(r"^knarr_startups_total 1(?:\.0)?$", body, re.MULTILINE):
-                        raise RuntimeError("startup counter missing or incorrect")
-                    if "erlang_vm_" not in body:
-                        raise RuntimeError("VM collectors missing")
-                elif body != "ok":
-                    raise RuntimeError(f"unexpected /{endpoint} response: {body!r}")
-                print(f"ok /{endpoint}")
-        finally:
-            forward.terminate()
-            try:
-                forward.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                forward.kill()
-                forward.wait()
+    with port_forward(state, "deployment/knarr", 8080) as port:
+        for endpoint in ["healthz", "readyz", "metrics"]:
+            body = output(
+                "curl",
+                "--noproxy",
+                "*",
+                "--fail",
+                "--silent",
+                "--show-error",
+                "--max-time",
+                "5",
+                f"http://127.0.0.1:{port}/{endpoint}",
+            )
+            if endpoint == "metrics":
+                if not re.search(r"^knarr_startups_total 1(?:\.0)?$", body, re.MULTILINE):
+                    raise RuntimeError("startup counter missing or incorrect")
+                if "erlang_vm_" not in body:
+                    raise RuntimeError("VM collectors missing")
+            elif body != "ok":
+                raise RuntimeError(f"unexpected /{endpoint} response: {body!r}")
+            print(f"ok /{endpoint}")
 
 
 @contextlib.contextmanager
 def port_forward(state, target, port):
-    """Forward a loopback port the OS picks to `port` on `target`, and yield it.
-    Each forward logs to its own file under .cluster/."""
+    """Forward a loopback port to `port` on `target`, and yield it. kubectl asks
+    the OS to allocate the port, avoiding a probe/bind race. Each forward logs
+    to its own file under .cluster/."""
     log_path = state / f"port-forward-{re.sub(r'[^A-Za-z0-9.-]', '-', target)}-{port}.log"
     with log_path.open("w+") as log:
         forward = subprocess.Popen(
@@ -154,7 +132,8 @@ def port_forward(state, target, port):
 
 
 def http(method, url, body=None):
-    """One plain-HTTP request over loopback: its status and body, errors included."""
+    """One plain-HTTP request over loopback: its status and body, errors included.
+    A transport failure is status 0 with the error, for the caller to retry."""
     data = None if body is None else body.encode()
     request = urllib.request.Request(url, data=data, method=method)  # noqa: S310 - loopback http
     try:
@@ -162,6 +141,24 @@ def http(method, url, body=None):
             return response.status, response.read().decode()
     except urllib.error.HTTPError as error:
         return error.code, error.read().decode()
+    except (urllib.error.URLError, OSError) as error:
+        return 0, str(error)
+
+
+def answer(method, url, body=None, *, accept, what):
+    """Repeat a request for up to ANSWER_SECONDS until `accept` takes its answer: a
+    fresh port-forward can drop a connection, and a worker takes a moment to see
+    its own SIGTERM."""
+    deadline = time.monotonic() + ANSWER_SECONDS
+    while not accept(got := http(method, url, body)) and time.monotonic() < deadline:
+        time.sleep(0.2)
+    if not accept(got):
+        raise RuntimeError(f"{what}: got {got!r}")
+    return got
+
+
+def exactly(wanted):
+    return lambda got: got == wanted
 
 
 def expect(got, wanted, what):
@@ -188,16 +185,19 @@ def fake_worker_smoke(state):
     pods = sorted(running)[: len(MIXED)]
     with port_forward(state, "service/fake-worker-collector", 8081) as collector:
         kills = f"http://127.0.0.1:{collector}/kills"
-        expect(http("DELETE", kills)[0], 204, "clearing the collector")
-        for pod, (label, body, wanted) in zip(pods, MIXED, strict=True):
+        answer("DELETE", kills, accept=exactly((204, "")), what="clearing the collector")
+        for pod, (label, (cost, accepting, failure), wanted) in zip(pods, MIXED, strict=True):
             with (
                 port_forward(state, f"pod/{pod}", 8081) as control,
                 port_forward(state, f"pod/{pod}", 8080) as status,
             ):
+                body = json.dumps(
+                    {"cost": cost, "accepting": accepting, "failure": failure, "latency_ms": 0}
+                )
                 url = f"http://127.0.0.1:{control}/control"
-                expect(http("PUT", url, body)[0], 200, f"{pod} control")
-                got = http("GET", f"http://127.0.0.1:{status}/knarr/v1/status")
-                expect(got, wanted, f"{pod} status")
+                answer("PUT", url, body, accept=lambda got: got[0] == 200, what=f"{pod} control")
+                url = f"http://127.0.0.1:{status}/knarr/v1/status"
+                got = answer("GET", url, accept=exactly(wanted), what=f"{pod} status")
                 print(f"ok {label} {pod}: {got[0]} {got[1].strip()}")
         idle, busy = pods[0], pods[1]
         # StatusEndpoint.Served in the cluster: the busy worker answers while it drains.
@@ -205,10 +205,7 @@ def fake_worker_smoke(state):
             run("kubectl", "delete", "pod", busy, "--wait=false")
             url = f"http://127.0.0.1:{status}/knarr/v1/status"
             draining = (200, '{"cost":1800,"accepting":false}')
-            deadline = time.monotonic() + 15
-            while (got := http("GET", url)) != draining and time.monotonic() < deadline:
-                time.sleep(0.2)
-            expect(got, draining, f"{busy} status while it drains")
+            got = answer("GET", url, accept=exactly(draining), what=f"{busy} draining")
             print(f"ok draining after SIGTERM {busy}: {got[1]}")
         run("kubectl", "delete", "pod", idle, "--wait=true", "--timeout=60s")
         run("kubectl", "wait", "--for=delete", f"pod/{busy}", "--timeout=60s")

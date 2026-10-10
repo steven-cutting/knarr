@@ -34,6 +34,8 @@ class Profile:
     deployment: str
     ports: tuple[str, ...]
     verify: Callable[[str], None]
+    # Environment for the started container only.
+    environment: tuple[str, ...] = ()
 
 
 def output(*arguments):
@@ -129,10 +131,12 @@ def verify_fake_worker(container):
     output("docker", "kill", "--signal=TERM", container)
     await_status('{"cost":1800,"accepting":false}')
     put('{"cost":0}')
-    deadline = time.monotonic() + 30
+    # The drain runs 60 s here, so stopping within 10 s is the work being done,
+    # not the deadline.
+    deadline = time.monotonic() + 10
     while output("docker", "inspect", "--format={{.State.Running}}", container) == "true":
         if time.monotonic() >= deadline:
-            raise RuntimeError("the worker did not stop after its drain")
+            raise RuntimeError("the worker did not stop once its work was done")
         time.sleep(0.25)
     code = output("docker", "inspect", "--format={{.State.ExitCode}}", container)
     if code != "0":
@@ -160,6 +164,7 @@ FAKE_WORKER = Profile(
     deployment="fake-worker",
     ports=("8080", "8081"),
     verify=verify_fake_worker,
+    environment=("FAKE_WORKER_DRAIN_SECONDS=60",),
 )
 
 
@@ -234,6 +239,7 @@ def main():
         "--ulimit=nofile=131072:131072",
         "--detach",
         *(f"--publish=127.0.0.1::{port}" for port in profile.ports),
+        *(f"--env={variable}" for variable in profile.environment),
         image,
     )
     try:

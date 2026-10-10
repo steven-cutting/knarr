@@ -7,6 +7,7 @@ import gleam/int
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
+import gleam/uri
 
 pub type Mode {
   /// Serve the status and control endpoints.
@@ -60,6 +61,12 @@ pub fn parse(
   use control_port <- result.try(port("FAKE_WORKER_CONTROL_PORT", read, 8081))
   use drain_seconds <- result.try(drain(read("FAKE_WORKER_DRAIN_SECONDS")))
   use sink_url <- result.try(sink(read("FAKE_WORKER_SINK_URL")))
+  use Nil <- result.try(distinct_ports(
+    mode:,
+    status: status_port,
+    control: control_port,
+  ))
+  use Nil <- result.try(drain_for_sink(sink_url, drain_seconds))
   Ok(Config(
     mode:,
     bind: option.unwrap(read("FAKE_WORKER_BIND"), "0.0.0.0"),
@@ -134,16 +141,66 @@ fn drain(value: Option(String)) -> Result(Int, ConfigError) {
   }
 }
 
-// The collector's base URL, over plain HTTP like the status contract.
+// The collector's base URL, over plain HTTP like the status contract. The
+// worker appends /kills/<pod>, so it names a host and nothing after it.
 fn sink(value: Option(String)) -> Result(Option(String), ConfigError) {
   case value {
     None -> Ok(None)
-    Some(url) ->
-      case string.starts_with(url, "http://") {
-        True -> Ok(Some(trim_slashes(url)))
-        False ->
-          Error(ConfigError("FAKE_WORKER_SINK_URL", "an http:// URL", url))
+    Some(url) -> {
+      let base = trim_slashes(url)
+      case uri.parse(base) {
+        Ok(uri.Uri(
+          scheme: Some("http"),
+          host: Some(host),
+          path: "",
+          query: None,
+          fragment: None,
+          ..,
+        ))
+          if host != ""
+        -> Ok(Some(base))
+        _ ->
+          Error(ConfigError(
+            "FAKE_WORKER_SINK_URL",
+            "an http:// URL naming a host and no path",
+            url,
+          ))
       }
+    }
+  }
+}
+
+// Two listeners cannot share a port; port 0 lets the OS give each its own, and
+// a collector serves no status endpoint.
+fn distinct_ports(
+  mode mode: Mode,
+  status status: Int,
+  control control: Int,
+) -> Result(Nil, ConfigError) {
+  case mode, status == control && status != 0 {
+    Worker, True ->
+      Error(ConfigError(
+        "FAKE_WORKER_CONTROL_PORT",
+        "a port other than FAKE_WORKER_STATUS_PORT",
+        int.to_string(control),
+      ))
+    _, _ -> Ok(Nil)
+  }
+}
+
+// The kill record needs time to reach the collector before the VM stops.
+fn drain_for_sink(
+  sink: Option(String),
+  seconds: Int,
+) -> Result(Nil, ConfigError) {
+  case sink, seconds {
+    Some(_), 0 ->
+      Error(ConfigError(
+        "FAKE_WORKER_DRAIN_SECONDS",
+        "at least 1 when FAKE_WORKER_SINK_URL is set",
+        "0",
+      ))
+    _, _ -> Ok(Nil)
   }
 }
 

@@ -22,12 +22,12 @@ Every variable is optional. A value the worker cannot use stops it before it ser
 | `FAKE_WORKER_BIND` | `0.0.0.0` | Listen address; set `::` for a pod with an IPv6 address |
 | `FAKE_WORKER_STATUS_PORT` | `8080` | The status port, `config.status_port` in the contract |
 | `FAKE_WORKER_STATUS_PATH` | `/knarr/v1/status` | The status path, `config.status_path`; absolute, no query or fragment |
-| `FAKE_WORKER_CONTROL_PORT` | `8081` | The control port, or the collector's port in collector mode |
-| `FAKE_WORKER_DRAIN_SECONDS` | `10` | The longest drain after SIGTERM |
-| `FAKE_WORKER_SINK_URL` | unset | The collector's base URL, for example `http://fake-worker-collector:8081` |
+| `FAKE_WORKER_CONTROL_PORT` | `8081` | The control port, or the collector's port in collector mode; a worker's must differ from its status port |
+| `FAKE_WORKER_DRAIN_SECONDS` | `10` | The longest drain after SIGTERM; at least 1 when a sink is set |
+| `FAKE_WORKER_SINK_URL` | unset | The collector's base URL, a host and no path, for example `http://fake-worker-collector:8081` |
 | `POD_NAME` | the hostname | The name in the kill record; the manifests set it from the downward API |
 
-Port 0 lets the OS choose, which only tests use. The worker logs one line per listener, `fake_worker listening listener=status port=8080`, and `fake_worker started pod=<name>` once it is ready.
+Port 0 lets the OS choose, which only tests use; a listener that restarts binds the port chosen the first time. The worker logs one line per listener, `fake_worker listening listener=status port=8080`, and `fake_worker started pod=<name>` once it is ready.
 
 ## Status endpoint
 
@@ -87,9 +87,9 @@ The image builds from the repository root with `fixtures/fake_worker/Dockerfile`
 With the cluster tools installed and a kind cluster up (see the [local cluster guide](../how-to/local-cluster.md)):
 
 1. `just fake-worker-image-build` builds `fake-worker:<cluster name>`.
-2. `just fake-worker-image-check` runs the image as `just image-check` runs knarr's: the numeric user, OTP ownership, the descriptor cap and a read-only root under the Deployment's memory limit. It then sends a real SIGTERM to the container and checks the drain: status answers `accepting` false, the kill record is logged, and the exit status is 0.
+2. `just fake-worker-image-check` runs the image as `just image-check` runs knarr's: the numeric user, OTP ownership, the descriptor cap and a read-only root under the Deployment's memory limit. It then sets a cost, sends a real SIGTERM to the container and checks the drain: status answers `accepting` false, and once control sets the cost to 0 the container exits with status 0 within 10 seconds of a 60-second drain, with the kill record in its log.
 3. `just fake-worker-deploy` loads the image and applies `fixtures/fake_worker/deploy/`: four workers, with a five-second drain and a twenty-second grace period, and the collector. It waits for CoreDNS, because workers reach the collector by name, and for both rollouts.
-4. `just fake-worker-smoke` clears the collector and sets four workers to idle, busy, draining and `not_found` through control. It reads each back from its status endpoint byte for byte. It then deletes the busy worker, reads `accepting` false from it while it drains, deletes the idle worker, and finds both kill records at the collector by pod name.
+4. `just fake-worker-smoke` clears the collector and sets four workers to idle, busy, draining and `not_found` through control, naming every member so a second run resets the first's. It reads each back from its status endpoint byte for byte, retrying for up to 15 seconds over a fresh port forward. It then deletes the busy worker, reads `accepting` false from it while it drains, deletes the idle worker, and finds both kill records at the collector by pod name.
 
 The manifests live outside `deploy/`, which holds knarr's variants, and `just packaging-check` validates them against the pinned local schemas. CI's non-required "Kind fake worker smoke" job runs all four steps.
 
@@ -103,14 +103,14 @@ Every test names the `StatusEndpoint` clause it traces in a comment. The Gleam t
 | `Versioning` | `status_test`: `versioning_other_paths_are_not_found_test` |
 | `Discovery` | `status_test`: `discovery_override_path_test`; `config_test`: `defaults_test`, `overrides_test`. Which pods knarr polls is ticket 31's. |
 | `RequestHeaders` | `status_test`: `request_headers_are_not_required_test`. The `User-Agent` knarr sends is ticket 43's. |
-| `Transport` | `status_test`: `latency_and_timeout_delay_the_answer_test`; `server_test`: `failure_modes_over_the_wire_test`, `refused_closes_and_reopens_the_same_port_test` |
+| `Transport` | `status_test`: `latency_and_timeout_delay_the_answer_test`; `server_test`: `failure_modes_over_the_wire_test`, `refused_closes_and_reopens_the_same_port_test`, `refused_keeps_an_os_chosen_port_test` |
 | `ValidReading` | `status_test`: `valid_reading_for_a_new_worker_test`, `valid_reading_cost_is_a_plain_integer_test` |
 | `NotFoundReading` | `status_test`: `not_found_reading_test`; `server_test`: `failure_modes_over_the_wire_test` |
 | `InvalidReading` | `status_test`: `invalid_reading_server_error_test`, `invalid_reading_default_body_test`, `invalid_reading_chosen_bodies_test` |
 | `Payload` | `status_test`: `payload_reflects_control_test`, `served_while_draining_reports_not_accepting_test`; `worker_test`: `control_cannot_resume_accepting_while_draining_test` |
 | `Unauthenticated` | `status_test`: `request_headers_are_not_required_test`, `unauthenticated_reads_are_repeatable_test`; `server_test`: `status_reads_change_nothing_test` |
 | `NetworkPolicy` | None: knarr's side. The manifests install no NetworkPolicy, and the worker accepts TCP on its status port from any pod. |
-| `Served` | `status_test`: `served_while_draining_reports_not_accepting_test`; `server_test`: `sigterm_delivers_the_record_and_drains_test`; `test_fake_worker_process.py`: `test_sigterm_drains_until_the_work_is_done`; the SIGTERM step of `just fake-worker-image-check` and of `just fake-worker-smoke` |
+| `Served` | `status_test`: `served_while_draining_reports_not_accepting_test`; `server_test`: `sigterm_delivers_the_record_and_drains_test`, `a_sink_crash_keeps_the_drain_test`; `test_fake_worker_process.py`: `test_sigterm_drains_until_the_work_is_done`; the SIGTERM step of `just fake-worker-image-check` and of `just fake-worker-smoke` |
 | `ReadinessWarning` | None: knarr's gauge and log line, tickets 30 and 31. |
 | `@guidance` | `test_fake_worker_manifests.py`: `test_probes_never_read_the_status_endpoint` |
 

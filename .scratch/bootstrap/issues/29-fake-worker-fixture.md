@@ -10,10 +10,72 @@
 
 **MVP critical path:** yes. The MVP success criterion is measured with it.
 
-**Status:** ready-for-agent
+**Status:** implemented; the kind smoke runs only in CI's non-required fake worker job. See [the hand-back notes](#hand-back-notes).
 
-- [ ] The status endpoint matches the clauses from 18 exactly, and tests trace each clause.
-- [ ] A control endpoint sets cost, accepting or draining, response latency, and failure modes (timeout, 5xx, 404, invalid payload) per pod at runtime.
-- [ ] On SIGTERM it drains gracefully within a configurable time and records whether it was busy when killed somewhere that outlives the pod (for example a line the harness scrapes before deletion completes, or a push to a collector endpoint), so a test run can count busy kills after the pods are gone. The ticket names the sink.
-- [ ] The image is built the same way as knarr's (13): non-root, small, and loadable into the cluster from 10.
+- [x] The status endpoint matches the clauses from 18 exactly, and tests trace each clause.
+- [x] A control endpoint sets cost, accepting or draining, response latency, and failure modes (timeout, 5xx, 404, invalid payload) per pod at runtime.
+- [x] On SIGTERM it drains gracefully within a configurable time and records whether it was busy when killed somewhere that outlives the pod (for example a line the harness scrapes before deletion completes, or a push to a collector endpoint), so a test run can count busy kills after the pods are gone. The ticket names the sink: **the collector**, the same image in collector mode as a one-replica Deployment behind the `fake-worker-collector` Service, which keeps one kill record per pod at `GET /kills`.
+- [x] The image is built the same way as knarr's (13): non-root, small, and loadable into the cluster from 10.
 - [ ] A kind smoke test deploys several replicas, sets mixed states through the control endpoint, and reads them back from the status endpoint.
+
+## Hand-back notes
+
+The fake worker's reference page, [docs/reference/fake-worker.md](../../../docs/reference/fake-worker.md), is the user-facing record: configuration, both endpoints, the failure modes and the readings they produce, the drain, the collector, the recipes and the clause-to-test table. These notes record what that page does not.
+
+### What changed
+
+- **A second Gleam project, `fixtures/fake_worker/`.** It cannot live in knarr's package: knarr's erlang-shipment would carry it, and running any module there starts knarr's application first. It locks the same mist, OTP and stdlib versions as knarr (`scripts/checks/tests/test_fake_worker_manifest.py` holds both manifests together). It has no application start module, because `gleam test` and glinter start the package's application and must never boot a worker.
+  - Pure modules, in the sans-IO shape of Decision 0002: `config` (the environment), `worker` (the state machine: control patches, SIGTERM, the drain), `status` (the contract surface), `control` (strict decoding), `collector` and `kill_record`.
+  - `server` holds the adapters: a rest_for_one tree of the state actor, the status listener, the control listener and the sink actor, with the clock, delivery, stopping the VM and logging injected. `fake_worker_ffi.erl` is the one FFI module. It reads the environment, stops and restarts the status listener for `refused`, PUTs over httpc, and replaces OTP's SIGTERM handler on `erl_signal_server` with one that tells the state actor to drain. If that fails, it falls back to `init:stop()`.
+  - `main` installs the handler only in worker mode. It monitors the tree as knarr's `application_ffi:await_shutdown` does, so a dead tree exits the VM with status 1.
+- **The gate.** New `check` recipes `fake-worker-manifest-check`, `fake-worker-build`, `fake-worker-test` and `fake-worker-lint`. `format-check` covers the fixture and `test-checkers` builds it first. `packaging-check` lints its Dockerfile and validates its manifests. `just initialize` downloads its packages. `taplo.toml` and `.pre-commit-fix.yaml` skip its `manifest.toml` and `build/`, which `just toml-check` otherwise fails on. knarr's own recipes do not depend on any of it, because the cold-build and coverage tests copy only the root project.
+- **The image.** `fixtures/fake_worker/Dockerfile` has the root Dockerfile's stages, with `Dockerfile.dockerignore` beside it as its context allowlist. The root `.dockerignore` and knarr's image are unchanged. `scripts/checks/image.py` gains a `--fake-worker` profile.
+- **The cluster.** `fixtures/fake_worker/deploy/` holds four workers and the collector. It sits outside `deploy/`, whose directories `deployment.py` treats as knarr variants. `scripts/schemas/kubernetes/service-v1.json` is vendored from the recorded upstream revision, with its sha256 in `sources.json`. `cluster.py` gains a `port_forward` helper, which knarr's `smoke` now uses too, and the actions `fake-worker-deploy` and `fake-worker-smoke`. The Justfile gains `fake-worker-image-build`, `fake-worker-image-check`, `fake-worker-deploy` and `fake-worker-smoke`. `ci.yml` gains the non-required "Kind fake worker smoke" job, outside `check.needs`.
+- **Documentation.** The reference page above, linked from `docs/README.md`, `docs/reference/testing.md` and `docs/how-to/local-cluster.md`. `AGENTS.md`'s project map gains `fixtures/`, and `README.md`'s "Moving a pin" covers the fixture's `gleam.toml`.
+
+### What was verified
+
+- **55 Gleam tests** (`just fake-worker-test`), each naming the clause it traces. 47 are pure, by value. 8 run the server over loopback sockets:
+  - every failure mode as the poller's transport sees it, `refused` as a real `econnrefused` and `timeout` as a client timeout;
+  - `refused` reopening the same fixed port after the listener has served, and the same OS-chosen port;
+  - SIGTERM (as the handler's message) keeping status served with `accepting` false;
+  - the record reaching a real collector, and the VM stopping only once the cost is 0, or at the deadline;
+  - a killed sink actor leaving the drain in place.
+
+  Each test was seen failing before its code: missing modules for the first batch, and the expected assertion for the review fixes.
+- **6 process tests** (`scripts/checks/tests/test_fake_worker_process.py`) send the built VM a real SIGTERM. They also assert that the spawned pid is `beam.smp` itself, so every launcher in between has exec'd. The first ran against a `main` that did not yet install the handler. It failed as expected: OTP logged "SIGTERM received - shutting down" and exited at once. With the handler installed, all six passed five runs in a row.
+- **The image**, built with `just fake-worker-image-build` (40 s here):
+  - 479 MB, against 480 MB for knarr's image built from the same commit; a test holds the two Dockerfiles to the same `FROM`, `pixi install` and `USER` lines;
+  - OTP 29 in both stages;
+  - 48 to 50 MiB in use under the 256 MiB limit;
+  - under the restricted `docker run`, a real SIGTERM to PID 1 left status answering `accepting` false, and setting the cost to 0 stopped the container with status 0 inside 10 s of a 60 s drain, with the kill line in its log.
+
+  The descriptor-cap step could not run as written here: this sandbox's hard limit is 20,000 descriptors, below the check's 131,072, so `docker run --ulimit` was refused. The other steps ran through the check's own functions with the sandbox's limit. In this sandbox only, the build stage ran on the pinned pixi image with the session's egress-proxy CA added, under the same tag, because the build container must trust that proxy. Neither the Dockerfile nor CI is affected.
+- **kind did not run here.** The pinned node starts, but the sandbox refuses nested containers: `runc` fails on `/proc/self/oom_score_adj`, after a first failure on the host's cgroup v1. The smoke's logic is covered by `scripts/checks/tests/test_fake_worker_cluster.py`, against a fake cluster: a second run resets the first's states, a mismatched status fails, and a dropped connection is retried. The real run is CI's fake worker job, and the last box stays open until it passes.
+- **Checker tests:** 429 passed. `just docs-check` validates 27 pages, `just agents-check` passes, and `just check` ends with "All checks passed and the worktree is unchanged."
+- **Review:** `/code-review high` over the branch reported ten findings, all fixed with a test where behaviour changed:
+  - the smoke failed when run twice on one cluster;
+  - a sink crash reset a drain;
+  - transport errors escaped the smoke's retries;
+  - the image check passed on the drain deadline alone;
+  - a zero drain with a sink lost the record;
+  - equal ports and a sink URL with a path were accepted;
+  - port 0 changed when leaving `refused`;
+  - the status child's index was unpinned;
+  - knarr's smoke duplicated the port-forward helper.
+
+### Choices a maintainer may reverse
+
+- **No Allium module for the control API.** Decision 0009 maps the fake worker to no module, and the fixture is not knarr. Its worker-side obligations are `worker_contract`'s, traced by tests. The control API and the collector are documented on the reference page.
+- **`busy` is a cost above 0 at SIGTERM.** The record also carries the cost, so 33 can count against a stricter threshold, such as the lowest band 20 settles, without changing the fixture.
+- **The drain ends early** once the cost is 0 and the record is delivered. A busy worker drains until control sets its cost to 0 or the time runs out, and an idle one stops at once.
+- **`refused` is included** beyond the four modes this ticket lists, because 18's hand-back maps the failure modes onto `refused` too and 21's `ContractAbsent` is reached from it.
+- **The default bind is IPv4.** A pod with an IPv6 address sets `FAKE_WORKER_BIND=::`.
+- **The collector keeps records in memory, one per pod.** A restart of its pod loses them, and `DELETE /kills` clears them.
+
+### What later tickets need
+
+- **33:** count busy kills from the collector. Run `DELETE /kills` before each run, read `GET /kills` after the pods are gone, and count records with `busy: true`, or apply your own cost threshold. Records are keyed by pod name, so a retried delivery or a re-sent SIGTERM never counts twice. Give workers a `terminationGracePeriodSeconds` at least 10 s longer than `FAKE_WORKER_DRAIN_SECONDS`, and drive busy workers to cost 0 when their simulated work ends. The collector Deployment must not be the KEDA target. `fixtures/fake_worker/deploy/` is a starting point: replace the worker Deployment's replica count with a ScaledObject.
+- **31:** no switch makes a fake worker NotReady at runtime. The `ReadinessWarning` end-to-end test needs one: a control member that fails `/healthz` would do, with the probes kept on the control port.
+- **43:** the poller's adapter can be tested against the fake worker over loopback. Every reading its decoder names except `unreachable` has a failure mode.
+- **36 and later image work:** the fake worker image is built and checked only in CI's fake worker job, never published.

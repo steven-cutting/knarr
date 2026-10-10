@@ -65,6 +65,8 @@ class FakeCluster:
         self.kills: dict[str, dict] = {"stale": {"pod": "stale"}}
         self.forwards: dict[int, tuple[str, int]] = {}
         self.commands: list[tuple[str, ...]] = []
+        # A fresh port-forward may drop its first connection.
+        self.resets = 1
 
     def output(self, *arguments: str) -> str:
         assert arguments[:3] == ("kubectl", "get", "pods")
@@ -89,6 +91,9 @@ class FakeCluster:
         yield local
 
     def http(self, method: str, url: str, body: str | None = None) -> tuple[int, str]:
+        if self.resets:
+            self.resets -= 1
+            return 0, "connection reset by peer"
         target, port = self.forwards[urllib.parse.urlsplit(url).port]
         if target == "service/fake-worker-collector":
             if method == "DELETE":
@@ -109,7 +114,19 @@ class FakeCluster:
 def smoke(monkeypatch: pytest.MonkeyPatch, fake: FakeCluster, tmp_path: Path) -> None:
     for name in ("output", "run", "port_forward", "http"):
         monkeypatch.setattr(cluster, name, getattr(fake, name))
+    monkeypatch.setattr(cluster, "ANSWER_SECONDS", 1)
     cluster.fake_worker_smoke(tmp_path)
+
+
+def test_a_second_smoke_resets_what_the_first_set(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # The pod the first run made absent sorts first on the next run.
+    fake = FakeCluster(["w-a", "w-b", "w-c", "w-d"])
+    fake.pods["w-a"].update(failure="not_found", latency_ms=300, accepting=False)
+    smoke(monkeypatch, fake, tmp_path)
+    assert fake.pods["w-a"]["failure"] == "none"
+    assert fake.pods["w-a"]["latency_ms"] == 0
 
 
 def test_smoke_sets_mixed_states_and_finds_both_kill_records(

@@ -3,10 +3,11 @@
 //// needs to observe (the clock, delivering a kill record, stopping the VM and
 //// logging) are injected through `Effects`.
 ////
-//// Worker mode is one rest_for_one tree, in this order: the sink actor, the
-//// state actor, the status listener and the control listener. A restart of
-//// the state resets it and restarts both listeners after it, so the listener
-//// is never closed for a `refused` mode the new state no longer has.
+//// Worker mode is one rest_for_one tree, in this order: the state actor, the
+//// status listener, the control listener and the sink actor. A restart of the
+//// state resets it and restarts everything after it, so the status listener
+//// is never closed for a `refused` mode the new state no longer has. The sink
+//// comes last, so its crash restarts nothing else and a drain survives it.
 
 import fake_worker/collector
 import fake_worker/config.{type Config}
@@ -112,8 +113,9 @@ const status_slot = 1
 const control_slot = 2
 
 /// The status listener's child id in the worker tree: children are numbered
-/// from 0 in the order they are added.
-const status_child = 2
+/// from 0 in the order they are added. server_test's refused tests fail if
+/// it names another child.
+const status_child = 1
 
 /// How often a drain checks whether it is over.
 const tick_ms = 100
@@ -141,7 +143,6 @@ pub fn start_worker(
   let ports = new_ports()
   use started <- result.try(
     supervisor.new(supervisor.RestForOne)
-    |> supervisor.add(supervision.worker(fn() { start_sink(context) }))
     |> supervisor.add(supervision.worker(fn() { start_state(context) }))
     |> supervisor.add(listener(
       status_handler(context),
@@ -161,6 +162,7 @@ pub fn start_worker(
       "control",
       effects.log,
     ))
+    |> supervisor.add(supervision.worker(fn() { start_sink(context) }))
     |> supervisor.start,
   )
   case process.register(started.pid, context.root) {
@@ -437,6 +439,12 @@ fn listener(
   log: fn(String) -> Nil,
 ) -> supervision.ChildSpecification(supervisor.Supervisor) {
   supervision.supervisor(fn() {
+    // Port 0 lets the OS choose once; a restart, as leaving `refused` does,
+    // binds the port chosen then.
+    let port = case port {
+      0 -> get_port(ports, slot)
+      _ -> port
+    }
     mist.new(handler)
     |> mist.bind(config.bind)
     |> mist.port(port)

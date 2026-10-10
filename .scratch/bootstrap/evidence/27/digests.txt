@@ -1,0 +1,16 @@
+date: 2026-10-09T23:14Z
+revision: 0474e67
+-- ghcr.io/prefix-dev/pixi:0.81.0
+pinned:       sha256:788ae451641666e2d1f79d3dbe35392dfc7e9b394b16a3acb75c347f3badb2ab
+tag today:    sha256:788ae451641666e2d1f79d3dbe35392dfc7e9b394b16a3acb75c347f3badb2ab
+verdict:      the tag still names the pinned index
+index:        2 manifests, attestations included
+linux/amd64:  sha256:533c28e8d61beef917f45f779ce3f38e89965938223313f56800b2fb0002d822
+linux/arm64:  sha256:06637f7b43711b8b6d7f932dfefbeedad13f5ec0844a1de61f83fabdae87aa0f
+-- ubuntu:24.04
+pinned:       sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
+tag today:    sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
+verdict:      the tag still names the pinned index
+index:        12 manifests, attestations included
+linux/amd64:  sha256:f610ab94648195aa356059f5b41d6085c9d4d903c072430cdd1af7bdb646106b
+linux/arm64:  sha256:08571ca13e00ca07a2a84eab83a959b4242e22cceb16486a11bef1428c9e93a7

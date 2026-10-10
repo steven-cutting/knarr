@@ -65,11 +65,23 @@ Add only required gate jobs to the aggregate's `needs` list. The initial kind
 and kwok jobs stay outside it; the kind smoke job must demonstrate stability
 for a stated period before becoming required (tickets 10 and 13).
 
-The separate [audit](.github/workflows/audit.yml) runs `just links-audit` on
-Mondays at 06:00 UTC and on manual dispatch. Remote link availability stays
-outside the required gate.
+The separate [audit](.github/workflows/audit.yml) runs on Mondays at 06:00 UTC
+and on manual dispatch, outside the required gate:
 
-Moving a pin is a manual edit, never a recipe:
+- `just links-audit` checks that remote links still resolve.
+- `just hex-audit` checks the hex packages and the OTP pin against OSV.dev
+  advisories.
+- `just image-scan` runs grype over the OS packages of the image
+  `just image-build` builds. It does not read the image's conda runtime
+  environment; ticket 45 adds that scan.
+
+Remote availability and published advisories change without a commit
+([Decision 0014](docs/decisions/0014-dependency-updates-and-audit.md)).
+
+Moving a pin is a manual edit, never a recipe. Renovate is configured to
+propose most of these edits as pull requests, held until ticket 44 activates
+it ([Decision 0014](docs/decisions/0014-dependency-updates-and-audit.md)). A
+proposal lands like any other change, and a reviewer checks the same steps:
 
 - **A conda package:** edit its `==` line in `pixi.toml`, run `pixi update <package>`, read the `pixi.lock` diff, commit both files, and rerun `just initialize`.
 - **A tools.txt download:** replace both platforms' lines with the new URL and sha256, and rerun `just initialize`.

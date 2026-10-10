@@ -174,6 +174,32 @@ def test_a_malformed_line_is_refused(tmp_path: Path) -> None:
     assert result.returncode == 2
 
 
+def test_a_tool_no_longer_pinned_is_removed_with_its_stamp(served: Path, tmp_path: Path) -> None:
+    (served / "rawfile").write_bytes(SCRIPT)
+    pins = tmp_path / "tools.txt"
+    pins.write_text(pin("fake", (served / "rawfile").as_uri(), sha256(SCRIPT), "rawfile"))
+    bin_dir = tmp_path / "bin"
+    assert install(pins, bin_dir).returncode == 0
+    # The pin moves to the other platform only, as when a tool is dropped here.
+    pins.write_text(pin("fake", "file:///nonexistent/fake", "0" * 64, "fake", platform_name=OTHER))
+    result = install(pins, bin_dir)
+    assert result.returncode == 0, result.stderr
+    assert not (bin_dir / "fake").exists()
+    assert not (bin_dir / ".pins" / "fake").exists()
+    assert "removed fake" in result.stdout
+
+
+def test_a_binary_the_installer_never_recorded_is_left_alone(tmp_path: Path) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "mine").write_bytes(SCRIPT)
+    pins = tmp_path / "tools.txt"
+    pins.write_text("# nothing pinned\n")
+    result = install(pins, bin_dir)
+    assert result.returncode == 0, result.stderr
+    assert (bin_dir / "mine").read_bytes() == SCRIPT
+
+
 LINE = re.compile(
     r"^(?P<name>[a-z0-9-]+) (?P<version>\S+) (?P<platform>linux-64|osx-arm64) "
     r"(?P<url>https://\S+) (?P<sha>[0-9a-f]{64}) (?P<member>\S+)$"

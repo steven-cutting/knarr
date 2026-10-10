@@ -321,6 +321,19 @@
       "requires": []
     },
     {
+      "path": "decisions/0014-dependency-updates-and-audit.md",
+      "title": "Decision 0014: Dependency updates and audit",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_dependency_updates_and_audit"
+      ],
+      "requires": []
+    },
+    {
       "path": "how-to/local-cluster.md",
       "title": "Run the walking skeleton locally",
       "kind": "how-to",

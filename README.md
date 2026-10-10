@@ -70,7 +70,9 @@ and on manual dispatch, outside the required gate:
 - `just links-audit` checks that remote links still resolve.
 - `just hex-audit` checks the hex packages and the OTP pin against OSV.dev
   advisories.
-- `just image-scan` runs grype over the image `just image-build` builds.
+- `just image-scan` runs grype over the OS packages of the image
+  `just image-build` builds. It does not read the image's conda runtime
+  environment; ticket 44 adds that scan.
 
 Remote availability and published advisories change without a commit
 ([Decision 0014](docs/decisions/0014-dependency-updates-and-audit.md)).

@@ -14,7 +14,8 @@ erlang's conda-forge build pins that perl (its build string is `pl5321`), so per
 
 - `just image-scan`, or a sibling recipe in the `audit` group, also scans the runtime environment as a directory, with the same `--only-fixed --fail-on high`.
 - The directory is the linux-64 environment the image ships. Either copy it out of the built image (`docker create`, then `docker cp` of `/opt/knarr/.pixi/envs/runtime` into `build/`), or install it from the lock (`pixi install --locked -e runtime`). The image builds only in CI, on amd64 ([Decision 0012](../../../docs/decisions/0012-release-and-packaging.md)), and a local install on osx-arm64 is that platform's environment, not the one the image ships.
-- `audit.yml` runs it, in the `image-scan` job or one beside it, and the job is not required.
+- The recipe fails when `conda-meta-cataloger` catalogues no package. A directory scan of the wrong path, or of a copy without `conda-meta`, otherwise finds nothing and passes. `grype -vv` logs the count, as part 3 of [grype-probe.sh](../evidence/27/grype-probe.sh) reads it.
+- `audit.yml` runs it, in the `image-scan` job or one beside it, and the job is not required. It runs even when the OS-package scan fails: the image scan is red on the base image's `libssl3t64` finding until Ubuntu republishes, and a step after a failed one is skipped. Use a job of its own, or `if: ${{ !cancelled() }}` on the step.
 - perl is decided, one of:
   - **Pruned** from the runtime image. Then rerun the TLS check 0003 names (`tls_check.escript`) in the pruned image, because pruning breaks the lock's guarantee that what was tested is what ships. The scan then has to read the copy out of the image, since the lock still installs perl.
   - **Accepted** with a dated, documented grype ignore for each CVE, giving the reason and the date it is looked at again.
@@ -35,8 +36,8 @@ erlang's conda-forge build pins that perl (its build string is `pl5321`), so per
 
 **Status:** ready-for-agent, once 27 merges
 
-- [ ] A recipe in the `audit` group scans the linux-64 runtime environment as a directory with `--only-fixed --fail-on high`. It exits 0 when nothing qualifies and 2 on a finding, as `just image-scan` does.
-- [ ] `audit.yml` runs it, and the job is not required.
+- [ ] A recipe in the `audit` group scans the linux-64 runtime environment as a directory with `--only-fixed --fail-on high`. It exits 0 when nothing qualifies and 2 on a finding, as `just image-scan` does, and fails when it catalogues no conda package.
+- [ ] `audit.yml` runs it even when the OS-package scan fails, and the job is not required.
 - [ ] perl is pruned from the runtime image, with `tls_check.escript` rerun in the pruned image, or accepted with a dated, documented grype ignore for each CVE. 0014 carries an "Amended by ticket 44" note saying which, and that the image's conda records are scanned.
 - [ ] **Authorization required:** the network, for `pixi install`, grype's vulnerability database and any image pull.
 - [ ] **Authorization required:** one `audit.yml` dispatch on the branch. The hand-back records the run, the matches with a fix and the job's verdict.

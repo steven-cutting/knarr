@@ -171,9 +171,11 @@ hex-audit:
     python3 scripts/checks/hex_audit.py
 
 # Fails on a high or critical vulnerability that has a fix. grype downloads its
-# vulnerability database on first use.
+# vulnerability database on first use. It reads the image's OS packages only,
+# not the conda records of the runtime environment the image ships, so a pass
+# says nothing about erlang, its openssl or perl (Decision 0014, ticket 44).
 [group('audit')]
-[doc('Scan an image for fixable high and critical vulnerabilities with grype (needs network)')]
+[doc('Scan the OS packages of an image for fixable high and critical vulnerabilities with grype (needs network)')]
 image-scan image=cluster_image: audit-tools
     grype "$1" --only-fixed --fail-on high
 

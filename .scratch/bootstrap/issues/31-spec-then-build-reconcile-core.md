@@ -6,7 +6,7 @@
 
 **Non-goals:** Any open question 19, 20 or 21 owns. The ownership and lifecycle invariants (32). Rate limits and back-off (24).
 
-**Blocked by:** 19, 20, 21
+**Blocked by:** 19, 20, 21, 30, 43
 
 **From 17:** [Decision 0009](../../../docs/decisions/0009-allium-objective-map.md), map rows for §4, §5 and §6.
 
@@ -15,6 +15,8 @@
 **Status:** ready-for-agent, round 2
 
 - [ ] Discovery is a periodic LIST scoped to knarr's namespace and the opt-in selector, with one install per namespace (§4.1, §9.18). Its cadence is 24's.
+- [ ] Every pod with a pod IP is polled, whatever its phase or readiness (worker_contract `Discovery`). The pod IP and Ready condition are the `Pod` fields [41](41-k8s-client-spec-then-build.md) adds, and 41's probe removal waits for this ticket's caller, so the two land together.
+- [ ] The readiness warning per worker_contract `ReadinessWarning`: a gauge of pods NotReady whose last valid reading maps above 20's lowest band, and a log line on entry, named as 30 decides.
 - [ ] The desired annotation state is the cost band, the opt-in `safe-to-evict` value and the ownership marker (§4.3). How the band is computed is 20's.
 - [ ] A patch is made only when the desired state differs from the last applied state, which covers a band change, the first annotation, startup repair, cleanup and a `safe-to-evict` flip (§4.4).
 - [ ] A throttled change stays pending and is not dropped (§4.4).

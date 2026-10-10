@@ -23,9 +23,10 @@ pub type Failure {
 }
 
 /// A drain starts at SIGTERM. It ends at the deadline, or earlier once the
-/// cost is 0 and the kill record has reached the sink.
+/// cost is 0 and the kill record has reached the sink. Until it has, an
+/// attempt to deliver the record is due at `next_attempt_ms`.
 pub type Drain {
-  Drain(deadline_ms: Int, delivered: Bool)
+  Drain(deadline_ms: Int, delivered: Bool, next_attempt_ms: Int)
 }
 
 pub type State {
@@ -113,7 +114,12 @@ pub fn terminate(
           cost: state.cost,
           accepting: accepting(state),
         )
-      let drain = Drain(deadline_ms: now_ms + drain_ms, delivered: !sink)
+      let drain =
+        Drain(
+          deadline_ms: now_ms + drain_ms,
+          delivered: !sink,
+          next_attempt_ms: now_ms,
+        )
       #(State(..state, drain: Some(drain)), Some(record))
     }
   }
@@ -123,6 +129,27 @@ pub fn terminate(
 pub fn delivered(state: State) -> State {
   case state.drain {
     Some(drain) -> State(..state, drain: Some(Drain(..drain, delivered: True)))
+    None -> state
+  }
+}
+
+/// Whether to try to deliver the kill record now: draining, not yet
+/// delivered, the next attempt due, and the deadline not passed.
+pub fn attempt_due(state state: State, now_ms now_ms: Int) -> Bool {
+  case state.drain {
+    Some(drain) ->
+      !drain.delivered
+      && now_ms >= drain.next_attempt_ms
+      && now_ms < drain.deadline_ms
+    None -> False
+  }
+}
+
+/// The next delivery attempt is due at `at_ms`.
+pub fn retry_at(state state: State, at_ms at_ms: Int) -> State {
+  case state.drain {
+    Some(drain) ->
+      State(..state, drain: Some(Drain(..drain, next_attempt_ms: at_ms)))
     None -> state
   }
 }

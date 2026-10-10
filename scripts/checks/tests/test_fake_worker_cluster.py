@@ -57,11 +57,13 @@ def test_kwok_refuses_the_fake_worker(tmp_path: Path, action: str) -> None:
 class FakeCluster:
     """Four workers and a collector, answering as the fake worker does."""
 
-    def __init__(self, pods: list[str]) -> None:
+    def __init__(self, pods: list[str], *, starting: tuple[str, ...] = ()) -> None:
         self.pods = {
             pod: {"cost": 0, "accepting": True, "failure": "none", "terminating": False}
             for pod in pods
         }
+        # Pods whose first listing shows them not Ready yet.
+        self.starting = set(starting)
         self.kills: dict[str, dict] = {"stale": {"pod": "stale"}}
         self.forwards: dict[int, tuple[str, int]] = {}
         self.commands: list[tuple[str, ...]] = []
@@ -69,8 +71,17 @@ class FakeCluster:
         self.resets = 1
 
     def output(self, *arguments: str) -> str:
-        assert arguments[:3] == ("kubectl", "get", "pods")
-        return " ".join(reversed(self.pods))
+        assert arguments == ("kubectl", "get", "pods", "-l", cluster.WORKERS, "-o", "json")
+        items = []
+        for name, state in reversed(self.pods.items()):
+            metadata = {"name": name}
+            if state["terminating"]:
+                metadata["deletionTimestamp"] = "2026-10-10T00:00:00Z"
+            ready = "False" if name in self.starting else "True"
+            conditions = [{"type": "Ready", "status": ready}]
+            items.append({"metadata": metadata, "status": {"conditions": conditions}})
+        self.starting.clear()
+        return json.dumps({"items": items})
 
     def run(self, *arguments: str, **_: object) -> None:
         self.commands.append(arguments)
@@ -115,6 +126,7 @@ def smoke(monkeypatch: pytest.MonkeyPatch, fake: FakeCluster, tmp_path: Path) ->
     for name in ("output", "run", "port_forward", "http"):
         monkeypatch.setattr(cluster, name, getattr(fake, name))
     monkeypatch.setattr(cluster, "ANSWER_SECONDS", 1)
+    monkeypatch.setattr(cluster, "WORKER_SECONDS", 3)
     cluster.fake_worker_smoke(tmp_path)
 
 
@@ -147,6 +159,7 @@ def test_smoke_sets_mixed_states_and_finds_both_kill_records(
         ("kubectl", "delete", "pod", "w-b", "--wait=false"),
         ("kubectl", "delete", "pod", "w-a", "--wait=true", "--timeout=60s"),
         ("kubectl", "wait", "--for=delete", "pod/w-b", "--timeout=60s"),
+        ("kubectl", "rollout", "status", "deployment/fake-worker", "--timeout=120s"),
     ]
     assert set(fake.kills) == {"w-a", "w-b"}
     printed = capsys.readouterr().out
@@ -170,5 +183,18 @@ def test_smoke_refuses_a_status_that_does_not_match(
 
 
 def test_smoke_needs_four_running_workers(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="4 running fake workers needed, found 3"):
+    with pytest.raises(RuntimeError, match="4 ready fake workers needed, found 3"):
         smoke(monkeypatch, FakeCluster(["w-a", "w-b", "w-c"]), tmp_path)
+
+
+def test_a_rerun_waits_for_ready_workers_and_skips_draining_ones(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Straight after a run: one pod it deleted still drains, and a replacement
+    # is not Ready on the first listing.
+    fake = FakeCluster(["w-a", "w-b", "w-c", "w-d", "w-e"], starting=("w-e",))
+    fake.pods["w-a"]["terminating"] = True
+    smoke(monkeypatch, fake, tmp_path)
+    assert fake.pods["w-a"]["cost"] == 0
+    assert [fake.pods[pod]["cost"] for pod in ["w-b", "w-c", "w-d"]] == [0, 1800, 500]
+    assert fake.pods["w-e"]["failure"] == "not_found"

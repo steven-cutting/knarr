@@ -1,6 +1,6 @@
 -module(fake_worker_test_ffi).
 -export([get/2, put/3, delete/2, start_on_free_port/1, stop_tree/1, now_ms/0,
-  kill_registered/1]).
+  kill_registered/1, crash_once/1]).
 
 %% Plain HTTP over loopback with httpc, and connection: close, so no pooled
 %% connection outlives a listener the test closes. A refused connection and a
@@ -71,3 +71,13 @@ kill_registered(Prefix) ->
   Monitor = monitor(process, Pid),
   exit(Pid, kill),
   receive {'DOWN', Monitor, process, Pid, _} -> nil after 2000 -> error(not_killed) end.
+
+%% Exit the calling process the first time a key is seen, as a crash would, and
+%% return nil every time after: the key outlives the crashed process.
+crash_once(Key) ->
+  case persistent_term:get({?MODULE, Key}, false) of
+    false ->
+      persistent_term:put({?MODULE, Key}, true),
+      exit(simulated_crash);
+    true -> nil
+  end.

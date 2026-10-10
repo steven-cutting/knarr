@@ -83,6 +83,7 @@ type Message {
   Apply(patch: Patch, reply: Subject(Result(State, ListenerError)))
   Terminate
   Delivered
+  AttemptFailed
   Tick
 }
 
@@ -104,8 +105,11 @@ type Context {
   )
 }
 
+// `pending` is the kill record and its collector URL while the drain owes the
+// sink a delivery. The state owns it, so a sink that crashes mid-attempt loses
+// nothing: the next attempt falls due again and is sent again.
 type Worker {
-  Worker(state: State, stopped: Bool)
+  Worker(state: State, stopped: Bool, pending: Option(#(String, KillRecord)))
 }
 
 const status_slot = 1
@@ -120,7 +124,9 @@ const status_child = 1
 /// How often a drain checks whether it is over.
 const tick_ms = 100
 
-/// The longest one delivery attempt may take, and the pause before the next.
+/// The longest one delivery attempt may take, and the pause before the next
+/// after a failed one. An attempt with no answer at all, because the sink
+/// crashed, is due again after both.
 const attempt_ms = 2000
 
 const retry_ms = 250
@@ -202,7 +208,7 @@ pub fn start_collector(
 }
 
 fn start_state(context: Context) -> actor.StartResult(Subject(Message)) {
-  actor.new(Worker(state: worker.new(), stopped: False))
+  actor.new(Worker(state: worker.new(), stopped: False, pending: None))
   |> actor.named(context.state)
   |> actor.on_message(fn(current, message) {
     handle_state(context:, current:, message:)
@@ -238,6 +244,12 @@ fn handle_state(
     Terminate -> terminate(context, current)
     Delivered ->
       actor.continue(Worker(..current, state: worker.delivered(current.state)))
+    AttemptFailed -> {
+      let at_ms = context.effects.now_ms() + retry_ms
+      actor.continue(
+        Worker(..current, state: worker.retry_at(state: current.state, at_ms:)),
+      )
+    }
     Tick -> tick(context, current)
   }
 }
@@ -257,28 +269,29 @@ fn terminate(context: Context, current: Worker) -> actor.Next(Worker, Message) {
     #(_, None) -> actor.continue(current)
     #(state, Some(record)) -> {
       context.effects.log(kill_record.trace_line(record))
-      case config.sink_url {
-        Some(url) ->
-          process.send(
-            process.named_subject(context.sink),
-            Deliver(
-              url <> "/kills/" <> record.pod,
-              record,
-              now + config.drain_ms,
-            ),
-          )
-        None -> Nil
-      }
-      tick(context, Worker(..current, state:))
+      let pending =
+        option.map(config.sink_url, fn(url) {
+          #(url <> "/kills/" <> record.pod, record)
+        })
+      tick(context, Worker(..current, state:, pending:))
     }
   }
 }
 
 fn tick(context: Context, current: Worker) -> actor.Next(Worker, Message) {
-  let stop = worker.should_stop(current.state, now_ms: context.effects.now_ms())
+  let now = context.effects.now_ms()
+  let current = attempt(context:, current:, now:)
+  let stop = worker.should_stop(current.state, now_ms: now)
   case current.stopped, stop {
     True, _ -> actor.continue(current)
     False, True -> {
+      case current.state.drain {
+        Some(worker.Drain(delivered: False, ..)) ->
+          context.effects.log(
+            "fake_worker kill record not delivered before the drain ended",
+          )
+        _ -> Nil
+      }
       context.effects.stop_vm()
       actor.continue(Worker(..current, stopped: True))
     }
@@ -286,6 +299,34 @@ fn tick(context: Context, current: Worker) -> actor.Next(Worker, Message) {
       process.send_after(process.named_subject(context.state), tick_ms, Tick)
       actor.continue(current)
     }
+  }
+}
+
+// Hand the sink one delivery attempt when one is due. If the sink is between
+// restarts, nothing is sent and the attempt falls due again.
+fn attempt(
+  context context: Context,
+  current current: Worker,
+  now now: Int,
+) -> Worker {
+  case current.pending, worker.attempt_due(state: current.state, now_ms: now) {
+    Some(#(url, record)), True -> {
+      let deadline = case current.state.drain {
+        Some(drain) -> drain.deadline_ms
+        None -> now
+      }
+      case process.named(context.sink) {
+        Ok(_) ->
+          process.send(
+            process.named_subject(context.sink),
+            Deliver(url, record, deadline),
+          )
+        Error(Nil) -> Nil
+      }
+      let at_ms = now + attempt_ms + retry_ms
+      Worker(..current, state: worker.retry_at(state: current.state, at_ms:))
+    }
+    _, _ -> current
   }
 }
 
@@ -322,14 +363,12 @@ fn start_sink(context: Context) -> actor.StartResult(Subject(SinkMessage)) {
   |> actor.start
 }
 
-// One attempt, then another after a pause, until the drain's deadline.
+// One attempt, within what is left of the drain; the state decides on the
+// next one.
 fn deliver_record(context: Context, message: SinkMessage) -> Nil {
   let remaining = message.deadline_ms - context.effects.now_ms()
   case remaining > 0 {
-    False ->
-      context.effects.log(
-        "fake_worker kill record not delivered before the drain ended",
-      )
+    False -> Nil
     True ->
       case
         context.effects.deliver(
@@ -343,12 +382,7 @@ fn deliver_record(context: Context, message: SinkMessage) -> Nil {
           context.effects.log(
             "fake_worker kill record delivery failed: " <> reason,
           )
-          process.send_after(
-            process.named_subject(context.sink),
-            retry_ms,
-            message,
-          )
-          Nil
+          process.send(process.named_subject(context.state), AttemptFailed)
         }
       }
   }

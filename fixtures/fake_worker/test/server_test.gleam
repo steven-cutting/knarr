@@ -42,6 +42,9 @@ fn now_ms() -> Int
 @external(erlang, "fake_worker_test_ffi", "kill_registered")
 fn kill_registered(prefix: String) -> Nil
 
+@external(erlang, "fake_worker_test_ffi", "crash_once")
+fn crash_once(key: String) -> Nil
+
 const path = "/knarr/v1/status"
 
 fn worker_config() -> Config {
@@ -182,6 +185,33 @@ pub fn a_sink_crash_keeps_the_drain_test() -> Nil {
   sigterm()
   kill_registered("fake_worker_sink$")
   assert status(running) == Ok(#(200, "{\"cost\":1800,\"accepting\":false}"))
+  set(running, "{\"cost\":0}")
+  assert process.receive(stops, 1000) == Ok(Nil)
+  stop_tree(server.root(running))
+}
+
+// A sink that crashes during its first attempt loses no record: the state
+// owns the pending record and sends it again.
+pub fn a_sink_crash_mid_delivery_loses_no_record_test() -> Nil {
+  let stops = process.new_subject()
+  let bodies = process.new_subject()
+  let deliver = fn(_url, body, _timeout) {
+    crash_once("a_sink_crash_mid_delivery_loses_no_record_test")
+    process.send(bodies, body)
+    Ok(Nil)
+  }
+  let running =
+    server.start_worker(
+      Config(..worker_config(), sink_url: Some("http://collector.invalid")),
+      server.Effects(..effects(stops, process.new_subject()), deliver: deliver),
+    )
+    |> should.be_ok
+  set(running, "{\"cost\":1800}")
+  let sigterm = running.sigterm |> should.be_some
+  sigterm()
+  let record =
+    KillRecord(pod: "worker-1", busy: True, cost: 1800, accepting: True)
+  assert process.receive(bodies, 5000) == Ok(kill_record.encode(record))
   set(running, "{\"cost\":0}")
   assert process.receive(stops, 1000) == Ok(Nil)
   stop_tree(server.root(running))

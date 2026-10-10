@@ -35,12 +35,12 @@ The fake worker's reference page, [docs/reference/fake-worker.md](../../../docs/
 
 ### What was verified
 
-- **55 Gleam tests** (`just fake-worker-test`), each naming the clause it traces. 47 are pure, by value. 8 run the server over loopback sockets:
+- **58 Gleam tests** (`just fake-worker-test`), each naming the clause it traces. 49 are pure, by value. 9 run the server over loopback sockets:
   - every failure mode as the poller's transport sees it, `refused` as a real `econnrefused` and `timeout` as a client timeout;
   - `refused` reopening the same fixed port after the listener has served, and the same OS-chosen port;
   - SIGTERM (as the handler's message) keeping status served with `accepting` false;
   - the record reaching a real collector, and the VM stopping only once the cost is 0, or at the deadline;
-  - a killed sink actor leaving the drain in place.
+  - a killed sink actor leaving the drain in place, and a sink that crashes mid-delivery losing no record.
 
   Each test was seen failing before its code: missing modules for the first batch, and the expected assertion for the review fixes.
 - **6 process tests** (`scripts/checks/tests/test_fake_worker_process.py`) send the built VM a real SIGTERM. They also assert that the spawned pid is `beam.smp` itself, so every launcher in between has exec'd. The first ran against a `main` that did not yet install the handler. It failed as expected: OTP logged "SIGTERM received - shutting down" and exited at once. With the handler installed, all six passed five runs in a row.
@@ -58,8 +58,8 @@ The fake worker's reference page, [docs/reference/fake-worker.md](../../../docs/
   - `just fake-worker-image-check` took 5 s: `image: OTP 29, numeric user and read-only runtime verified`, 54 MiB of the 256 MiB limit, with its collector on a private network.
   - `just fake-worker-smoke` took 8 s. It printed `ok idle … 200 {"cost":0,"accepting":true}`, `ok busy … 200 {"cost":1800,"accepting":true}`, `ok draining … 200 {"cost":500,"accepting":false}` and `ok absent … 404 not found`. After SIGTERM it printed `ok draining after SIGTERM … {"cost":1800,"accepting":false}`, then `ok kill record … busy=true` and `ok kill record … busy=false`.
   - The image build took 18 s. The other jobs passed on the same head, knarr's own kind smoke among them, so the port-forward helper it now shares works.
-  - This sandbox cannot run kind: the pinned node starts, but `runc` refuses nested containers on `/proc/self/oom_score_adj`, after a first failure on the host's cgroup v1. `scripts/checks/tests/test_fake_worker_cluster.py` covers the smoke's logic against a fake cluster: a second run resets the first's states, a mismatched status fails, and a dropped connection is retried.
-- **Checker tests:** 429 passed. `just docs-check` validates 27 pages, `just agents-check` passes, and `just check` ends with "All checks passed and the worktree is unchanged."
+  - This sandbox cannot run kind: the pinned node starts, but `runc` refuses nested containers on `/proc/self/oom_score_adj`, after a first failure on the host's cgroup v1. `scripts/checks/tests/test_fake_worker_cluster.py` covers the smoke's logic against a fake cluster: a second run resets the first's states and skips the pods the first deleted while they drain, a mismatched status fails, and a dropped connection is retried.
+- **Checker tests:** 431 passed. `just docs-check` validates 27 pages, `just agents-check` passes, and `just check` ends with "All checks passed and the worktree is unchanged."
 - **Review:** `/code-review high` over the branch reported ten findings, all fixed with a test where behaviour changed:
   - the smoke failed when run twice on one cluster;
   - a sink crash reset a drain;
@@ -70,6 +70,10 @@ The fake worker's reference page, [docs/reference/fake-worker.md](../../../docs/
   - port 0 changed when leaving `refused`;
   - the status child's index was unpinned;
   - knarr's smoke duplicated the port-forward helper.
+
+  Copilot's review of PR #20 found two more, both fixed test-first:
+  - a sink actor that crashed mid-delivery lost the record, because only its own mailbox held it; the state actor now keeps the pending record and hands the sink one attempt at a time;
+  - a smoke run straight after another could pick a pod the first had deleted, still Running while it drained; the smoke now waits for four Ready workers that are not terminating, and ends once the Deployment has rolled out again.
 
 ### Choices a maintainer may reverse
 

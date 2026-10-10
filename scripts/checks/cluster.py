@@ -42,6 +42,9 @@ MIXED = [
 ]
 # How long the smoke repeats a request before it takes the answer as final.
 ANSWER_SECONDS = 15
+# How long the smoke waits for four Ready workers: a run straight after another
+# starts while the replacements for the pods that run deleted still start.
+WORKER_SECONDS = 120
 # Loopback only: a proxy in the environment never sees the smoke's requests.
 LOOPBACK = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -166,23 +169,37 @@ def expect(got, wanted, what):
         raise RuntimeError(f"{what}: wanted {wanted!r}, got {got!r}")
 
 
+def ready_workers():
+    """The worker pods the smoke may use: Ready and not terminating. A pod an
+    earlier run deleted stays Running while it drains, so phase alone would
+    pick it."""
+    pods = json.loads(output("kubectl", "get", "pods", "-l", WORKERS, "-o", "json"))["items"]
+    return sorted(
+        pod["metadata"]["name"]
+        for pod in pods
+        if "deletionTimestamp" not in pod["metadata"]
+        and any(
+            condition.get("type") == "Ready" and condition.get("status") == "True"
+            for condition in pod.get("status", {}).get("conditions", [])
+        )
+    )
+
+
+def await_workers(count):
+    deadline = time.monotonic() + WORKER_SECONDS
+    while len(pods := ready_workers()) < count and time.monotonic() < deadline:
+        time.sleep(1)
+    if len(pods) < count:
+        raise RuntimeError(f"{count} ready fake workers needed, found {len(pods)}")
+    return pods[:count]
+
+
 def fake_worker_smoke(state):
     """Set mixed states on four workers through control and read each back from
     its status endpoint; then delete a busy and an idle worker, read the busy one
-    while it drains, and find both kill records at the collector by pod name."""
-    running = output(
-        "kubectl",
-        "get",
-        "pods",
-        "-l",
-        WORKERS,
-        "--field-selector=status.phase=Running",
-        "-o",
-        "jsonpath={.items[*].metadata.name}",
-    ).split()
-    if len(running) < len(MIXED):
-        raise RuntimeError(f"{len(MIXED)} running fake workers needed, found {len(running)}")
-    pods = sorted(running)[: len(MIXED)]
+    while it drains, and find both kill records at the collector by pod name.
+    It ends with the Deployment rolled out again, so a next run finds four."""
+    pods = await_workers(len(MIXED))
     with port_forward(state, "service/fake-worker-collector", 8081) as collector:
         kills = f"http://127.0.0.1:{collector}/kills"
         answer("DELETE", kills, accept=exactly((204, "")), what="clearing the collector")
@@ -216,6 +233,7 @@ def fake_worker_smoke(state):
             wanted = {"pod": pod, "busy": busy_flag, "cost": cost, "accepting": True}
             expect(records.get(pod), wanted, f"{pod} kill record")
             print(f"ok kill record {pod}: busy={str(busy_flag).lower()}")
+    run("kubectl", "rollout", "status", "deployment/fake-worker", "--timeout=120s")
 
 
 def render_fake_worker(state, image):

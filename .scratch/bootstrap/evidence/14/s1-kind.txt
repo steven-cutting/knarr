@@ -1,0 +1,72 @@
+# Transcript of the cluster-s1 job, run 37906694255 on ubuntu-24.04 (native linux/amd64),
+# https://github.com/steven-cutting/knarr/actions/runs/37906694255/job/113741757594
+# The runner's environment preamble and BuildKit progress lines are removed.
+date: 2026-10-09T08:43Z
+host: Linux x86_64
+commit: ac72150
+docker 28.0.4 linux/amd64
+test -x .pixi/envs/cluster/bin/kind || { echo 'run pixi install --locked -e cluster' >&2; exit 2; }
+python3 scripts/checks/cluster.py up "/home/runner/work/knarr/knarr"
+Creating cluster "knarr-12fc945d" ...
+ • Ensuring node image (kindest/node:v1.35.8) 🖼️  ...
+ ✓ Ensuring node image (kindest/node:v1.35.8) 🖼️
+ • Preparing nodes 📦   ...
+ ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Waiting ≤ 3m0s for control-plane = Ready ⏳  ...
+ ✓ Waiting ≤ 3m0s for control-plane = Ready ⏳
+ • Ready after 17s 💚
+Set kubectl context to "kind-knarr-12fc945d"
+You can now use your cluster with:
+kubectl cluster-info --context kind-knarr-12fc945d --kubeconfig /home/runner/work/knarr/knarr/.cluster/kubeconfig
+Have a nice day! 👋
+node/knarr-12fc945d-control-plane condition met
+docker build --platform linux/amd64 --tag "$1" .
+python3 scripts/checks/image.py "$1"
+memory usage / limit: 56.03MiB / 256MiB
+591b185d944082179877e9e9ba6c2035557df3a6622fbdc97f7a206806491fa2
+image: OTP 29, numeric user and read-only runtime verified
+test -x .pixi/envs/cluster/bin/kind || { echo 'run pixi install --locked -e cluster' >&2; exit 2; }
+python3 scripts/checks/cluster.py deploy "/home/runner/work/knarr/knarr" "$1" "$2"
+Image: "knarr:knarr-12fc945d" with ID "sha256:0bdf0cad8232c13f6bb80363306fddd760029f5dac437de65d0117bf9026218f" not yet present on node "knarr-12fc945d-control-plane", loading...
+serviceaccount/knarr created
+role.rbac.authorization.k8s.io/knarr created
+rolebinding.rbac.authorization.k8s.io/knarr created
+deployment.apps/knarr created
+Waiting for deployment "knarr" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "knarr" rollout to finish: 0 of 1 updated replicas are available...
+deployment "knarr" successfully rolled out
+--- /version, one line, as committed to version.json beside this script ---
+{"buildDate":"2026-08-20T15:16:16Z","compiler":"gc","emulationMajor":"1","emulationMinor":"35","gitCommit":"1c2e10a409eb1b03f2f28f401ce935312e20d9fb","gitTreeState":"clean","gitVersion":"v1.35.8","goVersion":"go1.26.5","major":"1","minCompatibilityMajor":"1","minCompatibilityMinor":"34","minor":"35","platform":"linux/amd64"}
+ok   /version has major, minor and gitVersion as strings, as the 08 fixture assumes
+     minor='35' (a managed cluster may add a suffix; this one is kind)
+pod knarr-75989bf759-xtw5p uid 5c300066-12bd-43d2-ad7c-0994afcf4af0 started 2026-10-09T08:45:01Z
+--- token mount as the process sees it (uid 10001) ---
+total 12
+-rw-r--r-- 1     0 0 1107 Oct  9 08:45 ca.crt
+-rw-r--r-- 1     0 0    7 Oct  9 08:45 namespace
+-rw------- 1 10001 0 1161 Oct  9 08:45 token
+ok   token is readable by the process uid
+first token: sha256 00baf78f0371 exp 1791536101 (+600 s after pod start)
+ok   first token expires about 600 s after the pod started (expirationSeconds honoured)
+rotated token: sha256 6a0e0d33e997 exp 1791536583 seen at +512 s
+ok   token file hash changed while the process ran
+ok   LIST and PATCH succeeded after the first token's expiry (first at exp1 +2 s)
+failed cycles in the log: 0
+--- every token_changed and the first and last success lines ---
+2026-10-09T08:45:32.320290993Z s1_probe event=token_changed token_sha256=00baf78f0371 jwt_exp=1791536101
+2026-10-09T08:53:32.784589755Z s1_probe event=token_changed token_sha256=6a0e0d33e997 jwt_exp=1791536583
+2026-10-09T08:45:32.476171278Z s1_probe event=patch_annotation pod=knarr-75989bf759-xtw5p value=1791535532
+2026-10-09T08:55:02.816380417Z s1_probe event=patch_annotation pod=knarr-75989bf759-xtw5p value=1791536102
+--- the annotation on the pod ---
+ok   knarr.io/s1-probe=1791536102
+ok   restartCount 0: one process read both tokens
+ok   same pod UID throughout
+s1-kind: all checks passed

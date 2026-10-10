@@ -73,11 +73,11 @@ and on manual dispatch, outside the required gate:
 - `just image-scan` runs grype over the image `just image-build` builds.
 
 Remote availability and published advisories change without a commit
-([Decision 0013](docs/decisions/0013-dependency-updates-and-audit.md)).
+([Decision 0014](docs/decisions/0014-dependency-updates-and-audit.md)).
 
 Moving a pin is a manual edit, never a recipe. Renovate is configured to
-propose most of these edits as pull requests, held until ticket 41 activates
-it ([Decision 0013](docs/decisions/0013-dependency-updates-and-audit.md)). A
+propose most of these edits as pull requests, held until ticket 43 activates
+it ([Decision 0014](docs/decisions/0014-dependency-updates-and-audit.md)). A
 proposal lands like any other change, and a reviewer checks the same steps:
 
 - **A conda package:** edit its `==` line in `pixi.toml`, run `pixi update <package>`, read the `pixi.lock` diff, commit both files, and rerun `just initialize`.

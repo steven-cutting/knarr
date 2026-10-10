@@ -16,6 +16,8 @@ packages; agents need explicit network authorization. Docker must be running.
 The image build also downloads its locked build dependencies and base images.
 
 Run `just cluster-up`, `just image-build`, `just deploy`, then `just smoke`.
+On an Apple-silicon host the image build fails under emulation;
+[Image and checks](#image-and-checks) says why and what runs in CI instead.
 The default runner is kind. The default image tag is derived from the physical
 worktree path, so separate worktrees do not overwrite each other's image.
 `just deploy` loads that image, renders its tag into the deployment, applies it
@@ -56,11 +58,30 @@ as recorded in [Decision 0007](../decisions/0007-local-cluster.md).
 
 The image is a Gleam erlang-shipment with the locked pixi runtime environment,
 copied at its original absolute prefix. The image targets linux/amd64, the
-locked CI platform. ARM-host execution requires runtime emulation support;
-`just image-check` and `just smoke` verify the Docker and kind paths separately. It runs as UID/GID 10001. The Deployment
+locked CI platform. On an Apple-silicon host, OTP 29's amd64 BEAM fails under
+Rosetta in `prim_tty`, both when the image is built and when it runs, so the
+image is built and the kind proofs run in CI
+([Decision 0012](../decisions/0012-release-and-packaging.md),
+[Decision 0013](../decisions/0013-in-cluster-client.md#findings)).
+`ERL_FLAGS='+JMsingle true'` lets a prebuilt image's runtime start there, but
+no recipe or manifest sets it: the committed Dockerfile does not build on that
+host, no registry image exists yet, native amd64 needs no flag, and the flag
+maps JIT code writable and executable at once instead of through two separate
+mappings. On such a host the flag would go into the Deployment's existing
+`ERL_FLAGS` value. An arm64 image, which ticket 38 prices, would need no
+emulation.
+`just image-check` and `just smoke` verify the Docker and kind paths separately. The image runs as UID/GID 10001. The Deployment
 uses a read-only root filesystem, a writable temporary volume, dropped
-capabilities, no privilege escalation and RuntimeDefault seccomp. The empty
-Role grants no Kubernetes permissions; token automount is disabled.
+capabilities, no privilege escalation and RuntimeDefault seccomp. The Role
+grants `list` and `patch` on pods, bound to the `knarr` ServiceAccount by a
+RoleBinding; token automount stays disabled, and a projected volume supplies a
+600-second token, the cluster CA and the namespace to the S1 probe
+([Decision 0013](../decisions/0013-in-cluster-client.md)). The Deployment
+turns that probe on with `ERL_FLAGS=-knarr s1_probe true`; the gate's test
+runs leave it off, so they make no API call. `just deploy <image> wrong-ca`
+deploys the negative-TLS variant from `deploy/wrong-ca/`, which needs a
+`knarr-wrong-ca` ConfigMap holding an unrelated `ca.crt`; the ticket 14
+evidence script creates one from a throwaway certificate.
 
 Before starting Erlang, the container entrypoint caps the soft file-descriptor
 limit at 65,536, preserving any lower inherited limit. kind's containerd can

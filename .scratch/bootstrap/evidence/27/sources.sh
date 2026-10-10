@@ -1,5 +1,5 @@
 #!/bin/sh
-# Ticket 27 evidence: the public sources Decision 0013 cites, fetched today.
+# Ticket 27 evidence: the public sources Decision 0014 cites, fetched today.
 # Each page is recorded with its HTTP status, size and sha256, and each cited
 # phrase is looked for in the page's text (tags stripped, entities decoded,
 # whitespace collapsed), as in 28's sources.sh. A fetch failure stops the run.
@@ -50,7 +50,7 @@ gleam|The gleam manager uses the gleam program to update manifest.toml files|the
 gleam|This manager supports lockFileMaintenance for the following file(s): manifest.toml|transitive hex packages move through lock file maintenance
 pixi|Feature dependencies produce dynamic depType values in the form feature-<name>|the otp, cluster and audit features are read
 pixi|Self-hosted administrators must explicitly allow this path by including pixi in the global allowedUnsafeExecutions setting|relocking pixi.lock is an unsafe execution
-pixi|When pixi is not allowed, the package file is still updated, but pixi.lock is left unchanged|why every conda update stays held until 41 proves the hosted relock
+pixi|When pixi is not allowed, the package file is still updated, but pixi.lock is left unchanged|why every conda update stays held until 43 proves the hosted relock
 github-actions|prefix-dev/setup-pixi pixi-version prefix-dev/pixi|setup-pixi'"'"'s pixi-version input is read as prefix-dev/pixi
 github-actions|action\.ya?ml$/|every action.yml, the setup action'"'"'s included, is in the manager'"'"'s file patterns
 github-actions|Actions pinned to a bare SHA without a version comment are disabled by default|why every SHA carries its version comment
@@ -60,17 +60,17 @@ pre-commit|functionality is currently in beta testing, so you must opt-in|the pr
 github-runners|This datasource returns a list of all runners that are hosted by GitHub|runner labels are covered without configuration
 local|This feature is flagged as experimental|the dry run'"'"'s platform is experimental
 local|In this mode, Renovate defaults to dryRun=lookup|the dry run looks up updates and creates nothing
-local|Branch creation is not supported|so the hold and the branches are 41'"'"'s to see on the hosted app
+local|Branch creation is not supported|so the hold and the branches are 43'"'"'s to see on the hosted app
 options|composer , gleam|rangeStrategy update-lockfile works for gleam
 options|Renovate only queries the OSV database for dependencies that use one of these datasources|Renovate'"'"'s OSV alerts cover hex ...
 options|packagist pypi rubygems|... and not conda, docker or GitHub actions
 options|You will only get OSV-based vulnerability alerts for direct dependencies|and only direct dependencies, so hex-audit asks about every locked package
 options|"schedule" : [], "dependencyDashboardApproval" : false|a vulnerability fix skips the landing hold once the app is live, though it still never automerges
 self-hosted|"mise" , "pixi"|pixi is one of the allowedUnsafeExecutions values
-mend|!allowedUnsafeExecutions|whether the hosted app allows pixi is undocumented; 41 proves it
-mend|Installing Renovate into selected repositories always leads to onboarding PRs|what 41 should expect at installation
+mend|!allowedUnsafeExecutions|whether the hosted app allows pixi is undocumented; 43 proves it
+mend|Installing Renovate into selected repositories always leads to onboarding PRs|what 43 should expect at installation
 permissions|Read for repository content and write for creating branches|the app writes branches ...
-permissions|Explicit permission needed to update workflows|... and workflow files: the trust surface 0013 records
+permissions|Explicit permission needed to update workflows|... and workflow files: the trust surface 0014 records
 presets-default|Enable Renovate Dependency Dashboard approval workflow|:dependencyDashboardApproval, the landing hold
 presets-docker|"matchDatasources" : [ "docker" ], "pinDigests" : true|docker:pinDigests
 presets-helpers|"matchDepTypes" : [ "action" , "workflow" ], "pinDigests" : true|helpers:pinGitHubActionDigests

@@ -2,7 +2,7 @@
 # Ticket 27 evidence: Renovate itself, on the local platform, against the
 # committed tree. The local platform looks up updates and stops: it creates no
 # branch, no issue and no pull request (sources.txt), so the landing hold and
-# the branches themselves are ticket 41's to see on the hosted app.
+# the branches themselves are ticket 43's to see on the hosted app.
 #
 #   1. renovate-config-validator --strict on .github/renovate.json.
 #   2. A lookup on an export of HEAD: every pin extracted, and what is pending
@@ -254,7 +254,7 @@ else:
           f"(released {d.get('currentVersionTimestamp', '?')[:10]}), newest release seen "
           f"{d.get('mostRecentTimestamp', '?')[:10]}, {len(d.get('updates', []))} proposals")
     if d.get("updates"):
-        print("  it proposes now: the rule that switches it off can go (Decision 0013)")
+        print("  it proposes now: the rule that switches it off can go (Decision 0014)")
     else:
         print("  it proposes nothing, so the regex manager reads this input instead")
 if FAILED:

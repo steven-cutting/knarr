@@ -321,8 +321,8 @@
       "requires": []
     },
     {
-      "path": "decisions/0013-dependency-updates-and-audit.md",
-      "title": "Decision 0013: Dependency updates and audit",
+      "path": "decisions/0014-dependency-updates-and-audit.md",
+      "title": "Decision 0014: Dependency updates and audit",
       "kind": "decision",
       "audience": [
         "maintainer",
@@ -357,6 +357,19 @@
       ],
       "canonical_for": [
         "decision_coverage"
+      ],
+      "requires": []
+    },
+    {
+      "path": "decisions/0013-in-cluster-client.md",
+      "title": "Decision 0013: In-cluster Kubernetes client",
+      "kind": "decision",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "canonical_for": [
+        "decision_in_cluster_client"
       ],
       "requires": []
     }

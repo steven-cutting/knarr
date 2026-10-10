@@ -76,6 +76,12 @@ ban-relative-imports = "all"
   "T201",
   "TRY003",
 ]
+# Evidence helpers under .scratch/ are scripts like the checkers.
+".scratch/bootstrap/evidence/*/*.py" = [
+  "INP001",
+  "PLR2004",
+  "T201",
+]
 # The tests assert, shell out to git and the scripts under test, and import
 # `conftest` and `_project` from the directories pytest puts on the path.
 # TC003: fixtures are annotated with Path, which then never runs outside annotations.

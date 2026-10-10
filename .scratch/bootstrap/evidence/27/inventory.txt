@@ -5,7 +5,7 @@ hex package lock           38  renovate gleam: update-lockfile, lockFileMaintena
                                in manifest.toml
 conda pin (==)             19  renovate pixi, held for approval
                                in pixi.toml
-conda package lock        106  renovate pixi lockFileMaintenance, held; hosted relock unproven (41)
+conda package lock        106  renovate pixi lockFileMaintenance, held; hosted relock unproven (43)
                                in pixi.lock
 action SHA                  7  renovate github-actions, group GitHub Actions
                                in .github/actions/setup/action.yml, .github/workflows/audit.yml, .github/workflows/ci.yml

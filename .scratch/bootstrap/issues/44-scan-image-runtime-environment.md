@@ -1,6 +1,6 @@
-# 42: Scan the image's runtime environment
+# 44: Scan the image's runtime environment
 
-**Context:** [Decision 0013](../../../docs/decisions/0013-dependency-updates-and-audit.md) scans the knarr image with grype, through `just image-scan`, and that scan reads the image's OS (`deb`) packages only. grype runs syft to catalogue packages, and syft selects 34 package catalogers for an image source and 57 for a directory. `conda-meta-cataloger` runs only on a directory ([grype-probe.txt](../evidence/27/grype-probe.txt), part 3), and grype 0.120.1 has no flag or configuration setting that selects catalogers. The branch's `audit.yml` run shows the result on the real image: six `libssl3t64` rows, all `deb` ([ci-audit.txt](../evidence/27/ci-audit.txt)). So the runtime environment the image ships at `/opt/knarr/.pixi/envs/runtime` is scanned by no job: erlang, the conda-forge openssl the BEAM links, perl 5.32.1 and zlib.
+**Context:** [Decision 0014](../../../docs/decisions/0014-dependency-updates-and-audit.md) scans the knarr image with grype, through `just image-scan`, and that scan reads the image's OS (`deb`) packages only. grype runs syft to catalogue packages, and syft selects 34 package catalogers for an image source and 57 for a directory. `conda-meta-cataloger` runs only on a directory ([grype-probe.txt](../evidence/27/grype-probe.txt), part 3), and grype 0.120.1 has no flag or configuration setting that selects catalogers. The branch's `audit.yml` run shows the result on the real image: six `libssl3t64` rows, all `deb` ([ci-audit.txt](../evidence/27/ci-audit.txt)). So the runtime environment the image ships at `/opt/knarr/.pixi/envs/runtime` is scanned by no job: erlang, the conda-forge openssl the BEAM links, perl 5.32.1 and zlib.
 
 The runtime environment locks 13 packages for linux-64. Ticket 27's probe scanned the 8 of them that have a conda record on the maintainer's host, and did not scan the other 5 (`_openmp_mutex`, `libgcc`, `libgomp`, `libstdcxx` and `libxcrypt`). As an image, those records give 0 conda matches. As a directory, they give 7 conda matches, and the 4 with a fix are all in conda-forge's perl 5.32.1, matched through NVD CPEs:
 
@@ -22,14 +22,14 @@ erlang's conda-forge build pins that perl (its build string is `pl5321`), so per
 
 **Non-goals:**
 
-- The OS-package scan and the base image, which 0013 settles.
+- The OS-package scan and the base image, which 0014 settles.
 - The environments that do not ship (default, cluster and audit) and the `tools.txt` downloads.
-- An advisory source for conda-forge: none exists, and 0013's "What would reopen this" covers one appearing.
+- An advisory source for conda-forge: none exists, and 0014's "What would reopen this" covers one appearing.
 - Making the job required.
 
 **Blocked by:** 27
 
-**From 27:** [Decision 0013](../../../docs/decisions/0013-dependency-updates-and-audit.md); the hand-back notes in [ticket 27](27-spike-dependency-updates-and-audit.md#hand-back-notes); [grype-probe.txt](../evidence/27/grype-probe.txt), part 3, and [ci-audit.txt](../evidence/27/ci-audit.txt).
+**From 27:** [Decision 0014](../../../docs/decisions/0014-dependency-updates-and-audit.md); the hand-back notes in [ticket 27](27-spike-dependency-updates-and-audit.md#hand-back-notes); [grype-probe.txt](../evidence/27/grype-probe.txt), part 3, and [ci-audit.txt](../evidence/27/ci-audit.txt).
 
 **MVP critical path:** no. It is maintenance hygiene, and the MVP does not need it.
 
@@ -37,7 +37,7 @@ erlang's conda-forge build pins that perl (its build string is `pl5321`), so per
 
 - [ ] A recipe in the `audit` group scans the linux-64 runtime environment as a directory with `--only-fixed --fail-on high`. It exits 0 when nothing qualifies and 2 on a finding, as `just image-scan` does.
 - [ ] `audit.yml` runs it, and the job is not required.
-- [ ] perl is pruned from the runtime image, with `tls_check.escript` rerun in the pruned image, or accepted with a dated, documented grype ignore for each CVE. 0013 carries an "Amended by ticket 42" note saying which, and that the image's conda records are scanned.
+- [ ] perl is pruned from the runtime image, with `tls_check.escript` rerun in the pruned image, or accepted with a dated, documented grype ignore for each CVE. 0014 carries an "Amended by ticket 44" note saying which, and that the image's conda records are scanned.
 - [ ] **Authorization required:** the network, for `pixi install`, grype's vulnerability database and any image pull.
 - [ ] **Authorization required:** one `audit.yml` dispatch on the branch. The hand-back records the run, the matches with a fix and the job's verdict.
 - [ ] `just check` ends with "All checks passed and the worktree is unchanged."

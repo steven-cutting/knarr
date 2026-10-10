@@ -59,7 +59,11 @@ contract Lifecycle {
         -- The root tolerates two restarts in five seconds. Exhausting this
         -- tolerance stops the application and exits the VM unsuccessfully.
     @invariant NoPodEffects
-        -- The skeleton never reads or changes Kubernetes objects.
+        -- With the s1_probe configuration set, the skeleton reads only pods
+        -- in its own namespace and writes only the knarr.io/s1-probe
+        -- annotation on its own pod, through the k8s_client contract. It
+        -- changes no other Kubernetes object. Without that configuration,
+        -- as the gate runs it, it reads and changes nothing.
 }
 
 entity Runtime {

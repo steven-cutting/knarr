@@ -152,11 +152,11 @@ Run birdie's other commands through `just birdie`, for example `just birdie stal
 
 1. **A pure builder** takes values and returns a `Request(String)`.
 2. **A pure decoder** takes a `Response(String)` and returns a typed result. Every way it can fail is a named error.
-3. **A function that does the I/O** only through a `send` it is given, of type `fn(Request(String)) -> Result(Response(String), e)`. That is the type of `gleam_httpc.send`, so production code passes `httpc.send` unchanged. Ticket 14 brings in the real client. A test passes a closure.
+3. **A function that does the I/O** only through a `send` it is given, of type `fn(Request(String)) -> Result(Response(String), e)`. Production passes `k8s_http.send(_, k8s_http.Tls(ca_file))`, the verified-TLS adapter from [Decision 0013](../decisions/0013-in-cluster-client.md); `gleam_httpc` is not used because it cannot carry a CA file. A test passes a closure.
 
 The builder and the decoder are tested by value. The I/O function is tested with a closure fake. The fake asserts the request it was handed and returns a canned response. A second fake returns `Error(_)`, to test the failure path. To snapshot the outgoing request, take the picture inside the fake: it then shows exactly what the function sent, not a request the test built again.
 
-The worked example lives in `test/` only, because it is not part of knarr. It models the apiserver's `GET /version`, a real, read-only call that decides nothing:
+The real client, `src/knarr/k8s_client.gleam` with `test/k8s_client_test.gleam`, follows the same shape for the pod list and the annotation patch. The worked example lives in `test/` only, because it is not part of knarr. It models the apiserver's `GET /version`, a real, read-only call that decides nothing:
 
 - [sans_io_example.gleam](../../test/sans_io_example.gleam): the builder, the decoder and `fetch_version`
 - [sans_io_example_test.gleam](../../test/sans_io_example_test.gleam): named tests, the closure fakes, a fixed-seed property, and a snapshot taken inside the fake
@@ -165,3 +165,40 @@ The worked example lives in `test/` only, because it is not part of knarr. It mo
 These tests prove the pure parts and how they are joined. They prove nothing about real HTTP or a real apiserver. The kwok and kind tiers cover those, as 0002 and 0007 expect.
 
 Gleam has no HTTP mocking library like respx, and this pattern takes its place. Use `http_server_mock` only where a test needs a real socket. It brings in mist and gleam_otp, so it is not a dependency until a ticket needs it. TestContainers is skipped; 0007 says why.
+
+## The loopback TLS test and the OTP pin
+
+[k8s_http_test.gleam](../../test/k8s_http_test.gleam) runs `k8s_http.send` against a loopback TLS responder in [k8s_http_test_ffi.erl](../../test/k8s_http_test_ffi.erl). `public_key:pkix_test_data/1` builds three chains in memory: a server certificate with an `iPAddress` subjectAltName for 127.0.0.1, a certificate from the same CA whose only subjectAltName is a DNS name, and an unrelated CA. Only the CA PEMs are written, under `build/`, so no key is committed. On OTP 29, `pkix_test_data/1` returns the root twice in `cacerts` when the chain has no intermediate. `write_ca` deduplicates it with `lists:usort`, which stays correct if a later pin stops repeating it.
+
+Some of these tests watch OTP 29's `ssl` and `httpc`, not knarr. When the OTP pin moves (ticket 27), a failure in one of them means an OTP term or default changed. [Decision 0013](../decisions/0013-in-cluster-client.md#findings) records what each finding is and what reopens it.
+
+### httpc error shapes
+
+`k8s_http_ffi` turns httpc's error term into a `SendError`. On OTP 29:
+
+| httpc returns | `SendError` | Fails if the mapping changes |
+| --- | --- | --- |
+| `{failed_connect, [{to_address, _}, {inet, [inet], {tls_alert, {unknown_ca, _}}}]}` | `TlsAlert("unknown_ca")` | `send_refuses_a_wrong_ca_with_no_fallback_test` |
+| a `failed_connect` list with a `{tls_alert, {bad_certificate, _}}` entry | `TlsAlert("bad_certificate")` | `send_refuses_a_same_ca_certificate_without_the_ip_san_test` |
+| `{failed_connect, [{to_address, _}, {inet, [inet], econnrefused}]}` | `ConnectFailed("econnrefused")` | `send_reports_a_closed_port_test` |
+
+[tls.txt](../../.scratch/bootstrap/evidence/14/tls.txt) holds the first and third terms as httpc returned them. For the second it holds only the raw `ssl:connect` alert, whose text names `hostname_check_failed`; the test is the record of the httpc wrapper.
+
+The FFI does not read the list by position. It walks it and matches each entry by shape:
+
+- `{_, _, {tls_alert, {Alert, _}}}` gives `TlsAlert(Alert)`, and `{_, _, timeout}` gives `Timeout`.
+- `{_, _, Reason}` with an atom `Reason` gives `ConnectFailed(Reason)`.
+- `{_, [_ | _], Reason}` with any other `Reason` gives `ConnectFailed` with the term rendered and cut at 200 bytes.
+- Any other entry, such as `{to_address, _}`, is skipped. An exhausted list gives `ConnectFailed("unknown")`.
+
+On a direct connection the first element is the socket family, `inet` here and `inet6` for IPv6. In inets 9.8, httpc's proxy-tunnel path reports `{tls, TLSOptions, Reason}`, which the same clauses match. So a reordered list or another first element still maps, and fails none of the three tests; [tls/run.sh](../../.scratch/bootstrap/evidence/14/tls/run.sh) prints the raw terms. A new entry shape inside the list is a value, and the named test then fails with the term in its output. Two shapes still raise in the FFI instead: a `failed_connect` reason that is not a list, and an alert that is not an atom. Neither has been seen. No test exercises `timeout`, `inet6` or the tunnel path.
+
+### SNI
+
+`send_sends_the_ip_literal_as_sni_on_this_pin_test` asks the responder's `/sni` path which `server_name` arrived, and expects `"127.0.0.1"`. OTP 29 sends a string IP host as SNI, although RFC 6066 §3 does not permit an IP literal in `HostName`. knarr keeps the default, because on this pin `{server_name_indication, disable}` also turns off the hostname check: with it, the SNI test gets `none` and `send_refuses_a_same_ca_certificate_without_the_ip_san_test` gets a response. ssl sends no SNI for an IP given as a tuple and still checks it against the `iPAddress` SAN, but httpc hands ssl the URL's host as a string. If the SNI test fails after a pin move, its body shows what arrived; read the SNI row of Decision 0013 before changing `k8s_http_ffi`.
+
+### Stopping a bare actor in a test
+
+A gleam_otp 1.3.0 actor started outside a supervisor cannot be stopped with `gen_server:stop`. On OTP 29, `gen_server:stop` calls `proc_lib:stop/3`, which sends the `terminate` system message through `sys:terminate`. gleam_otp's `gleam_otp_external:convert_system_message/1` handles `get_status`, `get_state`, `suspend` and `resume`, and its TODO lists `{terminate, Reason}` among the system messages it does not support yet. The actor logs "Actor discarding unexpected message" and keeps running. So `gen_server:stop/1`, whose timeout is `infinity`, blocks forever, and `gen_server:stop/3` exits the caller with `timeout` and leaves the actor alive.
+
+Stop a bare actor with the signal its supervisor would send: unlink it, then `exit(Pid, shutdown)`, which an actor that does not trap exits dies on. `stop_probe/1` in [s1_probe_test_ffi.erl](../../test/s1_probe_test_ffi.erl) does this. Unlike a supervisor, it does not wait for the actor to exit. A test that reuses a file, a name or a subject straight afterwards should monitor the actor and wait for its `'DOWN'` message. Production is unaffected, because a supervisor stops its children with exit signals. A gleam_otp supervisor runs OTP's `supervisor` behaviour and does take `gen_server:stop`, which `stop_root/1` uses. This is a note, not an upstream report: the gap is already in gleam_otp's own TODO. Recheck it when gleam_otp moves past 1.3.0.

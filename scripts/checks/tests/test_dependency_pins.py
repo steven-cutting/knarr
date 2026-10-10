@@ -1,4 +1,4 @@
-"""The pins Renovate proposes updates for, kept in the shapes its managers read (Decision 0013).
+"""The pins Renovate proposes updates for, kept in the shapes its managers read (Decision 0014).
 
 Renovate does not run in the gate. These tests hold the files it reads to the
 shapes its managers match, so a pin that a manager would stop seeing fails the
@@ -300,7 +300,7 @@ CONDA = {
 def test_what_the_hosted_app_has_not_proved_stays_held_after_activation(
     dependencies_: list[dict[str, str]], group: str | None
 ) -> None:
-    # Ticket 41 drops the landing hold, :dependencyDashboardApproval, from
+    # Ticket 43 drops the landing hold, :dependencyDashboardApproval, from
     # extends; these rules keep their own. pixi.lock needs a relock the
     # hosted app may not run, and the cluster pins move together or not at all.
     for dependency in dependencies_:

@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Renovate proposes an update for every pin it can read; nothing merges without the maintainer's review (Decision 0013). Landed held: every update waits for approval on the Dependency Dashboard until ticket 41 activates the app.",
+  "description": "Renovate proposes an update for every pin it can read; nothing merges without the maintainer's review (Decision 0014). Landed held: every update waits for approval on the Dependency Dashboard until ticket 43 activates the app.",
   "extends": [
     "config:recommended",
     "docker:pinDigests",
@@ -48,14 +48,14 @@
       "groupName": "GitHub Actions"
     },
     {
-      "description": "Every conda pin, and pixi.lock's maintenance, waits for approval: relocking pixi.lock is an unsafe execution the hosted app may not be allowed to run, so each update is approved and its lock diff read (ticket 41).",
+      "description": "Every conda pin, and pixi.lock's maintenance, waits for approval: relocking pixi.lock is an unsafe execution the hosted app may not be allowed to run, so each update is approved and its lock diff read (ticket 43).",
       "matchManagers": [
         "pixi"
       ],
       "dependencyDashboardApproval": true
     },
     {
-      "description": "Renovate reads setup-pixi's pixi-version input natively, as prefix-dev/pixi on GitHub releases, but proposed no update from 0.80.0 when 0.81.0 was out (Decision 0013); the pixi regex manager reads the input instead.",
+      "description": "Renovate reads setup-pixi's pixi-version input natively, as prefix-dev/pixi on GitHub releases, but proposed no update from 0.80.0 when 0.81.0 was out (Decision 0014); the pixi regex manager reads the input instead.",
       "matchManagers": [
         "github-actions"
       ],
@@ -127,7 +127,7 @@
       "allowedVersions": "/^3\\.6\\./"
     },
     {
-      "description": "The kwok controller image moves only by hand, with kwokctl's line in tools.txt: both name one kwok release, and no bot can rehash that line (Decision 0013).",
+      "description": "The kwok controller image moves only by hand, with kwokctl's line in tools.txt: both name one kwok release, and no bot can rehash that line (Decision 0014).",
       "matchPackageNames": [
         "registry.k8s.io/kwok/kwok"
       ],

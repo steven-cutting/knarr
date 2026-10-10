@@ -1,7 +1,7 @@
 """Report the hex packages and the Erlang/OTP release that OSV.dev lists an advisory for.
 
 The audit workflow runs this weekly, outside the offline gate, because the
-answer changes without any commit (Decision 0013). It asks api.osv.dev once,
+answer changes without any commit (Decision 0014). It asks api.osv.dev once,
 with one querybatch request:
 
 - every hex package manifest.toml locks, by its Hex name and version, in OSV's

@@ -4,7 +4,7 @@
 # repository root, so pixi.lock is the one owner of the OTP version:
 #   docker build -f fixtures/fake_worker/Dockerfile .
 # Dockerfile.dockerignore beside this file is its context allowlist.
-FROM ghcr.io/prefix-dev/pixi:0.81.0 AS build
+FROM ghcr.io/prefix-dev/pixi:0.81.0@sha256:788ae451641666e2d1f79d3dbe35392dfc7e9b394b16a3acb75c347f3badb2ab AS build
 WORKDIR /opt/knarr
 COPY pixi.toml pixi.lock ./
 RUN pixi install --locked -e default -e runtime
@@ -18,7 +18,7 @@ COPY fixtures/fake_worker/src src
 RUN gleam export erlang-shipment \
     && erl -noshell -eval 'io:put_chars(erlang:system_info(otp_release)), halt().' > /opt/build-otp
 
-FROM ubuntu:24.04 AS runtime
+FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55 AS runtime
 WORKDIR /opt/fake_worker
 COPY --from=build /opt/knarr/.pixi/envs/runtime /opt/knarr/.pixi/envs/runtime
 COPY --from=build /opt/knarr/fixtures/fake_worker/build/erlang-shipment /opt/fake_worker/shipment

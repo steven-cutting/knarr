@@ -35,6 +35,15 @@ def test_every_fixture_package_is_locked_as_knarr_locks_it():
 def test_shared_dependency_ranges_match():
     knarr = load("gleam.toml")
     fixture = load("fixtures/fake_worker/gleam.toml")
-    for table in ("dependencies", "dev_dependencies"):
+    for table in ("dependencies", "dev-dependencies"):
         for name, wanted in fixture[table].items():
             assert knarr[table].get(name) == wanted, (table, name)
+
+
+def test_the_dev_dependencies_use_the_spelling_renovate_reads():
+    # As test_dependency_pins.py holds knarr's: Renovate's gleam manager reads
+    # [dev-dependencies] only, so [dev_dependencies] would hide the fixture's
+    # dev dependencies from the group that moves both projects together.
+    fixture = load("fixtures/fake_worker/gleam.toml")
+    assert "dev_dependencies" not in fixture
+    assert fixture["dev-dependencies"]

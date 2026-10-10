@@ -20,7 +20,7 @@ gleam_http = ">= 4.4.0 and < 5.0.0"
 gleam_json = ">= 3.1.0 and < 4.0.0"
 mist = ">= 6.0.3 and < 7.0.0"
 
-[dev_dependencies]
+[dev-dependencies]
 gleeunit = ">= 1.11.0 and < 2.0.0"
 glinter = ">= 2.19.2 and < 3.0.0"
 

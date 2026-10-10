@@ -29,7 +29,7 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "Hex packages in one pull request. An in-range update moves manifest.toml only; an update outside a range moves the range in gleam.toml as well, and Renovate runs gleam to rewrite manifest.toml.",
+      "description": "Hex packages in one pull request, with a major update in one of its own (separateMajorMinor). An in-range update moves manifest.toml only; an update outside a range moves the range in gleam.toml as well, and Renovate runs gleam to rewrite manifest.toml.",
       "matchManagers": [
         "gleam"
       ],

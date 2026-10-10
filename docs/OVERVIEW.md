@@ -158,8 +158,8 @@ flowchart LR
 
 1. **Discover.** Find the worker pods of Deployments opted in through labels and annotations, in Knarr's one namespace (§9.1, §9.18). Use a periodic LIST scoped by namespace and selector, on its own cadence and slower than polling. Watch deferred ([DEFERRED.md §6](DEFERRED.md#6-watch-based-discovery)).
 2. **Poll.** Send an HTTP GET to each pod's status endpoint (§5). Keep the per-poll timeout shorter than the interval, jitter the schedule, never overlap two polls of the same pod, and bound concurrency.
-3. **Map.** Treat the worker-supplied cost as untrusted input. Clamp it and combine it with the accepting state. The annotation carries that value itself, with no bands, and a change below a threshold is not written; [cost_mapping.allium](specs/cost_mapping.allium) settles this. From it, derive the pod's full **desired annotation state**: the cost value, the opt-in `safe-to-evict` value, and Knarr's ownership marker.
-4. **Patch only on meaningful change.** Compare the desired state with the last successfully applied state. That covers cost changes past the threshold, first annotation, startup repair, cleanup and `safe-to-evict` flips. Every annotation write goes through one rate-limited patcher, with a per-pod minimum interval and a global QPS budget. Changes that are throttled stay pending and are not dropped.
+3. **Map.** Treat the worker-supplied cost as untrusted input. Clamp it and combine it with the accepting state. The annotation carries that value itself, with no bands, written only when the cost crosses a configured threshold and absent below the first; [cost_mapping.allium](specs/cost_mapping.allium) settles this. From it, derive the pod's full **desired annotation state**: the cost value, the opt-in `safe-to-evict` value, and Knarr's ownership marker.
+4. **Patch only on meaningful change.** Compare the desired state with the last successfully applied state. That covers threshold crossings, first annotation, startup repair, cleanup and `safe-to-evict` flips. Every annotation write goes through one rate-limited patcher, with a per-pod minimum interval and a global QPS budget. Changes that are throttled stay pending and are not dropped.
 5. **Skip terminating pods.** Once a pod has `deletionTimestamp` set, the ReplicaSet no longer counts it, so Knarr stops patching it. Knarr may keep polling it for observability.
 
 Knarr annotates **live Pod objects**, never the Deployment's pod template. Changing the template would trigger a rollout. Changing annotations on a running pod does not restart it.
@@ -180,7 +180,7 @@ sequenceDiagram
     loop Independently, every poll interval
         K->>W: GET status
         W-->>K: cost, accepting
-        K->>API: PATCH annotations (cost change past the threshold, within budget)
+        K->>API: PATCH annotations (threshold crossing, within budget)
     end
     Note over K,API: No "annotate before scale-down". Knarr cannot see one coming (§7)
     S->>API: lower Deployment replicas
@@ -202,7 +202,7 @@ sequenceDiagram
 
 - **Pull.** Knarr polls an HTTP endpoint exposed by each worker pod. Workers do not push.
 - The v1 payload carries **only** two things:
-  1. **`cost`**: the worker's own estimate of the "cost to kill" it right now. Higher means more expensive to kill. The worker computes it; Knarr relays, clamps and maps it. The wire type is settled in [worker_contract.allium](specs/worker_contract.allium): a non-negative JSON integer with no unit. [cost_mapping.allium](specs/cost_mapping.allium) writes it as is, clamped to int32.
+  1. **`cost`**: the worker's own estimate of the "cost to kill" it right now. Higher means more expensive to kill. The worker computes it; Knarr relays, clamps and maps it. The wire type is settled in [worker_contract.allium](specs/worker_contract.allium): a non-negative JSON integer with no unit. It is intended as the elapsed seconds of the worker's longest-running active task; [cost_mapping.allium](specs/cost_mapping.allium) writes it as is, clamped to int32, when it crosses a threshold.
   2. **`accepting`**: whether the worker is accepting new work. `false` means it is draining.
 - More fields may come later. They are out of scope for v1.
 - **Reachability:** Knarr must reach pod IPs on the status port. It polls over plain HTTP: no mTLS, and no service-mesh support in the MVP ([DEFERRED.md §8](DEFERRED.md#8-other-future-targets)). NetworkPolicies may need configuration; the `NetworkPolicy` clause of [worker_contract.allium](specs/worker_contract.allium) says what.
@@ -234,10 +234,10 @@ Readiness also controls Service routing, so the right guidance depends on the ki
 
 | `accepting` | `cost` | Terminating | Meaning | Handling (settled in [cost_mapping.allium](specs/cost_mapping.allium)) |
 | --- | --- | --- | --- | --- |
-| true | low | no | Idle or running quick tasks only | The cost is written as is, and `0` is spelled by removing the annotation. Preferred victim |
-| true | high | no | Busy with expensive work | The cost is written as is. Biased against removal |
-| false | high | no | Not accepting; expensive work remains | The cost is written as is, with no floor. Biased against removal, still best-effort. Kubernetes does not bound a drain the worker starts itself; the grace period applies only once termination begins |
-| false | low | no | Not accepting; low remaining interruption cost (possibly fully drained) | `-1` when the cost is `0`, below every idle and unannotated pod; otherwise the cost as is. Preferred victim |
+| true | low | no | Idle or running quick tasks only | Below the first threshold the annotation is absent. Preferred victim |
+| true | high | no | Busy with expensive work | The cost is written as is when it crosses a threshold. Biased against removal |
+| false | high | no | Not accepting; expensive work remains | The cost is written as is when it crosses a threshold, with no floor. Biased against removal, still best-effort. Kubernetes does not bound a drain the worker starts itself; the grace period applies only once termination begins |
+| false | low | no | Not accepting; low remaining interruption cost (possibly fully drained) | `-1` while the cost is below the first threshold, ranked below every idle and unannotated pod. Preferred victim |
 | any | any | yes | Being terminated | No patches; the worker's graceful shutdown applies |
 
 Knarr never overrides a positive cost. A floor for draining pods was a candidate for §9.5 and was rejected.
@@ -360,8 +360,8 @@ The KEP recommends updating the cost "only before scale down" and keeping update
 
 **How Knarr limits update frequency:**
 
-- **Write the cost itself, not a band.** The annotation carries the worker's clamped cost; `0` is the removed annotation and `-1` a drained pod with nothing left. This departs from the KEP's coarse-grained advice on purpose, and a worker can still fold job duration into the cost it reports. Settled in [cost_mapping.allium](specs/cost_mapping.allium).
-- **Patch only when the desired annotation state changes** (§4), with a **change threshold** in place of hysteresis: a new cost replaces the written one only when it differs by at least 10% of the written value (configurable per workload), and a move to or from `0` or `-1` always writes.
+- **Write the cost itself, at threshold crossings.** The annotation carries the worker's clamped cost, written when the cost crosses one of the configured thresholds (300, 900, 1800 and 3600 by default, in the seconds the worker is expected to report, overridable per workload) and absent below the first; `-1` marks a draining pod below the first threshold. Between crossings the applied value stands. Settled in [cost_mapping.allium](specs/cost_mapping.allium).
+- **Patch only when the desired annotation state changes** (§4), with a **margin below each threshold on the way down** in place of hysteresis: a downward crossing counts only once the cost is below the threshold minus the margin (60 by default), so a cost that wobbles at an edge does not write.
 - Enforce a **minimum interval per pod** between patches, plus a **global patch QPS budget** and a documented expected write rate.
 - Patch only `metadata.annotations`. An unconditional merge patch is idempotent, but it can overwrite a value another writer set after Knarr read the pod. Lost-update detection needs a conditional write, either a `resourceVersion` precondition or a JSON Patch `test` op. The choice is OPEN (§9.10).
 - Every pod patch is an etcd write and a MODIFIED watch event for every watcher of that pod. Those watchers are the cluster-wide pod informers (controller-manager, scheduler, CA, KEDA and others) plus the kubelet on the pod's node. Cluster operators can throttle Knarr with API Priority and Fairness.
@@ -370,8 +370,8 @@ The KEP recommends updating the cost "only before scale down" and keeping update
 flowchart LR
     C["Worker cost<br/>untrusted"] --> CL["Clamp, combine<br/>with accepting"]
     ACC[accepting] --> CL
-    CL --> B["Cost itself: 0 removed,<br/>-1 drained"]
-    B --> H["Change threshold<br/>10% of the written value"]
+    CL --> B["Cost itself at a crossing,<br/>absent below the first threshold,<br/>-1 drained"]
+    B --> H["Margin below each<br/>threshold going down"]
     H --> DS["Desired state<br/>cost value, safe-to-evict, marker"]
     DS --> Q{"Desired ≠<br/>last applied?"}
     Q -- "no" --> NW[No write]
@@ -381,7 +381,7 @@ flowchart LR
     classDef knarr stroke:#2f80ed,stroke-width:3px
 ```
 
-**Sign convention (settled in [cost_mapping.allium](specs/cost_mapping.allium)).** Unannotated pods count as `0`. Cost is compared whenever the earlier ranking steps tie, for example between two Ready pods or between two NotReady pods. Knarr's convention: idle is `0`, spelled by removing the annotation, so Ready pods that Knarr has not annotated yet tie with idle pods; busy is the worker's cost above `0`, so busy pods are protected over them; a draining pod with nothing left is `-1`, deleted before both. The neutral fallback (§9.6) and cleanup (§9.12) are that same removal. No values are reserved for Knarr's own states.
+**Sign convention (settled in [cost_mapping.allium](specs/cost_mapping.allium)).** Unannotated pods count as `0`. Cost is compared whenever the earlier ranking steps tie, for example between two Ready pods or between two NotReady pods. Knarr's convention: idle is a cost below the first threshold and is `0`, spelled by removing the annotation, so Ready pods that Knarr has not annotated yet tie with idle pods; busy is the worker's cost at or above the first threshold, so busy pods are protected over them; a draining pod below the first threshold is `-1`, deleted before both. The neutral fallback (§9.6) and cleanup (§9.12) are that same removal. No values are reserved for Knarr's own states.
 
 ### `cluster-autoscaler.kubernetes.io/safe-to-evict` (opt-in, MVP)
 
@@ -414,7 +414,7 @@ flowchart TD
 
 HPA or KEDA (ScaledObject) sets the replica count; Knarr only writes annotations. The primary mechanism works under any scaler, because HPA, KEDA and `kubectl scale` all end up at the ReplicaSet's victim ranking. Consequences:
 
-- **No "annotate before scale-down".** Knarr cannot know when a scale-down is coming, so costs must stay fresh all the time. The change threshold and the write budget (§6) are essential.
+- **No "annotate before scale-down".** Knarr cannot know when a scale-down is coming, so costs must stay fresh all the time. Threshold crossings and the write budget (§6) are essential.
 - **Scale-from-zero:** at zero replicas Knarr has no pods to poll, so wake-up needs an external demand signal: a KEDA trigger.
 - **Tuning:** users tune scale-down through `ScaledObject.spec.advanced.horizontalPodAutoscalerConfig.behavior`, for example the stabilization window or a limit of one pod per period. KEDA's `cooldownPeriod` only applies to scaling to zero.
 
@@ -432,7 +432,7 @@ knarr_sup (one_for_one)
 ├── k8s_client      : in-cluster auth, list/get/patch; pure Gleam + Erlang FFI (§9.2)
 ├── pod_discovery   : periodic LIST of target pods (watch deferred)
 ├── poller_pool     : bounded-concurrency HTTP polling of pod status endpoints
-├── reconciler      : clamp → map → change threshold → decide patch
+├── reconciler      : clamp → map at thresholds → decide patch
 ├── patcher         : rate-limited merge-patch writer (per-pod interval + global QPS)
 └── health_metrics  : liveness/readiness for Knarr itself; metrics export
 ```
@@ -516,7 +516,7 @@ flowchart LR
 4. **Worker contract details**, split in two and settled in [worker_contract.allium](specs/worker_contract.allium), except the per-poll timeout, which is §9.8's:
    - **4a. Endpoint shape:** path, port, schema, field types, versioning, timeouts.
    - **4b. Discovery, auth and network:** how Knarr finds the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies.
-5. **Cost mapping:** sign convention, clamp, the drained value, the canonical string, the change threshold, and how `cost` and `accepting` combine (see the §5 drain states). Settled in [cost_mapping.allium](specs/cost_mapping.allium): no bands and no hysteresis.
+5. **Cost mapping:** sign convention, clamp, the drained value, the canonical string, the thresholds and the margin, and how `cost` and `accepting` combine (see the §5 drain states). Settled in [cost_mapping.allium](specs/cost_mapping.allium): no bands and no hysteresis.
 6. **Unknown/unreachable policy:** how long to keep the last value (in polls and in time) before the removal §9.5 fixes as neutral, and how to detect an absent contract. Depends on 5.
 7. **Readiness interaction:** how to document it, and whether Knarr warns on "high cost while NotReady". Settled in [worker_contract.allium](specs/worker_contract.allium).
 8. **Poll interval, concurrency and write budget:** numeric defaults and a v1 scale target (pods, Deployments, interval), LIST cadence, limits per Deployment and per cluster, and the expected API write rate.
@@ -537,7 +537,8 @@ flowchart LR
 ### Glossary
 
 - **Cost:** a number the worker supplies; higher means it would be more expensive to kill the pod now.
-- **Mapped value:** the int32 the annotation carries: the worker's cost, `-1` for a drained pod with nothing left, or absent for `0`. A change past the threshold is one of the triggers for a patch (§4).
+- **Mapped value:** the int32 the annotation carries: the worker's cost as of its last threshold crossing, `-1` for a draining pod below the first threshold, or absent below the first threshold. A crossing is one of the triggers for a patch (§4).
+- **Threshold:** a configured cost at which a crossing writes the cost; a margin below it damps the way down (§6).
 - **Accepting / draining:** the worker's statement that it is or is not taking new work.
 - **Path A / B / C:** ReplicaSet scale-down; node removal through the Eviction API; other ways a pod can be killed (§2).
 

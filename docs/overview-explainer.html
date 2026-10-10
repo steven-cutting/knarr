@@ -169,10 +169,10 @@
 
   <!-- 2. Cost line -->
   <h2 id="cost">2. From worker cost to annotation value</h2>
-  <p>Knarr writes the worker's cost itself, clamped to int32; there are no bands and no hysteresis (§4, §6). A cost of <code>0</code> is spelled by removing the annotation, and a draining pod with nothing left is <code>-1</code>. A change threshold stops a value that wobbles from writing on every poll. Settled in <code>docs/specs/cost_mapping.allium</code> (§9.5).</p>
+  <p>Knarr writes the worker's cost itself, clamped to int32, and only when the cost crosses a configured threshold (§4, §6). Below the first threshold the pod is idle and carries no annotation; a draining pod below the first threshold is <code>-1</code>. Between crossings the applied value stands. A margin below each threshold damps the way down. Settled in <code>docs/specs/cost_mapping.allium</code> (§9.5).</p>
 
   <figure>
-    <div class="scroll"><svg class="wide" viewBox="0 0 720 170" role="img" aria-label="A cost axis with three regions: minus one for a drained pod with nothing left, zero for an absent annotation, and the worker's cost itself from one up to the int32 clamp, with a shaded change-threshold zone around one written value.">
+    <div class="scroll"><svg class="wide" viewBox="0 0 720 170" role="img" aria-label="A cost axis with a drained region at minus one, an absent region below the first threshold, and the cost itself above it, with four thresholds marked and a shaded margin zone just below each.">
       <defs>
         <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
@@ -181,25 +181,34 @@
       <g font-size="13" fill="currentColor">
         <text x="40" y="24" class="mut">-1</text>
         <text x="680" y="24" text-anchor="end" class="mut">clamp: 2147483647</text>
-        <rect x="40" y="40" width="100" height="44" class="b1"/>
-        <rect x="140" y="40" width="100" height="44" class="b2"/>
-        <rect x="240" y="40" width="440" height="44" class="b3"/>
-        <rect x="430" y="40" width="60" height="44" class="hz"/>
-        <text x="90" y="67" text-anchor="middle" font-weight="600">drained</text>
-        <text x="190" y="67" text-anchor="middle" font-weight="600">absent</text>
-        <text x="335" y="67" text-anchor="middle" font-weight="600">the cost itself</text>
-        <text x="585" y="67" text-anchor="middle" font-weight="600">the cost itself</text>
+        <rect x="40" y="40" width="80" height="44" class="b1"/>
+        <rect x="120" y="40" width="160" height="44" class="b2"/>
+        <rect x="280" y="40" width="400" height="44" class="b3"/>
+        <rect x="250" y="40" width="30" height="44" class="hz"/>
+        <rect x="370" y="40" width="30" height="44" class="hz"/>
+        <rect x="490" y="40" width="30" height="44" class="hz"/>
+        <rect x="610" y="40" width="30" height="44" class="hz"/>
+        <text x="80" y="67" text-anchor="middle" font-weight="600">drained</text>
+        <text x="185" y="67" text-anchor="middle" font-weight="600">absent</text>
+        <text x="460" y="67" text-anchor="middle" font-weight="600">the cost itself, as of its last crossing</text>
         <line x1="40" y1="96" x2="680" y2="96" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
-        <text x="300" y="116" text-anchor="middle" class="mut">annotation value</text>
-        <line x1="460" y1="40" x2="460" y2="132" stroke="currentColor" stroke-dasharray="3 3"/>
-        <text x="460" y="150" text-anchor="middle">last applied value: less than 10% away is not written</text>
+        <text x="185" y="116" text-anchor="middle" class="mut">annotation value</text>
+        <line x1="280" y1="40" x2="280" y2="132" stroke="currentColor" stroke-dasharray="3 3"/>
+        <line x1="400" y1="40" x2="400" y2="132" stroke="currentColor" stroke-dasharray="3 3"/>
+        <line x1="520" y1="40" x2="520" y2="132" stroke="currentColor" stroke-dasharray="3 3"/>
+        <line x1="640" y1="40" x2="640" y2="132" stroke="currentColor" stroke-dasharray="3 3"/>
+        <text x="280" y="150" text-anchor="middle">300</text>
+        <text x="400" y="150" text-anchor="middle">900</text>
+        <text x="520" y="150" text-anchor="middle">1800</text>
+        <text x="640" y="150" text-anchor="middle">3600</text>
+        <text x="460" y="116" text-anchor="middle" class="mut">thresholds, in the seconds the worker reports</text>
       </g>
     </svg></div>
-    <figcaption>The shaded zone is the change threshold: a new cost replaces the written one only when it differs by at least 10% of the written value (configurable per workload). A move to or from <code>0</code> or <code>-1</code> always writes. Any write still waits for the per-pod interval and the global QPS budget.</figcaption>
+    <figcaption>Crossing a threshold upward writes the cost at that reading. The shaded zones are the margin (60 by default): on the way down a threshold counts as crossed only once the cost is below it minus the margin, so a cost that wobbles at an edge does not write. The thresholds and the margin are configurable per workload. Any write still waits for the per-pod interval and the global QPS budget.</figcaption>
   </figure>
 
   <h3>Where the values sit relative to the implicit <code>0</code></h3>
-  <p>Pods with no annotation count as <code>0</code>, and lower cost is deleted first. Knarr's convention puts idle at <code>0</code>, so Ready pods that Knarr has not annotated yet tie with idle pods; busy pods carry their cost above <code>0</code> and are protected over both; a draining pod with nothing left is <code>-1</code> and goes first (§6).</p>
+  <p>Pods with no annotation count as <code>0</code>, and lower cost is deleted first. Knarr's convention puts idle, a cost below the first threshold, at <code>0</code>, so Ready pods that Knarr has not annotated yet tie with idle pods; busy pods carry their cost and are protected over both; a draining pod below the first threshold is <code>-1</code> and goes first (§6).</p>
 
   <figure>
     <svg viewBox="0 0 480 110" role="img" aria-label="Drained pods at minus one sit left of zero, idle and unannotated pods share the point zero, and busy pods sit right of zero at their own cost.">
@@ -210,6 +219,7 @@
         <circle cx="70" cy="40" r="7" class="kn"/>
         <text x="70" y="24" text-anchor="middle">drained, -1 (Knarr)</text>
         <circle cx="215" cy="40" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="215" y="10" text-anchor="middle">(below the first threshold)</text>
         <text x="215" y="24" text-anchor="middle">idle and unannotated</text>
         <circle cx="390" cy="40" r="7" class="kn"/>
         <text x="390" y="24" text-anchor="middle">busy, its cost (Knarr)</text>

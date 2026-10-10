@@ -51,9 +51,10 @@ value Outcome {
 }
 
 -- The v1 payload. cost is the worker's own estimate of the cost to kill it
--- now: higher is more expensive, 0 is the floor, no unit, no upper bound on
--- the wire. accepting is whether the worker takes new work; false means it is
--- draining.
+-- now, intended as the seconds its longest-running active task has run so
+-- far: higher is more expensive, 0 is the floor, no unit on the wire, no
+-- upper bound. accepting is whether the worker takes new work; false means it
+-- is draining.
 value Status {
     cost: Integer
     accepting: Boolean
@@ -136,7 +137,11 @@ contract StatusEndpoint {
         -- The v1 payload is cost and accepting; knarr reads nothing else. cost
         -- is the worker's estimate of the cost to kill it now, higher meaning
         -- more expensive, 0 the floor, with no unit and no upper bound on the
-        -- wire; cost_mapping clamps and maps it. accepting false means the worker
+        -- wire. It is intended as the number of seconds the worker's
+        -- longest-running active task has run so far, 0 when none is active;
+        -- a worker may report another non-negative measure, but
+        -- cost_mapping's default thresholds assume seconds. cost_mapping
+        -- clamps and maps it. accepting false means the worker
         -- started a drain itself, and bears on knarr only while the pod has no
         -- deletionTimestamp; after that no patch is made whatever it reports.
         -- draining is true for exactly that: a valid reading whose accepting

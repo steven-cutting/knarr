@@ -1,0 +1,78 @@
+date: 2026-10-09T23:15Z
+revision: 0474e67
+-- 1. the committed tree
+  hex-audit: OSV.dev lists no advisory for 38 hex packages or Erlang/OTP 29.1.1
+  exit 0
+-- 2. control: plug 1.3.0 locked from hex
+  EEF-CVE-2026-56813  plug 1.3.0  https://osv.dev/vulnerability/EEF-CVE-2026-56813
+  GHSA-2q6v-32mr-8p8x  plug 1.3.0  https://osv.dev/vulnerability/GHSA-2q6v-32mr-8p8x
+  GHSA-5v4m-c73v-c7gq  plug 1.3.0  https://osv.dev/vulnerability/GHSA-5v4m-c73v-c7gq
+  GHSA-9h73-w7ch-rh73  plug 1.3.0  https://osv.dev/vulnerability/GHSA-9h73-w7ch-rh73
+  hex-audit: OSV.dev lists 4 advisories against these releases; move each pin past its fix, or record why it stays
+  exit 1
+-- 3. control: the committed manifest with erlang ==27.3.2
+  CVE-2025-32433  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2025-32433
+  CVE-2025-46712  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2025-46712
+  CVE-2025-48038  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2025-48038
+  CVE-2025-48039  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2025-48039
+  CVE-2025-48040  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2025-48040
+  CVE-2025-48041  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2025-48041
+  CVE-2026-23941  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-23941
+  CVE-2026-23942  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-23942
+  CVE-2026-23943  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-23943
+  CVE-2026-28810  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-28810
+  CVE-2026-42789  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-42789
+  CVE-2026-42792  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-42792
+  CVE-2026-48856  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-48856
+  CVE-2026-53422  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-53422
+  CVE-2026-54891  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-54891
+  CVE-2026-55951  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-55951
+  CVE-2026-55953  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-55953
+  CVE-2026-59250  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-59250
+  CVE-2026-65634  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-65634
+  CVE-2026-66357  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-66357
+  CVE-2026-66835  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-66835
+  CVE-2026-70405  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-70405
+  CVE-2026-71380  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-71380
+  CVE-2026-71562  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-71562
+  CVE-2026-73270  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-73270
+  CVE-2026-73812  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-73812
+  CVE-2026-74835  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-74835
+  CVE-2026-74994  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-74994
+  CVE-2026-75538  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/CVE-2026-75538
+  EEF-CVE-2025-4748  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2025-4748
+  EEF-CVE-2025-48038  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2025-48038
+  EEF-CVE-2025-48039  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2025-48039
+  EEF-CVE-2025-48040  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2025-48040
+  EEF-CVE-2025-48041  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2025-48041
+  EEF-CVE-2026-21620  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-21620
+  EEF-CVE-2026-23941  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-23941
+  EEF-CVE-2026-23942  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-23942
+  EEF-CVE-2026-23943  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-23943
+  EEF-CVE-2026-28808  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-28808
+  EEF-CVE-2026-28810  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-28810
+  EEF-CVE-2026-42789  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-42789
+  EEF-CVE-2026-42792  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-42792
+  EEF-CVE-2026-48855  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-48855
+  EEF-CVE-2026-48856  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-48856
+  EEF-CVE-2026-53422  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-53422
+  EEF-CVE-2026-54891  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-54891
+  EEF-CVE-2026-55951  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-55951
+  EEF-CVE-2026-55953  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-55953
+  EEF-CVE-2026-59250  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-59250
+  EEF-CVE-2026-65634  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-65634
+  EEF-CVE-2026-66357  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-66357
+  EEF-CVE-2026-66835  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-66835
+  EEF-CVE-2026-70405  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-70405
+  EEF-CVE-2026-71380  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-71380
+  EEF-CVE-2026-71562  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-71562
+  EEF-CVE-2026-73270  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-73270
+  EEF-CVE-2026-73812  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-73812
+  EEF-CVE-2026-74835  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-74835
+  EEF-CVE-2026-74994  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-74994
+  EEF-CVE-2026-75538  Erlang/OTP 27.3.2  https://osv.dev/vulnerability/EEF-CVE-2026-75538
+  hex-audit: OSV.dev lists 60 advisories against these releases; move each pin past its fix, or record why it stays
+  exit 1
+-- 4. OSV.dev record CVE-2025-32433
+  CVE-2025-32433: Erlang/OTP SSH Vulnerable to Pre-Authentication RCE
+  GIT https://github.com/erlang/otp: introduced 0, fixed 0fcd9c56524b, fixed 6eef04130afc, fixed b1924d37fd83

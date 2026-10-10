@@ -1,0 +1,167 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate proposes an update for every pin it can read; nothing merges without the maintainer's review (Decision 0014). Landed held: every update waits for approval on the Dependency Dashboard until ticket 44 activates the app, except a vulnerability fix, such as one osvVulnerabilityAlerts below raises: Renovate opens those without approval by default, and they still never merge themselves.",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboardApproval"
+  ],
+  "enabledManagers": [
+    "custom.regex",
+    "dockerfile",
+    "github-actions",
+    "gleam",
+    "pixi"
+  ],
+  "ignorePaths": [
+    ".scratch/**"
+  ],
+  "automerge": false,
+  "platformAutomerge": false,
+  "timezone": "Etc/UTC",
+  "schedule": [
+    "* 0-5 * * 1"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "Hex packages in one pull request, with a major update in one of its own (separateMajorMinor). An in-range update moves manifest.toml only; an update outside a range moves the range in gleam.toml as well, and Renovate runs gleam to rewrite manifest.toml.",
+      "matchManagers": [
+        "gleam"
+      ],
+      "groupName": "hex packages",
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "description": "Every action pinned by SHA, and the runner labels, in one group, which Renovate still splits: a major update gets a pull request of its own (separateMajorMinor). An action's SHA and its version comment move together. The runner label is named ubuntu, like the runtime base, so without this it would share the runtime base's pull request.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "action",
+        "github-runner"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Every conda pin, and pixi.lock's maintenance, waits for approval: relocking pixi.lock is an unsafe execution the hosted app may not be allowed to run, so each update is approved and its lock diff read (ticket 44).",
+      "matchManagers": [
+        "pixi"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Renovate reads setup-pixi's pixi-version input natively, as prefix-dev/pixi on GitHub releases, but proposed no update from 0.80.0 when 0.81.0 was out (Decision 0014); the pixi regex manager reads the input instead.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "uses-with"
+      ],
+      "matchPackageNames": [
+        "prefix-dev/pixi"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "The pixi version, written in five places (the floor, setup-pixi's input, the cache key, the build stage's FROM and the README), moves in one pull request; scripts/checks/tests/test_dependency_pins.py fails until all five agree.",
+      "matchPackageNames": [
+        "ghcr.io/prefix-dev/pixi"
+      ],
+      "groupName": "pixi",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "The floor, setup-pixi's input, the cache key and the README name a pixi version, not an image, so docker:pinDigests has no digest to add there.",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/prefix-dev/pixi"
+      ],
+      "pinDigests": false
+    },
+    {
+      "description": "The local-cluster images move together and wait for approval.",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchFileNames": [
+        "scripts/checks/cluster.py"
+      ],
+      "groupName": "local cluster",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "kind, kubectl and kustomize join the cluster images: a kind release names the node images it supports, and kubectl talks to the cluster across at most one minor version.",
+      "matchManagers": [
+        "pixi"
+      ],
+      "matchPackageNames": [
+        "kubernetes-kind",
+        "kubernetes-client",
+        "kustomize"
+      ],
+      "groupName": "local cluster",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Kubernetes 1.35 until kubectl and the vendored schemas move: kubectl 1.34 reaches 1.35 at most, and scripts/schemas/kubernetes is 1.35.",
+      "matchPackageNames": [
+        "kindest/node",
+        "registry.k8s.io/kube-apiserver",
+        "registry.k8s.io/kube-controller-manager",
+        "registry.k8s.io/kube-scheduler"
+      ],
+      "allowedVersions": "/^v1\\.35\\./"
+    },
+    {
+      "description": "etcd 3.6 until the cluster moves: kwok 0.8 runs Kubernetes 1.35 on etcd 3.6, and etcd 3.7 is not that pairing.",
+      "matchPackageNames": [
+        "registry.k8s.io/etcd"
+      ],
+      "allowedVersions": "/^3\\.6\\./"
+    },
+    {
+      "description": "The kwok controller image moves only by hand, with kwokctl's line in tools.txt: both name one kwok release, and no bot can rehash that line (Decision 0014).",
+      "matchPackageNames": [
+        "registry.k8s.io/kwok/kwok"
+      ],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The kind node image and the kwok control-plane images in the cluster adapter, each a string literal name:tag@sha256:digest.",
+      "managerFilePatterns": [
+        "/^scripts/checks/cluster\\.py$/"
+      ],
+      "matchStrings": [
+        "\"(?<depName>[a-z0-9.-]+(?:/[a-z0-9._-]+)+):(?<currentValue>[A-Za-z0-9._-]+)@(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The pixi version outside the Dockerfile: the floor in pixi.toml, setup-pixi's input and the cache key in the setup action, and the README's prerequisite. Read against the pixi image's tags, so all four move with the build stage's FROM; the pixi group keeps the five in one pull request.",
+      "managerFilePatterns": [
+        "/^pixi\\.toml$/",
+        "/^\\.github/actions/setup/action\\.yml$/",
+        "/^README\\.md$/"
+      ],
+      "matchStrings": [
+        "requires-pixi = \">=(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
+        "pixi-version: v(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+        "cache-key: knarr-pixi-v(?<currentValue>\\d+\\.\\d+\\.\\d+)-",
+        "\\[pixi\\]\\(https://pixi\\.sh\\) (?<currentValue>\\d+\\.\\d+\\.\\d+) or later"
+      ],
+      "depNameTemplate": "ghcr.io/prefix-dev/pixi",
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

@@ -23,5 +23,6 @@ These records explain accepted choices and the evidence or source material behin
 11. [0011: Report-only source coverage](0011-coverage.md), settled by ticket 26.
 12. [0012: Release and packaging](0012-release-and-packaging.md), settled by ticket 28.
 13. [0013: In-cluster Kubernetes client](0013-in-cluster-client.md), settled by ticket 14.
+14. [0014: Dependency updates and audit](0014-dependency-updates-and-audit.md), settled by ticket 27.
 
 Read the [project direction](../project/README.md) for proposals and open questions. A later change to an accepted choice should amend or supersede its record explicitly, preserving enough context for a reader to understand why the choice changed.

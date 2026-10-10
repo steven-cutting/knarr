@@ -1,0 +1,26 @@
+run: https://github.com/steven-cutting/knarr/actions/runs/38015514089
+event: workflow_dispatch on 27-spike-dependency-updates-and-audit at d5c7178, 2026-10-10T02:03:03Z
+status: completed, failure
+-- jobs
+Hex advisories: success, 2026-10-10T02:03:07Z to 2026-10-10T02:03:20Z
+External links: failure, 2026-10-10T02:03:07Z to 2026-10-10T02:03:51Z
+Image scan: failure, 2026-10-10T02:03:07Z to 2026-10-10T02:05:17Z
+-- Hex advisories: just hex-audit
+hex-audit: OSV.dev lists no advisory for 38 hex packages or Erlang/OTP 29.1.1
+-- Image scan: just image-scan (grype --only-fixed --fail-on high)
+grype "$1" --only-fixed --fail-on high
+[0080] ERROR discovered vulnerabilities at or above the severity threshold
+NAME        INSTALLED           FIXED IN            TYPE  VULNERABILITY   SEVERITY  EPSS         RISK   
+libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-84782  High      0.4% (31st)  0.3    
+libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-75806  Low       0.4% (30th)  0.1    
+libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-35189  Low       0.3% (17th)  < 0.1  
+libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-54872  Low       0.3% (16th)  < 0.1  
+libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-77696  Low       0.2% (14th)  < 0.1  
+libssl3t64  3.0.13-0ubuntu3.15  3.0.13-0ubuntu3.16  deb   CVE-2026-75805  Low       0.2% (11th)  < 0.1
+error: recipe `image-scan` failed on line 178 with exit code 2
+-- External links: just links-audit (errors and the summary only)
+[ERROR] https://keda.sh/docs/2.20/concepts/external-scalers/ (at 44:13) | Connection failed. Check network connectivity and firewall settings
+[ERROR] https://keda.sh/docs/2.17/concepts/scaling-jobs/ (at 560:89) | Connection failed. Check network connectivity and firewall settings
+[ERROR] https://keda.sh/docs/2.20/concepts/scaling-deployments/ (at 560:3) | Connection failed. Check network connectivity and firewall settings
+🔍 946 Total (in 27s 132ms) 🔗 413 Unique ✅ 943 OK 🚫 3 Errors 🔀 3 Redirects
+error: recipe `links-audit` failed on line 164 with exit code 2

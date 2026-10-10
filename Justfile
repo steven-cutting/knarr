@@ -4,9 +4,9 @@ set shell := ["sh", "-eu", "-c"]
 # Recipes reach every tool through PATH, never `pixi run` (Decision 0003): on a
 # stale lock `pixi run` re-solves and rewrites pixi.lock. The default
 # environment comes first, so gleam and the shared tools always resolve from
-# it; the cluster environment's tools resolve only once it is installed; then
-# the checksum-pinned downloads from tools.txt.
-export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":" + justfile_directory() / ".pixi" / "envs" / "cluster" / "bin" + ":" + justfile_directory() / ".tools" / "bin" + ":" + env("PATH")
+# it; the cluster and audit environments' tools resolve only once each is
+# installed; then the checksum-pinned downloads from tools.txt.
+export PATH := justfile_directory() / ".pixi" / "envs" / "default" / "bin" + ":" + justfile_directory() / ".pixi" / "envs" / "cluster" / "bin" + ":" + justfile_directory() / ".pixi" / "envs" / "audit" / "bin" + ":" + justfile_directory() / ".tools" / "bin" + ":" + env("PATH")
 
 # Python would otherwise write __pycache__/ beside the checkers it runs.
 export PYTHONDONTWRITEBYTECODE := "1"
@@ -193,6 +193,26 @@ agents-check:
 links-audit:
     lychee --no-progress --include-fragments --hidden --extensions md,html,htm --exclude-path '(^|/)(\.git|\.pixi|\.tools|build|ai_tmp)/' .
 
+# OSV.dev's answer changes without a commit, so this runs in the audit
+# workflow, never in the gate (Decision 0014).
+[group('audit')]
+[doc('Check the hex packages and the OTP pin against OSV.dev advisories (needs network)')]
+hex-audit:
+    python3 scripts/checks/hex_audit.py
+
+# Fails on a high or critical vulnerability that has a fix. grype downloads its
+# vulnerability database on first use. It reads the image's OS packages only,
+# not the conda records of the runtime environment the image ships, so a pass
+# says nothing about erlang, its openssl or perl (Decision 0014, ticket 45).
+[group('audit')]
+[doc('Scan the OS packages of an image for fixable high and critical vulnerabilities with grype (needs network)')]
+image-scan image=cluster_image: audit-tools
+    grype "$1" --only-fixed --fail-on high
+
+[private]
+audit-tools:
+    test -x .pixi/envs/audit/bin/grype || { echo 'run just audit-install' >&2; exit 2; }
+
 [group('check')]
 [doc('Fail on unformatted Gleam')]
 format-check:
@@ -320,6 +340,11 @@ cluster-diagnostics: cluster-tools
 [doc('Install the locked optional cluster environment (needs network)')]
 cluster-install:
     pixi install --locked -e cluster
+
+[group('setup')]
+[doc('Install the locked optional audit environment, grype (needs network)')]
+audit-install:
+    pixi install --locked -e audit
 
 [group('cluster')]
 [doc('Verify image OTP ownership and restricted runtime startup')]

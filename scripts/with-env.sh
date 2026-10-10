@@ -10,7 +10,7 @@ root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
 # the system has, and a hook would check different rules from the gate.
 [ -x "$root/.pixi/envs/default/bin/python3" ] ||
   { printf '%s\n' "the pixi environment is missing in $root; run just initialize" >&2; exit 2; }
-PATH="$root/.pixi/envs/default/bin:$root/.pixi/envs/cluster/bin:$root/.tools/bin:$PATH"
+PATH="$root/.pixi/envs/default/bin:$root/.pixi/envs/cluster/bin:$root/.pixi/envs/audit/bin:$root/.tools/bin:$PATH"
 PYTHONDONTWRITEBYTECODE=1
 export PATH PYTHONDONTWRITEBYTECODE
 exec "$@"

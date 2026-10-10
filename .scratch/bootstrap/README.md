@@ -47,6 +47,7 @@ flowchart TD
     T40["40 MVP release"]:::human
     T41["41 Spec-then-build: k8s_client"]
     T42["42 OTP and ssl findings"]:::offpath
+    T43["43 Spec-then-build: status poller"]
 
     T01 --> T02
     T01 --> T03
@@ -76,6 +77,8 @@ flowchart TD
     T14 --> T41
     T22 --> T41
     T14 --> T42
+    T18 --> T43
+    T24 --> T43
     T10 --> T15
     T15 --> T16
     GKE --> T16
@@ -102,6 +105,8 @@ flowchart TD
     T19 --> T31
     T20 --> T31
     T21 --> T31
+    T43 --> T31
+    T30 --> T31
     T22 --> T32
     T23 --> T32
     T30 --> T32
@@ -150,12 +155,12 @@ A wave is the earliest point a ticket can start if every lane runs in parallel: 
 | 4 | [05](issues/05-ci.md), [08](issues/08-testing-toolkit.md), [09](issues/09-agent-contract.md) |
 | 5 | [11](issues/11-integration.md), [13](issues/13-walking-skeleton.md), [17](issues/17-allium-objective-map.md), [26](issues/26-spike-coverage.md) |
 | 6 | [12](issues/12-maintainer-docs.md), [14](issues/14-spike-s1-in-cluster-client.md), [18](issues/18-elicit-worker-contract.md), [19](issues/19-elicit-configuration-schema.md), [22](issues/22-elicit-ownership-and-conflicts.md), [24](issues/24-elicit-poll-budget-feature-gate.md), [25](issues/25-elicit-safe-to-evict-policy.md), [27](issues/27-spike-dependency-updates-and-audit.md), [28](issues/28-spike-release-and-packaging.md), [35](issues/35-bootstrap-verification-gaps.md) |
-| 7 | [20](issues/20-elicit-cost-mapping.md), [29](issues/29-fake-worker-fixture.md), [30](issues/30-elicit-observability.md), [36](issues/36-release-workflow-and-overlay.md), [41](issues/41-k8s-client-spec-then-build.md), [42](issues/42-otp-ssl-findings.md) |
+| 7 | [20](issues/20-elicit-cost-mapping.md), [29](issues/29-fake-worker-fixture.md), [30](issues/30-elicit-observability.md), [36](issues/36-release-workflow-and-overlay.md), [41](issues/41-k8s-client-spec-then-build.md), [42](issues/42-otp-ssl-findings.md), [43](issues/43-status-poller.md) |
 | 8 | [21](issues/21-elicit-unknown-unreachable-policy.md), [23](issues/23-elicit-cleanup-staleness-restart.md), [37](issues/37-first-release-v0-1-0.md) |
 | 9 | [31](issues/31-spec-then-build-reconcile-core.md), [32](issues/32-spec-then-build-ownership-lifecycle.md), [34](issues/34-user-guides.md), [38](issues/38-attestations-sbom-arm64.md) |
 | 10 | [33](issues/33-keda-harness-success-criterion.md), [40](issues/40-mvp-release.md) |
 | 11 | [39](issues/39-gke-production-rollout.md) |
 
-The longest chains are twelve tickets: 01, 02, 03, 06 or 07, 09, 17, 18, 20, 21 or 23, then 31 or 32, then 33 or 40, then 39. Tickets 30 to 34 are the follow-ups ticket 17 drafted; 31 to 34 are round 2. Tickets 36 to 40 are the follow-ups ticket 28 drafted, all round 2; 37, 39 and 40 also wait for a maintainer session, and 39 for GKE Standard access. Tickets 41 and 42 are the follow-ups ticket 14 drafted.
+The longest chains are twelve tickets: 01, 02, 03, 06 or 07, 09, 17, 18, 20, 21 or 23, then 31 or 32, then 33 or 40, then 39. Tickets 30 to 34 are the follow-ups ticket 17 drafted; 31 to 34 are round 2. Tickets 36 to 40 are the follow-ups ticket 28 drafted, all round 2; 37, 39 and 40 also wait for a maintainer session, and 39 for GKE Standard access. Tickets 41 and 42 are the follow-ups ticket 14 drafted. Ticket 43 is the follow-up ticket 18 drafted.
 
 When a ticket's **Blocked by** line changes, update both the diagram and this table.

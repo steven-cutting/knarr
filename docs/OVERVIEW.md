@@ -202,14 +202,14 @@ sequenceDiagram
 
 - **Pull.** Knarr polls an HTTP endpoint exposed by each worker pod. Workers do not push.
 - The v1 payload carries **only** two things:
-  1. **`cost`**: the worker's own estimate of the "cost to kill" it right now. Higher means more expensive to kill. The worker computes it; Knarr relays, clamps and maps it. Type, range and units are OPEN (§9.5).
+  1. **`cost`**: the worker's own estimate of the "cost to kill" it right now. Higher means more expensive to kill. The worker computes it; Knarr relays, clamps and maps it. Type, range and units are OPEN (§9.5). The wire type is settled in [worker_contract.allium](specs/worker_contract.allium): a non-negative JSON integer with no unit; the Knarr-owned range is §9.5's.
   2. **`accepting`**: whether the worker is accepting new work. `false` means it is draining.
 - More fields may come later. They are out of scope for v1.
-- **Reachability:** Knarr must reach pod IPs on the status port. It polls over plain HTTP: no mTLS, and no service-mesh support in the MVP ([DEFERRED.md §8](DEFERRED.md#8-other-future-targets)). NetworkPolicies may need configuration; to be confirmed in §9.4b.
+- **Reachability:** Knarr must reach pod IPs on the status port. It polls over plain HTTP: no mTLS, and no service-mesh support in the MVP ([DEFERRED.md §8](DEFERRED.md#8-other-future-targets)). NetworkPolicies may need configuration; the `NetworkPolicy` clause of [worker_contract.allium](specs/worker_contract.allium) says what.
 
 ### Illustrative payload
 
-> **DRAFT, illustrative only.** Path, port, field names, types and auth will be finalized in a ticket. How the contract is versioned is undecided (§9.4a). Any version marker lives outside the two-field body, for example in the URL path or a header.
+> **Illustrative.** Path, port, field names, types, auth and versioning are settled in [worker_contract.allium](specs/worker_contract.allium): `GET /knarr/v1/status` on port 8080 by default, a 200 JSON object, `cost` a non-negative integer, `accepting` a boolean, and the version is the `v1` path segment.
 
 ```json
 {
@@ -226,7 +226,7 @@ Readiness also controls Service routing, so the right guidance depends on the ki
 
 - **Queue consumers** (pull work, no Service traffic) should not use readiness to signal "busy" or "draining". Report `accepting` to Knarr instead.
 - **Service-routed HTTP workers** may need to become NotReady to stop receiving requests while draining. `accepting: false` does not change routing. Going NotReady does weaken deletion-cost protection, so document the trade-off rather than forbid it.
-- Guidance, and whether Knarr warns when a pod reports high cost while NotReady, is OPEN (§9.7).
+- Guidance, and whether Knarr warns when a pod reports high cost while NotReady, was OPEN (§9.7). Settled in [worker_contract.allium](specs/worker_contract.allium).
 
 ### Drain states
 
@@ -521,12 +521,12 @@ flowchart LR
 1. **Decided:** a controller configured through labels and annotations on Deployments (see §4, [DEFERRED.md §5](DEFERRED.md#5-install-scope-and-configuration-alternatives)). **Open:** the label/annotation schema.
 2. **Decided:** k8s client option (A), pure Gleam plus Erlang FFI, until complexity pushes us elsewhere (see §8, [DEFERRED.md §3](DEFERRED.md#3-kubernetes-client-alternatives)).
 3. **Decided:** scaling ownership option (a), annotations only (see §7). (b) is a planned quick follow ([DEFERRED.md §1](DEFERRED.md#1-scaling-option-b-quick-follow)).
-4. **Worker contract details**, split in two:
+4. **Worker contract details**, split in two and settled in [worker_contract.allium](specs/worker_contract.allium), except the per-poll timeout, which is §9.8's:
    - **4a. Endpoint shape:** path, port, schema, field types, versioning, timeouts.
    - **4b. Discovery, auth and network:** how Knarr finds the endpoint on a pod, auth (if any), and compatibility with NetworkPolicies.
 5. **Cost mapping:** sign convention, Knarr-owned range, number of bands and their edges, hysteresis, reserved bands, and how `cost` and `accepting` combine (see the §5 drain states).
 6. **Unknown/unreachable policy:** how long to keep the last value (in polls and in time), the neutral value, and how to detect an absent contract. Depends on 5.
-7. **Readiness interaction:** how to document it, and whether Knarr warns on "high cost while NotReady".
+7. **Readiness interaction:** how to document it, and whether Knarr warns on "high cost while NotReady". Settled in [worker_contract.allium](specs/worker_contract.allium).
 8. **Poll interval, concurrency and write budget:** numeric defaults and a v1 scale target (pods, Deployments, interval), LIST cadence, limits per Deployment and per cluster, and the expected API write rate.
 9. **`safe-to-evict` policy:** the threshold; removing the annotation vs writing `"true"` (matters for local-storage pods); how to avoid pinning nodes. Depends on S2.
 10. **Ownership and conflicts with other writers:** design of the marker annotation; the write mode (unconditional merge patch, `resourceVersion` precondition, or JSON Patch `test`); and emitting an Event and backing off when someone else changes the value. Other writers include user-set values, the lablabs and zepellin controllers, and Karpenter with `PodDeletionCostManagement` enabled.

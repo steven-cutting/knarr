@@ -5,19 +5,182 @@
 -- endpoint shape (OVERVIEW §9.4a), how knarr discovers the endpoint on a pod,
 -- auth and NetworkPolicy compatibility (§9.4b), the meaning of the drain states
 -- (§5) and the readiness guidance (§9.7). The per-poll timeout is a budget
--- value (§9.8), and the candidate handling of each drain state is banding (§9.5).
--- Owner: ticket 18. Clauses land there; this skeleton holds only the open
--- questions it settles.
+-- value (§9.8), the handling of each drain state is banding (§9.5), and what
+-- knarr does over time with an invalid, absent or unreachable reading is
+-- reconcile (§9.6).
+-- Owner: ticket 18 settled every question here with the maintainer on
+-- 2026-10-09. Ticket 43 builds the poller from this contract and ticket 29 the
+-- fake worker.
 
 ------------------------------------------------------------
--- Open Questions
+-- Value Types
 ------------------------------------------------------------
 
-open question "§9.4a Endpoint shape: what path and port does knarr poll, and how does a Deployment override them?"
-open question "§9.4a Payload schema: the type, range and units of cost, and the exact field names of cost and accepting (§5)."
-open question "§9.4a Versioning: how the contract is versioned, given that any version marker lives outside the two-field body (§5)."
-open question "§9.4b Discovery: how knarr finds the status endpoint on a pod (container port name, annotation, fixed default)."
-open question "§9.4b Auth: whether polling carries any authentication, given plain HTTP with no mTLS in the MVP (§5)."
-open question "§9.4b Network: what NetworkPolicy configuration a worker namespace needs so polling is not mistaken for an absent contract (§8 failure modes)."
-open question "§9.7 Readiness: how the NotReady-deleted-first trade-off is documented for queue consumers and for Service-routed HTTP workers (§5)."
-open question "§9.7 Readiness: whether knarr warns when a pod reports a high cost while NotReady, and how (Event, metric, log)."
+-- Where one pod is polled: its primary IP from pod status, of either family,
+-- and the port and path its Deployment's overrides give (config, ticket 19).
+value Endpoint {
+    pod_ip: String
+    port: Integer
+    path: String
+}
+
+value Header {
+    name: String
+    value: String
+}
+
+value Request {
+    method: String
+    url: String
+    headers: List<Header>
+}
+
+value Response {
+    status: Integer
+    headers: List<Header>
+    body: String
+}
+
+-- What one send produced. responded carries the response; refused is a
+-- connection nothing accepted, because nothing listens on the port; timed_out
+-- is no response within the per-poll timeout budget sets; unreachable is every
+-- other transport failure. What knarr does with each over time is reconcile's.
+value Outcome {
+    kind: responded | refused | timed_out | unreachable
+    response: Response?
+}
+
+-- The v1 payload. cost is the worker's own estimate of the cost to kill it
+-- now: higher is more expensive, 0 is the floor, no unit, no upper bound on
+-- the wire. accepting is whether the worker takes new work; false means it is
+-- draining.
+value Status {
+    cost: Integer
+    accepting: Boolean
+}
+
+-- What one poll meant. valid carries the decoded status, not_found is a 404
+-- at the contract path, invalid is every other response; refused, timed_out
+-- and unreachable come from the transport, named as Outcome names them.
+-- reconcile consumes a reading and nothing else from a poll. (Not "absent":
+-- reconcile's ContractAbsent is the pod state reached after several such
+-- readings, and the two must stay distinct.)
+value Reading {
+    kind: valid | not_found | invalid | refused | timed_out | unreachable
+    status: Status?
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract StatusEndpoint {
+    endpoint: (pod_ip: String, port: Integer, path: String) -> Endpoint
+    request: (endpoint: Endpoint) -> Request
+    send: (request: Request) -> Outcome
+    decode: (outcome: Outcome) -> Reading
+    draining: (reading: Reading) -> Boolean
+
+    @invariant Pull
+        -- knarr polls; a worker never pushes. One poll is one HTTP GET of
+        -- http://<pod_ip>:<port><path> over plain HTTP: no TLS, no mTLS, no
+        -- service mesh. An IPv6 pod_ip is bracketed in the URL. send is the
+        -- one effect and is injected: production sends over the pod network,
+        -- a test passes a closure, and request and decode stay pure.
+    @invariant Versioning
+        -- The contract version is a path segment. The default path is
+        -- config.status_path; a later contract is a new path. A worker that
+        -- does not serve the version knarr asks for answers 404, which is
+        -- not_found. An override path (Discovery) names where the pod serves
+        -- the v1 contract; knarr speaks v1 whatever the path says, so a worker
+        -- that serves something else there reads as not_found or invalid.
+    @invariant Discovery
+        -- The address is the pod's primary IP from pod status, of either
+        -- family; a pod without one cannot be polled. The port and path are
+        -- the Deployment's overrides (config module, ticket 19), else
+        -- config.status_port and config.status_path. An override path is
+        -- absolute, starts with /, and has no query or fragment; an override
+        -- port is 1 to 65535. knarr reads nothing from the pod's container
+        -- ports. Neither phase nor readiness gates polling: every pod with a
+        -- pod IP is polled.
+    @invariant RequestHeaders
+        -- Every poll carries User-Agent knarr/<knarr version>, which a worker
+        -- may rely on to recognise knarr's traffic. No other request header is
+        -- promised and no Accept is required of the worker.
+    @invariant Transport
+        -- send returns the outcome of one request: responded with the
+        -- response, refused when nothing listens on the port and the
+        -- connection is refused, timed_out when no response arrives within
+        -- the per-poll timeout budget sets, and unreachable for every other
+        -- failure, a reset connection among them. decode maps each failure to
+        -- the reading of the same name and reads a response as ValidReading,
+        -- NotFoundReading and InvalidReading say.
+    @invariant ValidReading
+        -- A reading is valid only when the status is 200, the body is no
+        -- longer than config.max_body_bytes, and the body, parsed as JSON
+        -- whatever the Content-Type says, is an object whose cost member is a
+        -- JSON integer with no fraction and no exponent and not negative, and
+        -- whose accepting member is a JSON boolean. Members other than those
+        -- two are ignored.
+    @invariant NotFoundReading
+        -- A 404 is not_found whatever its body carries: the pod serves no
+        -- contract at that path. How many such readings make the contract
+        -- absent is reconcile's.
+    @invariant InvalidReading
+        -- Every other response is invalid: a status other than 200 or 404,
+        -- including a 3xx (never followed), and a 200 whose body is longer
+        -- than config.max_body_bytes, is not a JSON object, has a missing or
+        -- null cost or accepting, a string where a number or boolean is due,
+        -- a cost with a fraction or exponent, or a negative cost.
+    @invariant Payload
+        -- The v1 payload is cost and accepting; knarr reads nothing else. cost
+        -- is the worker's estimate of the cost to kill it now, higher meaning
+        -- more expensive, 0 the floor, with no unit and no upper bound on the
+        -- wire; banding clamps and maps it. accepting false means the worker
+        -- started a drain itself, and bears on knarr only while the pod has no
+        -- deletionTimestamp; after that no patch is made whatever it reports.
+        -- draining is true for exactly that: a valid reading whose accepting
+        -- is false. It is false for every other reading, and it is the one
+        -- place the drain state is read; what to do with a draining pod is
+        -- banding's.
+    @invariant Unauthenticated
+        -- The status GET carries no credential and must be read-only and free
+        -- of side effects, safe to expose on the pod network. Access control,
+        -- where wanted, is a NetworkPolicy.
+    @invariant NetworkPolicy
+        -- knarr's pods carry the label app.kubernetes.io/name=knarr and poll
+        -- from the namespace they are installed in. A worker namespace that
+        -- restricts ingress must allow TCP to the status port from pods with
+        -- that label in the same namespace. knarr does not detect a policy
+        -- block; a blocked poll is whatever outcome the transport reports, in
+        -- practice timed_out, since a policy drops packets rather than
+        -- refusing the connection.
+    @invariant Served
+        -- A worker serves the endpoint on the address its pod IP reaches for
+        -- the pod's whole life, including after SIGTERM while it drains, when
+        -- it reports accepting false. It answers within the per-poll timeout
+        -- budget sets; a slower answer is a timed_out outcome.
+    @invariant ReadinessWarning
+        -- knarr keeps a gauge of pods whose Ready condition is false while
+        -- their last valid reading maps to a band above the lowest band
+        -- banding defines, and logs a line when a pod enters that state. No
+        -- Event is emitted. The gauge and log names are observability's.
+    @guidance
+        -- ReplicaSet scale-down deletes a NotReady pod before a Ready one
+        -- whatever their costs. A queue consumer should never signal busy or
+        -- draining through readiness; it reports accepting and cost. A
+        -- Service-routed HTTP worker can stop traffic only by going NotReady,
+        -- which makes it the preferred victim: stay Ready while draining where
+        -- traffic can be shed another way, and go NotReady as late as the
+        -- drain allows. This is documented, not forbidden.
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    status_path: String = "/knarr/v1/status"
+    status_port: Integer = 8080
+    max_body_bytes: Integer = 4096
+}

@@ -13,6 +13,7 @@
 **Status:** ready-for-agent
 
 - [ ] `k8s_client.allium` states every operation the reconciler needs, with the Role verbs each one implies, and `Verbs` names the complete set. `just check-specs` and `just analyse-specs` report nothing.
+- [ ] The `Pod` value carries the pod's primary IP (`status.podIP`) and whether its Ready condition is true, which the status poller ([43](43-status-poller.md)) reads.
 - [ ] Builders and decoders for each operation are pure, tested by value and snapshot as in [the testing reference](../../../docs/reference/testing.md); `send` stays injected.
 - [ ] An IPv6 `KUBERNETES_SERVICE_HOST` is bracketed in the URL, or the clause states that only IPv4 service addresses are supported.
 - [ ] The S1 probe is removed once the reconciler calls the client, together with its `ERL_FLAGS` switch and the probe wording in `NoPodEffects`; the Role grants exactly what the client uses.

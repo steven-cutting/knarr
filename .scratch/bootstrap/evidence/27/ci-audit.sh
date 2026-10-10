@@ -26,14 +26,17 @@ links_job=$(job 'External links')
 [ -n "$hex_job" ] || { echo 'the run has no Hex advisories job' >&2; exit 1; }
 [ -n "$scan_job" ] || { echo 'the run has no Image scan job' >&2; exit 1; }
 [ -n "$links_job" ] || { echo 'the run has no External links job' >&2; exit 1; }
-# gh prints each log line as job<TAB>step<TAB>timestamp text.
+# gh prints each log line as job<TAB>step<TAB>timestamp text. The log is read
+# whole before it is filtered, so a failed or empty read fails the script
+# instead of printing an empty section. grep finding no line is not a failure.
+lines() { # job-id pattern: the job's log lines that match, without gh's prefix
+  log=$(gh run view "$run" -R "$repo" --log --job "$1") || exit 1
+  [ -n "$log" ] || { echo "job $1 has an empty log" >&2; exit 1; }
+  printf '%s\n' "$log" | sed -n 's/^[^	]*	[^	]*	[^ ]* //p' | { grep -E "$2" || [ "$?" -eq 1 ]; }
+}
 echo '-- Hex advisories: just hex-audit'
-gh run view "$run" -R "$repo" --log --job "$hex_job" |
-  sed -n 's/^[^	]*	[^	]*	[^ ]* //p' | grep -E '^(hex-audit:|[A-Z][A-Z0-9-]+-[0-9A-Za-z-]+  )' || true
+lines "$hex_job" '^(hex-audit:|[A-Z][A-Z0-9-]+-[0-9A-Za-z-]+  )'
 echo '-- Image scan: just image-scan (grype --only-fixed --fail-on high)'
-gh run view "$run" -R "$repo" --log --job "$scan_job" |
-  sed -n 's/^[^	]*	[^	]*	[^ ]* //p' |
-  grep -E '^(grype |NAME +INSTALLED|[a-z0-9][a-z0-9.+_-]* +[^ ]+ +[^ ]+ +(deb|binary|conda|python|go-module|java-archive|erlang-otp|hex|rpm|apk) |\[[0-9]+\] |error: recipe|ERROR|discovered vulnerabilities)' || true
+lines "$scan_job" '^(grype |NAME +INSTALLED|[a-z0-9][a-z0-9.+_-]* +[^ ]+ +[^ ]+ +(deb|binary|conda|python|go-module|java-archive|erlang-otp|hex|rpm|apk) |\[[0-9]+\] |error: recipe|ERROR|discovered vulnerabilities)'
 echo '-- External links: just links-audit (errors and the summary only)'
-gh run view "$run" -R "$repo" --log --job "$links_job" |
-  sed -n 's/^[^	]*	[^	]*	[^ ]* //p' | grep -E '^\[ERROR\]|Total \(in|error: recipe' || true
+lines "$links_job" '^\[ERROR\]|Total \(in|error: recipe'

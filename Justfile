@@ -101,11 +101,41 @@ birdie +arguments: manifest-check
     mkdir -p "{{ birdie_tmpdir }}"
     before=$(cksum < manifest.toml); ERL_FLAGS="${ERL_FLAGS:-} -knarr port 0 bind '\"127.0.0.1\"'" TMPDIR="{{ birdie_tmpdir }}" gleam run --no-print-progress -m birdie "$@"; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote manifest.toml; run just manifest-check' >&2; exit 1; }
 
-# The gate checkers' own tests (scripts/checks/tests/).
+# The fake worker (ticket 29) is its own Gleam project under fixtures/, so
+# knarr's shipment never carries it and running it never boots knarr. These
+# recipes mirror manifest-check, build, test and lint-gleam for that project,
+# with the same manifest guard. knarr's own recipes never depend on them: the
+# cold-build and coverage tests copy only the root project.
+[group('develop')]
+[group('check')]
+[doc("Fail if the fake worker's manifest.toml disagrees with its gleam.toml")]
+fake-worker-manifest-check:
+    python3 scripts/checks/manifest_check.py fixtures/fake_worker
+
+[group('develop')]
+[group('check')]
+[doc('Build the fake worker fixture with warnings as errors')]
+fake-worker-build: fake-worker-manifest-check
+    cd fixtures/fake_worker && before=$(cksum < manifest.toml); gleam build --warnings-as-errors; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote fixtures/fake_worker/manifest.toml; run just fake-worker-manifest-check' >&2; exit 1; }
+
+[group('develop')]
+[group('check')]
+[doc("Run the fake worker's Gleam tests")]
+fake-worker-test: fake-worker-manifest-check
+    cd fixtures/fake_worker && before=$(cksum < manifest.toml); gleam test; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote fixtures/fake_worker/manifest.toml; run just fake-worker-manifest-check' >&2; exit 1; }
+
+# glinter reads gleam.toml from the directory it runs in.
+[group('check')]
+[doc('Lint the fake worker with glinter, warnings as errors')]
+fake-worker-lint: fake-worker-build
+    cd fixtures/fake_worker && before=$(cksum < manifest.toml); sh ../../scripts/checks/run_glinter.sh; [ "$(cksum < manifest.toml)" = "$before" ] || { echo 'gleam rewrote fixtures/fake_worker/manifest.toml; run just fake-worker-manifest-check' >&2; exit 1; }
+
+# The gate checkers' own tests (scripts/checks/tests/). The fake worker's
+# process tests there run its build.
 [group('develop')]
 [group('check')]
 [doc("Run the gate checkers' own tests")]
-test-checkers: build
+test-checkers: build fake-worker-build
     python3 -m pytest
 
 # ----------------------------------------------------------------- format ---
@@ -166,7 +196,7 @@ links-audit:
 [group('check')]
 [doc('Fail on unformatted Gleam')]
 format-check:
-    gleam format --check src test
+    gleam format --check src test fixtures/fake_worker/src fixtures/fake_worker/test
 
 # [tools.glinter] in gleam.toml sets what is linted and the rules. glinter
 # passes when it skips a file it cannot parse; the wrapper fails instead.
@@ -234,7 +264,7 @@ check-clean baseline="":
 [doc('The complete read-only gate')]
 check:
     test -x .pixi/envs/default/bin/python3 || { printf '%s\n' 'the pixi environment is missing; run just initialize' >&2; exit 2; }
-    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check agents-check check-specs analyse-specs format-check lint-gleam build test snapshots-check test-checkers packaging-check toml-check lint
+    python3 scripts/checks/run_project_check.py run lock-check env-check manifest-check docs-check agents-check check-specs analyse-specs format-check lint-gleam build test snapshots-check fake-worker-manifest-check fake-worker-build fake-worker-test fake-worker-lint test-checkers packaging-check toml-check lint
 
 # --------------------------------------------------------------- cluster ---
 # Cluster effects are deliberately outside the offline repository gate.

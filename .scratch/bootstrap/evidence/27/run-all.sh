@@ -1,7 +1,7 @@
 #!/bin/sh
 # Ticket 27 evidence: rerun every script and rewrite every transcript beside
-# it, then check that no Renovate container was left behind (every run is
-# --rm).
+# it, then check that no Renovate container and no probe image was left
+# behind.
 # Needs network, docker (buildx), curl, perl, git, gh (authenticated), pixi,
 # and the pixi default and audit environments (`just initialize`, `just
 # audit-install`). grype's database makes the work root about 3 GB.
@@ -24,8 +24,12 @@ run renovate.txt    sh renovate.sh "$root/renovate"
 run osv-probe.txt   sh osv-probe.sh "$root/osv"
 run grype-probe.txt sh grype-probe.sh "$root/grype"
 
-# A failed listing stops the run rather than reading as "none left".
-images=$(docker ps -a --format '{{.Image}}') || { echo 'cannot list docker containers' >&2; exit 1; }
-left=$(printf '%s\n' "$images" | grep -F 'renovatebot/renovate' || true)
+# A failed listing stops the run rather than reading as "none left". Only
+# this worktree's probe image counts (scripts/cluster-name.sh).
+wt=$(cd "$here/../../../.." && pwd)
+n=$(sh "$wt/scripts/cluster-name.sh" "$wt" name)
+containers=$(docker ps -a --format '{{.Image}}') || { echo 'cannot list docker containers' >&2; exit 1; }
+images=$(docker image ls --format '{{.Repository}}') || { echo 'cannot list docker images' >&2; exit 1; }
+left=$( { printf '%s\n' "$containers" | grep -F 'renovatebot/renovate'; printf '%s\n' "$images" | grep -x "knarr27-conda-probe-$n"; } || true)
 [ -z "$left" ] || { printf 'left by this run:\n%s\n' "$left" >&2; exit 1; }
-echo 'no Renovate container left'
+echo 'no Renovate container and no probe image left'

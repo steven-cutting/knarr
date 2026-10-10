@@ -21,8 +21,8 @@ DOCKERFILE = REPOSITORY / "Dockerfile"
 FROM = re.compile(r"^FROM (?P<image>\S+?):(?P<tag>[^\s@]+)@sha256:[0-9a-f]{64}(?: AS \w+)?$")
 WORKFLOWS = sorted(
     [
-        *(REPOSITORY / ".github" / "workflows").glob("*.yml"),
-        *(REPOSITORY / ".github" / "actions").rglob("action.yml"),
+        *(REPOSITORY / ".github" / "workflows").glob("*.y*ml"),
+        *(REPOSITORY / ".github" / "actions").rglob("action.y*ml"),
     ]
 )
 # Renovate skips an action pinned to a bare SHA: it cannot tell which tag the
@@ -320,6 +320,23 @@ def test_the_cluster_images_stay_on_the_kubernetes_minor_kubectl_and_the_schemas
     assert len(kubernetes) == 4
     for dependency in kubernetes:
         assert effective(dependency).get("allowedVersions") == "/^v1\\.35\\./", dependency
+
+
+def test_etcd_stays_on_the_minor_kwok_and_kubernetes_pair_with() -> None:
+    # kwok 0.8 runs Kubernetes 1.35 on etcd 3.6; etcd 3.7 is not that pairing.
+    etcd = [d for d in LOCAL_CLUSTER if d["packageName"] == "registry.k8s.io/etcd"]
+    assert len(etcd) == 1
+    assert effective(etcd[0]).get("allowedVersions") == "/^3\\.6\\./"
+
+
+def test_the_kwok_image_moves_only_by_hand() -> None:
+    # kwokctl's tools.txt line names the release the controller image comes
+    # from, and no bot can rehash that line, so no bot moves the image either.
+    kwok = "registry.k8s.io/kwok/kwok"
+    assert [d["packageName"] for d in LOCAL_CLUSTER].count(kwok) == 1
+    for dependency in LOCAL_CLUSTER:
+        off = effective(dependency).get("enabled") is False
+        assert off == (dependency["packageName"] == kwok), dependency
 
 
 def test_a_pixi_version_without_a_digest_is_never_given_one() -> None:

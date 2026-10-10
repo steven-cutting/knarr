@@ -7,6 +7,7 @@ audit fails closed, so anything it cannot read is exit 2, never a pass.
 
 from __future__ import annotations
 
+import http.client
 import urllib.error
 from pathlib import Path
 
@@ -71,6 +72,20 @@ def project(tmp_path: Path) -> Path:
 def test_only_hex_packages_are_audited_by_their_hex_name() -> None:
     # hpack_erl's OTP application is hpack; Hex and OSV know it as hpack_erl.
     assert hex_audit.hex_packages(MANIFEST) == [("hpack_erl", "0.3.0"), ("mist", "6.0.3")]
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        pytest.param('packages = ["mist"]\n', id="an entry that is not a table"),
+        pytest.param('[packages]\nmist = "6.0.3"\n', id="a table, not a list"),
+        pytest.param('packages = [{ name = "mist", source = "hex" }]\n', id="no version"),
+        pytest.param("packages = [", id="not TOML"),
+    ],
+)
+def test_a_manifest_it_cannot_read_cannot_be_audited(manifest: str) -> None:
+    with pytest.raises(hex_audit.CannotDecideError, match=r"manifest\.toml"):
+        hex_audit.hex_packages(manifest)
 
 
 def test_the_otp_release_is_the_exact_erlang_pin() -> None:
@@ -167,12 +182,19 @@ def _refused(_body: object) -> object:
     raise urllib.error.URLError("connection refused")
 
 
+def _truncated(_body: object) -> object:
+    partial = b"{"
+    raise http.client.IncompleteRead(partial)
+
+
 def _server_error(_body: object) -> object:
     raise urllib.error.HTTPError("https://api.osv.dev/v1/querybatch", 503, "unavailable", {}, None)
 
 
 @pytest.mark.parametrize(
-    "post", [_refused, _server_error, {"results": [{}]}], ids=["refused", "503", "short"]
+    "post",
+    [_refused, _server_error, _truncated, {"results": [{}]}],
+    ids=["refused", "503", "truncated", "short"],
 )
 def test_main_cannot_decide_without_a_whole_answer(
     project: Path, post: object, capsys: pytest.CaptureFixture[str]

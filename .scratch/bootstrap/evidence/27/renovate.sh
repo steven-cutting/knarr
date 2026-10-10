@@ -22,8 +22,10 @@
 # from `gh auth token` is passed to the container by name in its environment;
 # the run fails if that token appears in any log. No run fails on a proposal:
 # a proposal is the finding. It fails on a missing expected proposal, on any
-# proposal to pin a digest (every pin already is one), and on a skipped
-# dependency.
+# proposal to pin a digest (every pin already is one), on an etcd proposal
+# past 3.6, and on a skipped dependency other than the two switched off on
+# purpose (setup-pixi's pixi-version input and the kwok controller image),
+# which must show as disabled.
 # Needs docker, git, gh (authenticated) and the pixi default environment.
 # Usage: sh renovate.sh <empty-work-dir>
 # The gate runs shellcheck without -x, so it cannot see that lib.sh sets
@@ -123,6 +125,14 @@ import sys
 from collections import Counter
 
 FAILED = []
+# Switched off on purpose, as (manager, dependency, depType): setup-pixi's own
+# reading of the pixi version, which the regex manager reads instead, and the
+# kwok controller image, which moves only by hand with kwokctl's line in
+# tools.txt.
+OFF = [
+    ("github-actions", "prefix-dev/pixi", "uses-with"),
+    ("regex", "registry.k8s.io/kwok/kwok", None),
+]
 
 
 def records(path):
@@ -163,14 +173,19 @@ def report(label, path):
           f"{stats['total']['fileCount']} files")
     for manager, s in sorted(stats["managers"].items()):
         print(f"  {manager:<15} {s['depCount']:>3} in {s['fileCount']} files")
-    # Only setup-pixi's own reading of the pixi version is switched off, on
-    # purpose: the regex manager reads that input instead.
-    skipped = [
-        (m, f, d["depName"], d["skipReason"]) for m, f, d in deps
-        if d.get("skipReason") and (m, d["depName"], d.get("depType")) != ("github-actions", "prefix-dev/pixi", "uses-with")
-    ]
-    for item in skipped:
-        FAILED.append(f"{label}: skipped {item}")
+    off = []
+    for m, f, d in deps:
+        key = (m, d["depName"], d.get("depType"))
+        if key in OFF and d.get("skipReason") == "disabled":
+            off.append(f"{d['depName']} ({f})")
+        elif d.get("skipReason"):
+            FAILED.append(f"{label}: skipped {(m, f, d['depName'], d['skipReason'])}")
+    if len(off) != len(OFF):
+        FAILED.append(f"{label}: switched off {off}, want one of each of {OFF}")
+    print(f"switched off, disabled: {', '.join(off)}")
+    for m, f, d, u in proposals(deps):
+        if d["depName"] == "registry.k8s.io/etcd" and not (u.get("newValue") or "").startswith("3.6."):
+            FAILED.append(f"{label}: proposes etcd {u.get('newValue')}, past 3.6")
     pins = [(m, d["depName"]) for m, _, d, u in proposals(deps) if u.get("updateType") == "pinDigest"]
     for item in pins:
         FAILED.append(f"{label}: proposes to pin a digest for {item}")
@@ -245,5 +260,6 @@ else:
 if FAILED:
     sys.exit("FAIL:\n" + "\n".join(FAILED))
 print(f"-- {len(EXPECTED)} of {len(EXPECTED)} expected proposals; no dependency skipped but "
-      "the one switched off, no digest-pin proposal, and the token in no log")
+      "the two switched off, no etcd proposal past 3.6, no digest-pin proposal, and the token "
+      "in no log")
 EOF

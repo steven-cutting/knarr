@@ -127,11 +127,15 @@ def _tool_drift(project: Path, platform: str) -> list[str]:
             have = recorded[1] if len(recorded) > 1 else "nothing"
             drift.append(f"  {name}: tools.txt pins {version}, .tools/bin holds {have}")
     # A stamp is what install-tools.sh left beside a binary it installed, so a
-    # stamp no line names is a tool whose pin was removed.
+    # stamp no line names is a tool whose pin was removed. Its `*` glob skips
+    # hidden files, so they are not stamps.
     stamps = tools / ".pins"
     for stamp in sorted(stamps.iterdir()) if stamps.is_dir() else []:
-        if stamp.is_file() and stamp.name not in named:
-            recorded = stamp.read_text(encoding="utf-8").split()
+        if stamp.is_file() and not stamp.name.startswith(".") and stamp.name not in named:
+            try:
+                recorded = stamp.read_text(encoding="utf-8").split()
+            except UnicodeDecodeError:
+                recorded = []
             have = recorded[1] if len(recorded) > 1 else "an unreadable pin"
             drift.append(f"  {stamp.name}: tools.txt pins nothing, .tools/bin holds {have}")
     return drift

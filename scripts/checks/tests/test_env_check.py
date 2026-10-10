@@ -245,3 +245,18 @@ def test_a_tool_pinned_only_for_another_platform_fails(project: Path) -> None:
     result = check(project)
     assert result.returncode == 1
     assert "fake: tools.txt pins nothing, .tools/bin holds 1.0" in result.stdout
+
+
+def test_a_hidden_file_among_the_pins_is_not_a_stamp(project: Path) -> None:
+    # install-tools.sh reads the stamps through a `*` glob, which skips hidden
+    # files, so a .DS_Store there names no tool and is never removed.
+    (project / ".tools" / "bin" / ".pins" / ".DS_Store").write_bytes(b"\x00\x05\x16\x07\xff")
+    result = check(project)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_a_stamp_that_is_not_text_is_an_unreadable_pin(project: Path) -> None:
+    (project / ".tools" / "bin" / ".pins" / "orphan").write_bytes(b"\xff\xfe")
+    result = check(project)
+    assert result.returncode == 1, result.stderr
+    assert "orphan: tools.txt pins nothing, .tools/bin holds an unreadable pin" in result.stdout

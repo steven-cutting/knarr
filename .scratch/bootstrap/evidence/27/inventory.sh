@@ -56,6 +56,7 @@ pixi_sites = (
     + count(r"^FROM ghcr\.io/prefix-dev/pixi:", "Dockerfile")
     + count(r"\[pixi\]\(https://pixi\.sh\) \S+ or later", "README.md")
 )
+kwok_image = count(r'"registry\.k8s\.io/kwok/kwok:[^"\s]+@sha256:[0-9a-f]{64}"', "scripts/checks/cluster.py")
 rows = [
     ("hex package range", "gleam.toml", len(gleam["dependencies"]) + len(gleam["dev-dependencies"]), "renovate gleam (hex), group hex packages"),
     ("hex package lock", "manifest.toml", sum(1 for p in manifest["packages"] if p.get("source") == "hex"), "renovate gleam: update-lockfile, lockFileMaintenance"),
@@ -65,7 +66,8 @@ rows = [
     ("runner label", ", ".join(w for w in workflows if "/workflows/" in w), count(r"^\s+runs-on: ubuntu-\S+$", *workflows), "renovate github-actions (github-runners), group GitHub Actions"),
     ("prek remote hook rev", ".pre-commit-config.yaml, .pre-commit-fix.yaml", len(remote_hooks), f"none to cover: {len(hooks)} repos, all local or builtin"),
     ("base image digest", "Dockerfile FROM", count(r"^FROM \S+@sha256:[0-9a-f]{64}", "Dockerfile"), "renovate dockerfile, docker:pinDigests"),
-    ("cluster image digest", "scripts/checks/cluster.py", count(r'"[^"\s]+@sha256:[0-9a-f]{64}"', "scripts/checks/cluster.py"), "renovate regex (docker), group local cluster, held"),
+    ("cluster image digest", "scripts/checks/cluster.py", count(r'"[^"\s]+@sha256:[0-9a-f]{64}"', "scripts/checks/cluster.py") - kwok_image, "renovate regex (docker), group local cluster, held"),
+    ("kwok image digest", "scripts/checks/cluster.py", kwok_image, "gap: manual, with kwokctl's tools.txt lines; renovate has it disabled"),
     ("pixi version", "pixi.toml, setup action (2), Dockerfile, README.md", pixi_sites, "renovate: setup-pixi input, dockerfile, regex; group pixi, held"),
     ("tools.txt sha256", "tools.txt", len(tools), f"gap: manual; {len({t[0] for t in tools})} tools on 2 platforms, no bot rehashes a download"),
     ("rebar3 ADD --checksum", "Dockerfile", count(r"^ADD --checksum=sha256:[0-9a-f]{64} ", "Dockerfile"), "gap: manual, with tools.txt's rebar3 line (test_image.py)"),

@@ -21,6 +21,7 @@ SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import sys
@@ -55,13 +56,18 @@ def hex_packages(manifest_text: str) -> list[tuple[str, str]]:
     """(name, version) of every package manifest.toml locks from Hex."""
     try:
         packages = tomllib.loads(manifest_text)["packages"]
+    except (tomllib.TOMLDecodeError, KeyError) as error:
+        raise CannotDecideError(f"manifest.toml has no readable packages list: {error}") from error
+    if not isinstance(packages, list) or not all(isinstance(p, dict) for p in packages):
+        raise CannotDecideError("manifest.toml's packages is not a list of tables")
+    try:
         return sorted(
             (package["name"], package["version"])
             for package in packages
             if package.get("source") == "hex"
         )
-    except (tomllib.TOMLDecodeError, KeyError, TypeError) as error:
-        raise CannotDecideError(f"manifest.toml has no readable packages list: {error}") from error
+    except (KeyError, TypeError) as error:
+        raise CannotDecideError(f"manifest.toml has a hex package without {error}") from error
 
 
 def otp_release(pixi_text: str) -> str:
@@ -146,9 +152,9 @@ def main(
     try:
         audited = subjects(project)
         lines = findings(audited, post(batch_query(audited)))
-    except (CannotDecideError, OSError, ValueError) as error:
-        # URLError, HTTPError and timeouts are OSErrors; a body that is not
-        # JSON is a ValueError.
+    except (CannotDecideError, OSError, http.client.HTTPException, ValueError) as error:
+        # URLError, HTTPError and timeouts are OSErrors; a body cut short is an
+        # HTTPException (IncompleteRead); a body that is not JSON is a ValueError.
         print(f"hex-audit: cannot decide: {error}", file=sys.stderr)
         return 2
     packages = len(audited) - 1

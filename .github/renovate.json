@@ -37,7 +37,7 @@
       "rangeStrategy": "update-lockfile"
     },
     {
-      "description": "Every action pinned by SHA, and the runner labels, in one pull request; an action's SHA and its version comment move together. The runner label is named ubuntu, like the runtime base, so without this it would share the runtime base's pull request.",
+      "description": "Every action pinned by SHA, and the runner labels, in one group, which Renovate still splits: a major update gets a pull request of its own (separateMajorMinor). An action's SHA and its version comment move together. The runner label is named ubuntu, like the runtime base, so without this it would share the runtime base's pull request.",
       "matchManagers": [
         "github-actions"
       ],
@@ -86,7 +86,7 @@
       "pinDigests": false
     },
     {
-      "description": "The local-cluster images move together and wait for approval. The kwok image moves only with kwokctl's line in tools.txt, which no bot can rehash (Decision 0013).",
+      "description": "The local-cluster images move together and wait for approval.",
       "matchManagers": [
         "custom.regex"
       ],
@@ -118,6 +118,20 @@
         "registry.k8s.io/kube-scheduler"
       ],
       "allowedVersions": "/^v1\\.35\\./"
+    },
+    {
+      "description": "etcd 3.6 until the cluster moves: kwok 0.8 runs Kubernetes 1.35 on etcd 3.6, and etcd 3.7 is not that pairing.",
+      "matchPackageNames": [
+        "registry.k8s.io/etcd"
+      ],
+      "allowedVersions": "/^3\\.6\\./"
+    },
+    {
+      "description": "The kwok controller image moves only by hand, with kwokctl's line in tools.txt: both name one kwok release, and no bot can rehash that line (Decision 0013).",
+      "matchPackageNames": [
+        "registry.k8s.io/kwok/kwok"
+      ],
+      "enabled": false
     }
   ],
   "customManagers": [
